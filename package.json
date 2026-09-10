@@ -13,7 +13,8 @@
     "migrate": "tsx packages/db/src/cli-migrate.ts",
     "slack": "tsx apps/slack/src/index.ts",
     "api": "tsx apps/api/src/index.ts",
-    "mcp": "tsx packages/mcp/src/index.ts"
+    "mcp": "tsx packages/mcp/src/index.ts",
+    "sync-channels": "tsx scripts/sync-channel-map.ts"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
