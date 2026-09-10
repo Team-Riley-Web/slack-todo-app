@@ -331,3 +331,23 @@ it('ignores a non-numeric limit instead of erroring', async () => {
     expect(r.json().tasks).toHaveLength(1);
   }
 });
+
+// Regression: ISSUE-007 — the bearer token used a plain !== compare while the
+// Slack signature path correctly used timingSafeEqual.
+// Found by /qa on 2026-09-09
+// Report: .gstack/qa-reports/qa-report-team-riley-tasks-2026-09-09.md
+it('rejects tokens of every wrong shape without leaking length via error', async () => {
+  for (const header of [
+    '', 'Bearer', 'Bearer ', 'Bearer s', 'Bearer secret-toke', 'Bearer secret-tokenn',
+    'secret-token', 'Basic secret-token', 'bearer secret-token',
+  ]) {
+    const r = await app.inject({
+      method: 'GET', url: '/tasks', headers: { authorization: header },
+    });
+    expect(r.statusCode).toBe(401);
+  }
+  const ok = await app.inject({
+    method: 'GET', url: '/tasks', headers: { authorization: 'Bearer secret-token' },
+  });
+  expect(ok.statusCode).toBe(200);
+});

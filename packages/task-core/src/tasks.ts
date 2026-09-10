@@ -112,13 +112,16 @@ export async function moveTask(
   const nextSpace = patch.spaceId ?? before.space_id;
   const nextWaitingOn =
     nextStatus === 'waiting' ? (patch.waitingOn ?? before.waiting_on ?? null) : null;
-  const nextCompletedAt =
-    nextStatus === 'completed' ? (before.completed_at ?? new Date()) : null;
+  // completed_at comes from the database clock, as completeTask does — mixing
+  // the app clock in here would let two paths disagree under clock skew.
+  const keepCompletedAt = nextStatus === 'completed';
 
   await db.query(
-    `UPDATE tasks SET space_id = $2, status = $3, waiting_on = $4, completed_at = $5
+    `UPDATE tasks
+        SET space_id = $2, status = $3, waiting_on = $4,
+            completed_at = CASE WHEN $5 THEN COALESCE(completed_at, now()) ELSE NULL END
       WHERE id = $1`,
-    [safe, nextSpace, nextStatus, nextWaitingOn, nextCompletedAt]
+    [safe, nextSpace, nextStatus, nextWaitingOn, keepCompletedAt]
   );
 
   const changed =

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { taskCardBlocks, taskCardFallback, CHECKBOX_ACTION_ID } from './card.js';
+import {
+  taskCardBlocks, taskCardFallback, taskListBlocks, CHECKBOX_ACTION_ID,
+} from './card.js';
 import type { Task, Space } from '@tr/task-core';
 
 const space: Space = { id: 's', name: 'Client - Nazareth Law', slug: 'nl', is_inbox: false };
@@ -193,5 +195,44 @@ describe('empty card', () => {
 
   it('still lists titles when entries are present', () => {
     expect(taskCardFallback([{ task: task(), space }])).toContain('Offer Neil');
+  });
+});
+
+// Regression: ISSUE-006 — 500 tasks rendered 51 blocks and Slack rejects any
+// message over 50, so a full `/tasks <space>` post failed outright.
+// Found by /qa on 2026-09-09
+// Report: .gstack/qa-reports/qa-report-team-riley-tasks-2026-09-09.md
+describe('Slack 50-block message limit', () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      task: task({
+        id: `${i}`.padStart(8, '0') + '-1111-4111-8111-111111111111',
+        title: `Task ${i}`,
+      }),
+      space,
+    }));
+
+  it('stays within 50 blocks at the query limit, heading included', () => {
+    const blocks = taskListBlocks([{ heading: 'MARKETING', entries: many(500) }], opts);
+    expect(blocks.length).toBeLessThanOrEqual(50);
+  });
+
+  it('stays within 50 blocks for an absurd number of entries', () => {
+    for (const n of [401, 500, 1000, 5000]) {
+      expect(taskListBlocks([{ heading: 'X', entries: many(n) }], opts).length)
+        .toBeLessThanOrEqual(50);
+    }
+  });
+
+  it('reports the overflow rather than silently dropping tasks', () => {
+    const blocks = taskCardBlocks(many(450), opts);
+    const ctx = blocks.filter((b: any) => b.type === 'context');
+    expect(JSON.stringify(ctx)).toContain('Showing 400 of 450');
+    expect(JSON.stringify(ctx)).toContain('50 more not shown');
+  });
+
+  it('adds no overflow note when everything fits', () => {
+    const blocks = taskCardBlocks(many(12), opts);
+    expect(JSON.stringify(blocks)).not.toContain('not shown');
   });
 });
