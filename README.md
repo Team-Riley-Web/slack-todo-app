@@ -42,7 +42,11 @@ pnpm sync-channels        # apply config/channel-map.json to the database
 pnpm slack                # Slack app (Socket Mode)
 pnpm api                  # REST API on :3030
 pnpm mcp                  # MCP server on stdio, for Hermes
+pnpm prune-interactions   # prune dedupe rows past the retention window
 ```
+
+Note `prune-interactions`, not `prune` — `pnpm prune` is a pnpm built-in that
+prunes `node_modules`, and pnpm's own commands take precedence over scripts.
 
 ## Commands
 

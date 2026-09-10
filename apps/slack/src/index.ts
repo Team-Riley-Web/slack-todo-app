@@ -7,6 +7,7 @@ import { handleCheckboxToggle } from './handlers/checkbox.js';
 import { handleWaitingAction } from './handlers/waiting.js';
 import { handleTaskCommand } from './handlers/task-command.js';
 import { handleTasksCommand } from './handlers/tasks-command.js';
+import { retentionDays, startRetentionSweep } from './retention.js';
 
 const config = loadConfig();
 const db = await createDb();
@@ -44,6 +45,9 @@ app.action(WAITING_ACTION_ID, async ({ ack, body, client }) => {
 app.error(async (error) => {
   console.error('[slack] unhandled error', error);
 });
+
+// Housekeeping: dedupe rows outlive their usefulness within seconds.
+startRetentionSweep(db, retentionDays());
 
 if (config.mode === 'socket') {
   await app.start();

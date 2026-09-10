@@ -19,18 +19,21 @@ afterEach(async () => { await db.close(); });
 
 const call = (name: string, args: Record<string, unknown> = {}) => tools.get(name)!(args);
 
-it('exposes exactly the eleven contracted tools', () => {
+it('exposes exactly the twelve contracted tools', () => {
   expect([...TOOL_NAMES].sort()).toEqual([
     'complete_task', 'create_task', 'create_task_for_context', 'get_space_for_channel',
     'get_task', 'get_task_counts', 'list_spaces', 'list_tasks',
-    'list_tasks_for_context', 'list_waiting', 'move_task',
+    'list_tasks_for_context', 'list_waiting', 'move_task', 'set_task_details',
   ]);
   expect(new Set(buildTools(db).map((t) => t.name))).toEqual(new Set(TOOL_NAMES));
 });
 
 // Required test 18
 it('exposes no tool that can rename a task', () => {
-  expect(TOOL_NAMES.some((n) => /title|rename|edit|update/i.test(n))).toBe(false);
+  expect(TOOL_NAMES.some((n) => /title|rename/i.test(n))).toBe(false);
+  // set_task_details is the only write tool beyond create/complete/move, and it
+  // reads only task_id and details.
+  expect(TOOL_NAMES.filter((n) => n.startsWith('set_'))).toEqual(['set_task_details']);
 });
 
 // Required test 14
@@ -235,4 +238,28 @@ it('marks details write-once in its tool schema', () => {
   const t = buildTools(db).find((x) => x.name === 'create_task')!;
   const details = (t.inputSchema as any).properties.details.description as string;
   expect(details.toLowerCase()).toContain('write-once');
+});
+
+// --- set_task_details ---
+
+it('exposes set_task_details and it cannot change the title', async () => {
+  const { task } = await call('create_task', {
+    title: 'Exact original title', space_id: spaceId, details: 'a',
+  });
+  const r = await call('set_task_details', {
+    task_id: task.id, details: 'b', title: 'AI-REWRITTEN',
+  });
+  expect(r.task.details).toBe('b');
+  expect(r.task.title).toBe('Exact original title');
+});
+
+it('clears details via null through MCP', async () => {
+  const { task } = await call('create_task', { title: 'X', space_id: spaceId, details: 'a' });
+  expect((await call('set_task_details', { task_id: task.id, details: null })).task.details)
+    .toBeNull();
+});
+
+it('states in its description that it cannot change the title', () => {
+  const t = buildTools(db).find((x) => x.name === 'set_task_details')!;
+  expect(t.description.toLowerCase()).toContain('cannot change the title');
 });

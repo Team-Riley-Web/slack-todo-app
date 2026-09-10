@@ -9,6 +9,11 @@ export const DESCRIPTION_BUDGET = 75;
 export interface MetaOpts {
   timeZone: string;
   assigneeLabels?: Record<string, string>;
+  /**
+   * Render version, stamped into each checkbox block_id so an interaction can
+   * be matched to the render the clicking client saw. Defaults to 1.
+   */
+  version?: number;
 }
 
 /**

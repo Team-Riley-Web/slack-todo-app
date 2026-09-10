@@ -351,3 +351,38 @@ it('rejects tokens of every wrong shape without leaking length via error', async
   });
   expect(ok.statusCode).toBe(200);
 });
+
+// --- details update route ---
+
+it('updates details and leaves the title untouched', async () => {
+  const t = await createTask(db, { title: 'Exact original title', spaceId, details: 'a' });
+  const r = await app.inject({
+    method: 'POST', url: `/tasks/${t.id}/details`, headers: auth,
+    payload: { details: 'b' },
+  });
+  expect(r.statusCode).toBe(200);
+  expect(r.json().task.details).toBe('b');
+  expect(r.json().task.title).toBe('Exact original title');
+});
+
+it('clears details with null and rejects a non-string value', async () => {
+  const t = await createTask(db, { title: 'X', spaceId, details: 'a' });
+  const cleared = await app.inject({
+    method: 'POST', url: `/tasks/${t.id}/details`, headers: auth, payload: { details: null },
+  });
+  expect(cleared.json().task.details).toBeNull();
+
+  const bad = await app.inject({
+    method: 'POST', url: `/tasks/${t.id}/details`, headers: auth, payload: { details: 42 },
+  });
+  expect(bad.statusCode).toBe(400);
+});
+
+it('still has no route that can change a title, details route included', async () => {
+  const t = await createTask(db, { title: 'Exact original title', spaceId });
+  const r = await app.inject({
+    method: 'POST', url: `/tasks/${t.id}/details`, headers: auth,
+    payload: { details: 'notes', title: 'AI-REWRITTEN' },
+  });
+  expect(r.json().task.title).toBe('Exact original title');
+});

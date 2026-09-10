@@ -5,7 +5,7 @@ export {
   listSpaces, getInboxSpace, resolveSpaceForChannel, findSpaceByQuery,
 } from './spaces.js';
 export {
-  createTask, getTask, completeTask, reopenTask, moveTask,
+  createTask, getTask, completeTask, reopenTask, moveTask, updateTaskDetails,
   type Actor, type CreateTaskInput, type MovePatch,
 } from './tasks.js';
 export {

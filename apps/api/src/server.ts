@@ -4,6 +4,7 @@ import type { Db } from '@tr/db';
 import {
   completeTask, createTask, getSpaceForChannel, getTask, getTaskCounts,
   listChannelMap, listSpaces, listTasks, listWaiting, moveTask, reopenTask,
+  updateTaskDetails,
   resolveDestinationSpace,
   InvalidDueDateError, InvalidTaskIdError, TaskNotFoundError, UnknownSpaceError,
   type TaskStatus,
@@ -168,6 +169,16 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
   app.post('/tasks/:id/reopen', async (req) => {
     const { id } = req.params as { id: string };
     return { task: await reopenTask(db, id, actor(req as never)) };
+  });
+
+  /** Updates only details. There is still no route that can change a title. */
+  app.post('/tasks/:id/details', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const b = (req.body ?? {}) as Record<string, unknown>;
+    if (b.details !== null && typeof b.details !== 'string') {
+      return reply.code(400).send({ error: 'details_must_be_string_or_null' });
+    }
+    return { task: await updateTaskDetails(db, id, b.details as string | null, actor(req as never)) };
   });
 
   app.post('/tasks/:id/move', async (req) => {

@@ -137,6 +137,32 @@ export async function moveTask(
   return requireTask(db, safe);
 }
 
+/**
+ * Updates ONLY `details`. Deliberately narrow: it reads no other field off its
+ * input, so it can never become a backdoor to the title. `title` remains
+ * unwritable by any function in this package.
+ */
+export async function updateTaskDetails(
+  db: Db, id: string, details: string | null, actor: Actor
+): Promise<Task> {
+  const safe = assertTaskId(id);
+  if (details !== null && typeof details !== 'string') {
+    throw new Error('details must be a string or null');
+  }
+  const before = await requireTask(db, safe);
+  const next = details === null || details.length === 0 ? null : details;
+
+  await db.query(`UPDATE tasks SET details = $2 WHERE id = $1`, [safe, next]);
+
+  if ((before.details ?? null) !== next) {
+    await logEvent(db, safe, 'details', actor, {
+      previous_length: before.details?.length ?? 0,
+      new_length: next?.length ?? 0,
+    });
+  }
+  return requireTask(db, safe);
+}
+
 async function logEvent(
   db: Db, taskId: string, event: string, actor: Actor, detail?: unknown
 ): Promise<void> {
