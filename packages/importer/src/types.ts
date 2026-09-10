@@ -98,3 +98,18 @@ export interface AuditRow {
   reason: string | null;
   created_at: Date;
 }
+
+export interface ImportReport {
+  batchId: string;
+  imported: number;
+  skipped: number;
+  needsReview: number;
+  failed: number;
+  records: Array<{
+    sourceRecordId: string | null;
+    canonicalTaskId: string | null;
+    action: AuditAction;
+    reason: string | null;
+  }>;
+  importedAt: string;
+}

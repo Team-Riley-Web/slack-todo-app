@@ -13,7 +13,7 @@ const task = (over: Partial<Task> = {}): Task => ({
   space_id: 's', list_id: null, assignee_id: 'U_JOSH', status: 'open',
   due_at: null, waiting_on: null, details: null, created_at: new Date(), completed_at: null,
   source_platform: 'slack', source_channel_id: null, source_message_ts: null,
-  created_by: null, ...over,
+  created_by: null, source_external_id: null, import_batch_id: null, ...over,
 });
 
 const checkbox = (blocks: any[]) => blocks.find((b) => b.type === 'actions').elements[0];

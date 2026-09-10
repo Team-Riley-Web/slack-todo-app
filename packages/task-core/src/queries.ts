@@ -3,7 +3,8 @@ import type { Task, TaskStatus } from './types.js';
 
 const COLS = `id, title, space_id, list_id, assignee_id, status, due_at, waiting_on,
               details, created_at, completed_at, source_platform,
-              source_channel_id, source_message_ts, created_by`;
+              source_channel_id, source_message_ts, created_by,
+              source_external_id, import_batch_id`;
 
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 500;
