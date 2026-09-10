@@ -181,7 +181,7 @@ export function TaskList(props: {
   assigneeLabels?: Record<string, string>;
 }) {
   if (props.rows.length === 0) {
-    return <p className="muted">{props.empty}</p>;
+    return <p className="empty">{props.empty}</p>;
   }
   return (
     <ul className="rows">
