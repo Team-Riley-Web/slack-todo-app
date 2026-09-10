@@ -25,7 +25,8 @@
     "dotenv": "^16.4.5",
     "@tr/db": "workspace:*",
     "@tr/task-core": "workspace:*",
-    "@tr/slack-ui": "workspace:*"
+    "@tr/slack-ui": "workspace:*",
+    "@tr/importer": "workspace:*"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
