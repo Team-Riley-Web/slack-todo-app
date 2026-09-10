@@ -2,7 +2,7 @@ import { it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
 import { createTask, getTask, listTasks } from '@tr/task-core';
-import { saveCard } from '../cards.js';
+import { saveCard } from '@tr/slack-sync';
 import { handleWaitingAction, WAITING_ACTION_ID } from './waiting.js';
 
 let db: Db;
