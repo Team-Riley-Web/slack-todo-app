@@ -113,3 +113,10 @@ export interface ImportReport {
   }>;
   importedAt: string;
 }
+
+export interface RollbackResult {
+  batchId: string;
+  deleted: number;
+  refused: number;
+  refusedTaskIds: string[];
+}
