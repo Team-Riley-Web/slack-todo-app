@@ -378,8 +378,23 @@ form.fields button { justify-self: start; margin-top: 2px; }
 /* --- the Spaces list --- */
 
 .row.spacerow {
-  grid-template-columns: minmax(0, 1fr) 62px 72px 58px 190px;
+  /* Narrower last column: two icons, not a paragraph. */
+  grid-template-columns: minmax(0, 1fr) 62px 72px 58px 76px;
 }
+.iconactions { display: flex; justify-content: flex-end; gap: 2px; }
+a.iconbtn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: var(--radius);
+  color: var(--muted); text-decoration: none;
+  /* Always visible, just quiet. Hover-to-reveal would leave the column
+     looking empty, which reads as broken rather than as tidy. */
+  opacity: 0.55;
+}
+.row:hover a.iconbtn, a.iconbtn:focus-visible, a.iconbtn:hover { opacity: 1; }
+a.iconbtn:hover { background: #f1f3f5; color: var(--fg); }
+a.iconbtn.danger:hover { background: #fef3f2; color: var(--danger); }
+a.iconbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+a.iconbtn .icon { width: 15px; height: 15px; }
 .row .num {
   color: var(--muted); font-size: 13px; text-align: right;
   padding-right: 14px; font-variant-numeric: tabular-nums;
@@ -387,9 +402,14 @@ form.fields button { justify-self: start; margin-top: 2px; }
 .row.head .num { color: var(--muted); }
 
 @media (max-width: 860px) {
-  .row.spacerow { grid-template-columns: minmax(0, 1fr) 48px 92px; }
-  .row.spacerow .num:nth-of-type(2),
-  .row.spacerow .num:nth-of-type(3) { display: none; }
+  .row.spacerow { grid-template-columns: minmax(0, 1fr) 48px 76px; }
+  /* Keep the first number (Open) and drop the rest. `.num ~ .num` says
+     exactly that; the old :nth-of-type(2)/(3) counted spans, not .num cells,
+     so it hid Open and Waiting and left Done -- the least useful of the
+     three on the screen with the least room for it. */
+  .row.spacerow .num ~ .num { display: none; }
+  /* No hover on a touch screen, so give them full contrast. */
+  a.iconbtn { opacity: 1; }
   .page-head { flex-wrap: wrap; }
   .search-field input { width: 100%; }
   form.search { width: 100%; }

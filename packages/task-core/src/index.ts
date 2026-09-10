@@ -1,8 +1,8 @@
 export * from './types.js';
 export * from './errors.js';
 export {
-  deleteSpace, createSpace, slugForSpace,
-  type DeleteSpaceResult, type CreateSpaceResult,
+  deleteSpace, createSpace, setSpaceName, slugForSpace,
+  type DeleteSpaceResult, type CreateSpaceResult, type SetSpaceNameResult,
 } from './spaces.js';
 export { parseCapture, type Capture, type CaptureOptions } from './capture.js';
 export {
