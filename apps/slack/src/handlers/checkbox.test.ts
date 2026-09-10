@@ -99,7 +99,7 @@ describe('completion via checkbox', () => {
     const task = await seed();
     await handleCheckboxToggle(deps(), payload([task.id]) as never);
     expect(client.chat.update).toHaveBeenCalledTimes(1);
-    const arg = client.chat.update.mock.calls[0][0];
+    const arg = client.chat.update.mock.calls[0]![0]!;
     expect(arg.channel).toBe('C_NL');
     expect(arg.ts).toBe('1700000000.000100');
   });
@@ -108,7 +108,7 @@ describe('completion via checkbox', () => {
   it('renders the completed title with strikethrough and a checked box', async () => {
     const task = await seed();
     await handleCheckboxToggle(deps(), payload([task.id]) as never);
-    const el = client.chat.update.mock.calls[0][0].blocks
+    const el = client.chat.update.mock.calls[0]![0]!.blocks
       .find((b: any) => b.type === 'actions').elements[0];
     expect(el.options[0].text.text)
       .toBe('~Offer Neil Instagram and Facebook package for $100~');
@@ -175,7 +175,7 @@ describe('reopen via uncheck', () => {
     await completeTask(db, task.id, { id: 'U_JOSH', source: 'test' });
     await reseedCompleted(task.id);
     await handleCheckboxToggle(deps(), payload([]) as never);
-    const el = client.chat.update.mock.calls[0][0].blocks
+    const el = client.chat.update.mock.calls[0]![0]!.blocks
       .find((b: any) => b.type === 'actions').elements[0];
     expect(el.options[0].text.text).toBe(task.title);
     expect(el.options[0].text.type).toBe('plain_text');

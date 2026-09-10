@@ -1,0 +1,13 @@
+{
+  "name": "@tr/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@tr/db": "workspace:*",
+    "@tr/task-core": "workspace:*",
+    "fastify": "^5.1.0",
+    "dotenv": "^16.4.5"
+  }
+}

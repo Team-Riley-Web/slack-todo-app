@@ -45,5 +45,9 @@ app.error(async (error) => {
   console.error('[slack] unhandled error', error);
 });
 
-await app.start(config.mode === 'socket' ? undefined : Number(process.env.PORT ?? 3000));
+if (config.mode === 'socket') {
+  await app.start();
+} else {
+  await app.start(Number(process.env.PORT ?? 3000));
+}
 console.log(`[slack] running in ${config.mode} mode`);
