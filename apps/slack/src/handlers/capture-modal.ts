@@ -11,6 +11,7 @@ import { saveCard } from '@tr/slack-sync';
 import { authorize } from '../auth.js';
 import type { AppConfig } from '../config.js';
 import type { SlashCommandLike } from './task-command.js';
+import { isCannotPostError } from '../reply.js';
 
 export { CAPTURE_CALLBACK_ID, CAPTURE_BLOCKS } from '@tr/slack-ui';
 
@@ -162,9 +163,26 @@ export async function handleCaptureSubmission(
     } as never);
   }
 
-  const posted = await client.chat.postMessage({
-    channel, text: taskCardFallback(entries), blocks,
-  });
+  /*
+   * A view_submission carries no response_url, so there is no reply path that
+   * bypasses channel membership here. The task is still kept: capture must
+   * not depend on whether the app can post. The failure is logged rather than
+   * thrown so the submit completes, and the web UI shows the task either way.
+   */
+  let posted: { ts?: string };
+  try {
+    posted = await client.chat.postMessage({
+      channel, text: taskCardFallback(entries), blocks,
+    });
+  } catch (error) {
+    if (!isCannotPostError(error)) throw error;
+    console.error(
+      `[slack] created task ${task.id} but cannot post in channel ${channel};` +
+      ' invite the app to that channel for cards to appear',
+      error
+    );
+    return { created: fresh, spaceCreated };
+  }
   if (posted.ts) {
     await db.query(`UPDATE tasks SET source_message_ts = $2 WHERE id = $1`, [
       task.id, posted.ts,

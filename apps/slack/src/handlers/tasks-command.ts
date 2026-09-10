@@ -13,9 +13,14 @@ import type { AppConfig } from '../config.js';
 import type { SlashCommandLike } from './task-command.js';
 import { handleMapCommand, isMapCommand } from './map-command.js';
 import { handleNewSpaceCommand, parseNewSpaceCommand } from './space-command.js';
+import {
+  replyPrivately, isCannotPostError, cannotPostHere, type Respond,
+} from '../reply.js';
 
 export interface TasksDeps {
   db: Db;
+  /** Reaches the user even in a channel this app has not joined. */
+  respond?: Respond;
   client: {
     chat: {
       postMessage: (args: Record<string, unknown>) => Promise<{ ts?: string }>;
@@ -36,10 +41,11 @@ export async function handleTasksCommand(
     { team: { id: command.team_id }, user: { id: command.user_id } } as never, config
   );
   if (!auth.ok) {
-    await client.chat.postEphemeral({
-      channel: command.channel_id, user: command.user_id,
-      text: 'You are not authorized to view tasks with this app.',
-    });
+    await replyPrivately(
+      deps,
+      { channelId: command.channel_id, userId: command.user_id },
+      'You are not authorized to view tasks with this app.'
+    );
     return { scope: 'unauthorized', count: 0 };
   }
 
@@ -165,20 +171,32 @@ async function postGroups(
   const { client, db, config } = deps;
 
   if (entries.length === 0) {
-    await client.chat.postEphemeral({
-      channel: command.channel_id, user: command.user_id,
-      text: `*${heading}*\n\nNothing open.`,
-    });
+    await replyPrivately(
+      deps,
+      { channelId: command.channel_id, userId: command.user_id },
+      `*${heading}*\n\nNothing open.`
+    );
     return;
   }
 
-  const posted = await client.chat.postMessage({
-    channel: command.channel_id,
-    text: `${heading}\n${taskCardFallback(entries)}`,
-    blocks: taskListBlocks(groups, {
-      timeZone: config.timeZone, assigneeLabels: config.assigneeLabels,
-    }),
-  });
+  let posted: { ts?: string };
+  try {
+    posted = await client.chat.postMessage({
+      channel: command.channel_id,
+      text: `${heading}\n${taskCardFallback(entries)}`,
+      blocks: taskListBlocks(groups, {
+        timeZone: config.timeZone, assigneeLabels: config.assigneeLabels,
+      }),
+    });
+  } catch (error) {
+    if (!isCannotPostError(error)) throw error;
+    await replyPrivately(
+      deps,
+      { channelId: command.channel_id, userId: command.user_id },
+      cannotPostHere(`*${heading}* has ${entries.length} task(s).`, command.channel_name)
+    );
+    return;
+  }
   if (posted.ts) {
     await saveCard(db, {
       channelId: command.channel_id, messageTs: posted.ts, entries, viewScope,
@@ -201,18 +219,30 @@ async function postList(
   const opts = { timeZone: config.timeZone, assigneeLabels: config.assigneeLabels };
 
   if (entries.length === 0) {
-    await client.chat.postEphemeral({
-      channel: command.channel_id, user: command.user_id,
-      text: `*${heading}*\n\nNothing here.`,
-    });
+    await replyPrivately(
+      deps,
+      { channelId: command.channel_id, userId: command.user_id },
+      `*${heading}*\n\nNothing here.`
+    );
     return;
   }
 
-  const posted = await client.chat.postMessage({
-    channel: command.channel_id,
-    text: `${heading}\n${taskCardFallback(entries)}`,
-    blocks: taskListBlocks([{ heading, entries }], opts),
-  });
+  let posted: { ts?: string };
+  try {
+    posted = await client.chat.postMessage({
+      channel: command.channel_id,
+      text: `${heading}\n${taskCardFallback(entries)}`,
+      blocks: taskListBlocks([{ heading, entries }], opts),
+    });
+  } catch (error) {
+    if (!isCannotPostError(error)) throw error;
+    await replyPrivately(
+      deps,
+      { channelId: command.channel_id, userId: command.user_id },
+      cannotPostHere(`*${heading}* has ${entries.length} task(s).`, command.channel_name)
+    );
+    return;
+  }
   if (posted.ts) {
     await saveCard(db, {
       channelId: command.channel_id, messageTs: posted.ts, entries, viewScope,

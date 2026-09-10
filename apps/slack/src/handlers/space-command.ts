@@ -3,6 +3,7 @@ import { createSpace } from '@tr/task-core';
 import { authorize } from '../auth.js';
 import type { AppConfig } from '../config.js';
 import type { SlashCommandLike } from './task-command.js';
+import { replyPrivately, type Respond } from '../reply.js';
 
 /**
  * `/tasks new <name>` — create a Space, and nothing else.
@@ -18,6 +19,8 @@ import type { SlashCommandLike } from './task-command.js';
 
 export interface SpaceDeps {
   db: Db;
+  /** Reaches the user even in a channel this app has not joined. */
+  respond?: Respond;
   client: {
     chat: { postEphemeral: (args: Record<string, unknown>) => Promise<unknown> };
   };
@@ -51,15 +54,19 @@ export async function handleNewSpaceCommand(
 
   const result = await createSpace(deps.db, name);
 
-  const tell = async (text: string): Promise<void> => {
-    try {
-      await deps.client.chat.postEphemeral({
-        channel: command.channel_id, user: command.user_id, text,
-      });
-    } catch {
-      // A failed confirmation must not undo a Space that already exists.
-    }
-  };
+  /*
+   * This used to be a bare `catch {}` around postEphemeral, with the comment
+   * "a failed confirmation must not undo a Space that already exists". True,
+   * but it turned every failure into total silence: in a channel the app had
+   * not been invited to, `/space` created the Space and said nothing, so it
+   * looked like the command had done nothing at all. replyPrivately keeps the
+   * never-throw property and adds a response_url path, which needs no channel
+   * membership, plus a log if even that fails.
+   */
+  const tell = (text: string): Promise<void> =>
+    replyPrivately(
+      deps, { channelId: command.channel_id, userId: command.user_id }, text
+    );
 
   if (!result.ok || !result.space) {
     await tell(result.error ?? 'Could not create that Space.');
