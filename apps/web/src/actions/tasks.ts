@@ -154,9 +154,16 @@ export async function createTaskFormVoid(formData: FormData): Promise<void> {
 
 export async function editTaskFormVoid(formData: FormData): Promise<void> {
   const taskId = String(formData.get('taskId') ?? '');
+  // Where the pane was opened from, so saving returns to that filtered view
+  // rather than dumping you on the unfiltered list.
+  const returnTo = String(formData.get('returnTo') ?? '/') || '/';
   const result = await editTaskFormAction(formData);
   if (!result.ok) {
-    redirect(`/tasks/${encodeURIComponent(taskId)}/edit?error=${encodeURIComponent(result.error)}`);
+    const sep = returnTo.includes('?') ? '&' : '?';
+    redirect(
+      `${returnTo}${sep}edit=${encodeURIComponent(taskId)}` +
+      `&error=${encodeURIComponent(result.error)}`
+    );
   }
-  redirect('/');
+  redirect(returnTo);
 }

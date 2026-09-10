@@ -7,6 +7,7 @@ import { myTasks, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
+import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { NewTaskForm } from '@/components/NewTaskForm';
 import { assigneeLabels } from '@/lib/env';
@@ -37,6 +38,7 @@ export default async function SpacePage({
   const query = await searchParams;
   // The URL slug wins over any space filter in the query string.
   const base = { ...parseFilters(query), space: slug };
+  const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
 
   // Three queries rather than one filtered client-side, so each section counts
   // and shows exactly what it says.
@@ -66,6 +68,8 @@ export default async function SpacePage({
         rows={rows}
         empty={empty}
         showSpace={false}
+        basePath={`/spaces/${space.slug}`}
+        params={query}
         assigneeLabels={assigneeLabels()}
       />
     </SectionCard>
@@ -80,6 +84,8 @@ export default async function SpacePage({
       }))}
       railPath="/"
       activeSlug={space.slug}
+      searchPath={`/spaces/${space.slug}`}
+      searchParams={query}
       title={shortSpaceName(space)}
       subtitle={
         `${counts?.open ?? 0} open · ${counts?.waiting ?? 0} waiting · ` +
@@ -95,8 +101,7 @@ export default async function SpacePage({
           <FilterBar
             path={`/spaces/${space.slug}`}
             filters={base}
-            spaces={spaces}
-            show={['search', 'due']}
+            show={['due']}
           />
         </>
       }
@@ -105,6 +110,16 @@ export default async function SpacePage({
       {section('Open', open, 'Nothing open.', true)}
       {section('Waiting', waiting, 'Nothing waiting.', true)}
       {section('Completed', completed, 'Nothing completed yet.', false)}
+
+      {editing ? (
+        <EditPane
+          db={db}
+          taskId={editing}
+          basePath={`/spaces/${space.slug}`}
+          params={query}
+          assigneeLabels={assigneeLabels()}
+        />
+      ) : null}
     </Shell>
   );
 }

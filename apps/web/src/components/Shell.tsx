@@ -1,23 +1,25 @@
 import { Sidebar, type SidebarSpace } from './Sidebar';
+import { SearchBox } from './SearchBox';
 
 /**
- * Chrome shared by every signed-in page: a sidebar carrying all navigation,
- * and a main column carrying nothing but content.
+ * Chrome shared by every signed-in page.
  *
- * `title` and `subtitle` render the page header the way the reference does —
- * a heading with a line of explanation under it — so every page gets the same
- * shape rather than each one inventing its own.
+ * The header is one row: heading on the left, search on the right. The
+ * subtitle is optional and mostly unused now — a count of tasks above a list
+ * of the same tasks was noise.
  */
 export function Shell(props: {
   current: string;
   who: string | null;
   spaces: SidebarSpace[];
   activeSlug?: string | null;
-  /** Which view the Space links filter. Defaults to the current page. */
   railPath?: string;
   title: string;
   subtitle?: string;
-  /** The view-tab row or filters, directly under the header. */
+  /** Where the search form submits, and the filters it must carry through. */
+  searchPath?: string;
+  searchParams?: Record<string, string | string[] | undefined>;
+  /** Filters, under the header. */
   toolbar?: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -32,8 +34,13 @@ export function Shell(props: {
       />
       <main className="main">
         <header className="page-head">
-          <h1>{props.title}</h1>
-          {props.subtitle ? <p className="sub">{props.subtitle}</p> : null}
+          <div className="heading">
+            <h1>{props.title}</h1>
+            {props.subtitle ? <p className="sub">{props.subtitle}</p> : null}
+          </div>
+          {props.searchPath ? (
+            <SearchBox path={props.searchPath} params={props.searchParams ?? {}} />
+          ) : null}
         </header>
         {props.toolbar ? <div className="toolbar">{props.toolbar}</div> : null}
         <div className="content">{props.children}</div>

@@ -26,11 +26,20 @@ export default async function SettingsPage({
       who={user.name ?? user.slackUserId}
       spaces={railSpaces}
       title="Settings"
-      subtitle="No tokens or keys are shown here, or read by this page at all."
     >
+      <p className="muted small">
+        No tokens or keys are shown here, or read by this page at all.
+      </p>
+
       {error ? <p className="error">{String(error)}</p> : null}
 
-      <h2>Slack channel to Space</h2>
+      {/*
+        Each section is a details block, and only the channel map starts open:
+        it is the one thing anyone comes to this page to change. The rest is
+        reference, and reference that is always expanded is just a long page.
+      */}
+      <details className="panel" open>
+        <summary><span className="chevron" aria-hidden="true" />Slack channel to Space</summary>
       <p className="muted small">
         A task captured with <code>/task</code> lands in the Space its channel
         maps to. An unmapped channel goes to <strong>{view.defaultSpaceName}</strong>.
@@ -61,7 +70,7 @@ export default async function SettingsPage({
         </table>
       </div>
 
-      <form className="inline" action={setChannelMappingFormVoid}>
+      <form className="fields" action={setChannelMappingFormVoid}>
         <label className="small">
           Channel ID
           <input type="text" name="channelId" required placeholder="C01ABCDEF" />
@@ -81,8 +90,10 @@ export default async function SettingsPage({
         </label>
         <button type="submit" className="primary">Save mapping</button>
       </form>
+      </details>
 
-      <h2>Who can use this</h2>
+      <details className="panel">
+        <summary><span className="chevron" aria-hidden="true" />Who can use this</summary>
       <p className="muted small">
         Set with <code>AUTHORIZED_SLACK_USER_IDS</code>. An empty list denies
         everyone, including in Slack.
@@ -96,8 +107,10 @@ export default async function SettingsPage({
           <li key={id}><code>{id}</code>{id === user.slackUserId ? ' (you)' : ''}</li>
         ))}
       </ul>
+      </details>
 
-      <h2>Imports</h2>
+      <details className="panel">
+        <summary><span className="chevron" aria-hidden="true" />Imports</summary>
       {view.batches.length === 0 ? (
         <p className="muted small">
           No imports yet. Run <code>pnpm import-tasks</code>; see IMPORT.md.
@@ -123,11 +136,15 @@ export default async function SettingsPage({
         </div>
       )}
 
-      <h2>Time zone</h2>
-      <p className="muted small">
-        Relative due dates like <code>due:tomorrow</code> resolve against{' '}
-        <strong>{view.timeZone}</strong>.
-      </p>
+      </details>
+
+      <details className="panel">
+        <summary><span className="chevron" aria-hidden="true" />Time zone</summary>
+        <p className="muted small">
+          Relative due dates like <code>due:tomorrow</code> resolve against{' '}
+          <strong>{view.timeZone}</strong>.
+        </p>
+      </details>
     </Shell>
   );
 }

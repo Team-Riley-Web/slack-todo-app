@@ -12,13 +12,15 @@ import Link from 'next/link';
  * involved.
  */
 export function SectionCard({
-  label, count, startOpen = true, createHref, children,
+  label, count, startOpen = true, createHref, columns = 'tasks', children,
 }: {
   label: string;
   count: number;
   startOpen?: boolean;
   /** Renders the "+ Create new task" footer when given. */
   createHref?: string;
+  /** Which column headings to show. */
+  columns?: 'tasks' | 'spaces' | 'none';
   children: React.ReactNode;
 }) {
   return (
@@ -30,12 +32,23 @@ export function SectionCard({
       </summary>
 
       <div className="card-body">
-        <div className="row head" aria-hidden="true">
-          <span className="tick" />
-          <span className="title">Task</span>
-          <span className="assignee">Assignee</span>
-          <span className="due">Due date</span>
-        </div>
+        {columns === 'tasks' ? (
+          <div className="row head" aria-hidden="true">
+            <span className="tick" />
+            <span className="title">Task</span>
+            <span className="assignee">Assignee</span>
+            <span className="due">Due date</span>
+          </div>
+        ) : null}
+        {columns === 'spaces' ? (
+          <div className="row spacerow head" aria-hidden="true">
+            <span className="title">Space</span>
+            <span className="num">Open</span>
+            <span className="num">Waiting</span>
+            <span className="num">Done</span>
+            <span className="rowactions" />
+          </div>
+        ) : null}
         {children}
         {createHref ? (
           <Link className="create" href={createHref}>+ Create new task</Link>

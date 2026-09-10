@@ -6,6 +6,7 @@ import { myTasks, knownAssignees, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
+import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
 
@@ -15,7 +16,9 @@ export default async function MyTasksPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
-  const filters = parseFilters(await searchParams);
+  const query = await searchParams;
+  const filters = parseFilters(query);
+  const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
   const db = await getDb();
 
   const [rows, spaces, assignees] = await Promise.all([
@@ -37,19 +40,16 @@ export default async function MyTasksPage({
       spaces={railSpaces}
       railPath="/"
       activeSlug={filters.space ?? null}
+      searchPath="/"
+      searchParams={query}
       title="My tasks"
-      subtitle={
-        `${rows.length} ${rows.length === 1 ? 'task' : 'tasks'}` +
-        (Object.keys(filters).length > 0 ? ' matching these filters' : ' open')
-      }
       toolbar={
         <FilterBar
           path="/"
           filters={filters}
-          spaces={spaces}
           assignees={assignees}
           assigneeLabels={assigneeLabels()}
-          show={['search', 'status', 'due', 'assignee']}
+          show={['due', 'assignee']}
         />
       }
     >
@@ -58,8 +58,20 @@ export default async function MyTasksPage({
           rows={rows}
           empty="Nothing open. Capture something with /task in Slack."
           assigneeLabels={assigneeLabels()}
+          basePath="/"
+          params={query}
         />
       </SectionCard>
+
+      {editing ? (
+        <EditPane
+          db={db}
+          taskId={editing}
+          basePath="/"
+          params={query}
+          assigneeLabels={assigneeLabels()}
+        />
+      ) : null}
     </Shell>
   );
 }

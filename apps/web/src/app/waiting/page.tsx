@@ -6,6 +6,7 @@ import { waitingTasks, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
+import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
 
@@ -15,7 +16,9 @@ export default async function WaitingPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
-  const filters = parseFilters(await searchParams);
+  const query = await searchParams;
+  const filters = parseFilters(query);
+  const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
   const db = await getDb();
 
   const [rows, spaces] = await Promise.all([
@@ -36,14 +39,14 @@ export default async function WaitingPage({
       spaces={railSpaces}
       railPath="/waiting"
       activeSlug={filters.space ?? null}
+      searchPath="/waiting"
+      searchParams={query}
       title="Waiting / blocked"
-      subtitle="Parked on purpose, so they stay out of the open list."
       toolbar={
         <FilterBar
           path="/waiting"
           filters={filters}
-          spaces={spaces}
-          show={['search']}
+          show={['assignee']}
         />
       }
     >
@@ -53,8 +56,20 @@ export default async function WaitingPage({
           empty="Nothing is waiting."
           showAge
           assigneeLabels={assigneeLabels()}
+          basePath="/waiting"
+          params={query}
         />
       </SectionCard>
+
+      {editing ? (
+        <EditPane
+          db={db}
+          taskId={editing}
+          basePath="/waiting"
+          params={query}
+          assigneeLabels={assigneeLabels()}
+        />
+      ) : null}
     </Shell>
   );
 }
