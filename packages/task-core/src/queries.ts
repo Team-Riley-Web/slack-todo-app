@@ -5,6 +5,18 @@ const COLS = `id, title, space_id, list_id, assignee_id, status, due_at, waiting
               details, created_at, completed_at, source_platform,
               source_channel_id, source_message_ts, created_by`;
 
+const DEFAULT_LIMIT = 200;
+const MAX_LIMIT = 500;
+
+/**
+ * A non-numeric `?limit=` reached SQL as `LIMIT NaN` and errored the request.
+ * Anything not a finite positive number falls back to the default.
+ */
+function sanitizeLimit(limit: unknown): number {
+  if (typeof limit !== 'number' || !Number.isFinite(limit) || limit < 1) return DEFAULT_LIMIT;
+  return Math.min(Math.floor(limit), MAX_LIMIT);
+}
+
 export interface ListTasksFilter {
   spaceId?: string;
   status?: TaskStatus | TaskStatus[];
@@ -28,7 +40,7 @@ export async function listTasks(db: Db, filter: ListTasksFilter = {}): Promise<T
   if (filter.spaceId) { params.push(filter.spaceId); where.push(`space_id = $${params.length}`); }
   if (filter.assigneeId) { params.push(filter.assigneeId); where.push(`assignee_id = $${params.length}`); }
 
-  params.push(Math.min(filter.limit ?? 200, 500));
+  params.push(sanitizeLimit(filter.limit));
   const { rows } = await db.query<Task>(
     `SELECT ${COLS} FROM tasks
       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}

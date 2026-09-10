@@ -4,7 +4,8 @@ import {
   completeTask, createTask, getSpaceForChannel, getTask, getTaskCounts,
   listChannelMap, listSpaces, listTasks, listWaiting, moveTask, reopenTask,
   resolveDestinationSpace,
-  InvalidTaskIdError, TaskNotFoundError, UnknownSpaceError, type TaskStatus,
+  InvalidDueDateError, InvalidTaskIdError, TaskNotFoundError, UnknownSpaceError,
+  type TaskStatus,
 } from '@tr/task-core';
 
 export interface ApiDeps { db: Db; apiToken: string | null }
@@ -24,6 +25,7 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
 
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof InvalidTaskIdError) return reply.code(400).send({ error: 'invalid_task_id' });
+    if (err instanceof InvalidDueDateError) return reply.code(400).send({ error: 'invalid_due_at' });
     if (err instanceof TaskNotFoundError) return reply.code(404).send({ error: 'task_not_found' });
     if (err instanceof UnknownSpaceError) {
       return reply.code(400).send({

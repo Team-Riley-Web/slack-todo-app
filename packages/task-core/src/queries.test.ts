@@ -86,3 +86,23 @@ it('orders by due date first, then creation, so undated tasks trail dated ones',
   const rows = await listTasks(db, { spaceId: spaceIds['Sales']!, actionableOnly: true });
   expect(rows.map((t) => t.title)).toEqual(['sooner', 'later', 'undated']);
 });
+
+// Regression: ISSUE-003 — a non-numeric ?limit= became LIMIT NaN and errored
+// the whole request instead of falling back to the default.
+// Found by /qa on 2026-09-09
+// Report: .gstack/qa-reports/qa-report-team-riley-tasks-2026-09-09.md
+it('falls back to the default limit for any non-numeric or absurd value', async () => {
+  await add('Marketing', 'A');
+  for (const limit of [Number.NaN, 0, -5, Infinity, '10' as never, null as never, {} as never]) {
+    const rows = await listTasks(db, { limit });
+    expect(rows).toHaveLength(1);
+  }
+});
+
+it('honours a valid limit and caps it at 500', async () => {
+  await add('Marketing', 'A');
+  await add('Marketing', 'B');
+  expect(await listTasks(db, { limit: 1 })).toHaveLength(1);
+  expect(await listTasks(db, { limit: 1.9 })).toHaveLength(1); // floored
+  expect(await listTasks(db, { limit: 100_000 })).toHaveLength(2);
+});

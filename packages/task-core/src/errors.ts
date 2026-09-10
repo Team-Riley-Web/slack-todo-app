@@ -19,6 +19,13 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export class InvalidDueDateError extends Error {
+  constructor(readonly value: unknown) {
+    super('due_at is not a valid date');
+    this.name = 'InvalidDueDateError';
+  }
+}
+
 export class UnknownSpaceError extends Error {
   constructor(readonly requested: string, readonly available: string[]) {
     super(

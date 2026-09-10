@@ -187,3 +187,27 @@ it('exposes no update path for details in Phase 1', async () => {
   await moveTask(db, t.id, { status: 'waiting', details: 'rewritten' } as never, actor);
   expect((await getTask(db, t.id))!.details).toBe('original');
 });
+
+// Regression: ISSUE-002 — an unparseable due_at reached Postgres as an Invalid
+// Date and surfaced as a 500 instead of a validation error.
+// Found by /qa on 2026-09-09
+// Report: .gstack/qa-reports/qa-report-team-riley-tasks-2026-09-09.md
+it('rejects an unparseable due date before touching the database', async () => {
+  const { InvalidDueDateError } = await import('./errors.js');
+  for (const bad of ['not-a-date', '', '2026-13-45', 'tomorrow']) {
+    await expect(
+      createTask(db, { title: 'X', spaceId, dueAt: new Date(bad) })
+    ).rejects.toThrow(InvalidDueDateError);
+  }
+  const { rows } = await db.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM tasks`);
+  expect(rows[0]!.n).toBe(0);
+});
+
+it('still accepts a valid due date and a null one', async () => {
+  const withDue = await createTask(db, {
+    title: 'A', spaceId, dueAt: new Date('2026-09-15T05:00:00Z'),
+  });
+  expect(withDue.due_at).toBeInstanceOf(Date);
+  const without = await createTask(db, { title: 'B', spaceId, dueAt: null });
+  expect(without.due_at).toBeNull();
+});
