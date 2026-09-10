@@ -120,6 +120,7 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
       sourcePlatform: typeof b.source_platform === 'string' ? b.source_platform : 'api',
       sourceChannelId: channelId,
       createdBy: typeof b.created_by === 'string' ? b.created_by : null,
+      details: typeof b.details === 'string' ? b.details : null,
     });
     return reply.code(201).send({ task, space: dest.space, resolved_from: dest.source });
   });
@@ -143,6 +144,7 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
       dueAt: typeof b.due_at === 'string' ? new Date(b.due_at) : null,
       sourcePlatform: typeof b.source_platform === 'string' ? b.source_platform : 'api',
       createdBy: typeof b.created_by === 'string' ? b.created_by : null,
+      details: typeof b.details === 'string' ? b.details : null,
     });
     return reply.code(201).send({ task });
   });

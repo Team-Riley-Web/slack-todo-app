@@ -18,10 +18,11 @@ beforeAll(async () => {
 });
 afterAll(async () => { await db.close(); });
 
-it('seeds all eleven spaces', async () => {
+it('seeds all twelve spaces, including Music as its own Space', async () => {
   const spaces = await listSpaces(db);
-  expect(spaces).toHaveLength(11);
+  expect(spaces).toHaveLength(12);
   expect(spaces.map((s) => s.name)).toContain('Client - Yoga Farm');
+  expect(spaces.map((s) => s.name)).toContain('Music');
 });
 
 // Required test 2: mapped channel routes to correct Space
@@ -46,5 +47,5 @@ it('resolves scope queries case-insensitively by slug, name, and substring', asy
 
 it('seeds the two default lists per space without populating task list_id', async () => {
   const { rows } = await db.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM lists`);
-  expect(rows[0]!.n).toBe(22); // 11 spaces x 2 lists
+  expect(rows[0]!.n).toBe(24); // 12 spaces x 2 lists
 });

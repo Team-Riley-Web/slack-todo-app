@@ -2,8 +2,8 @@ import type { Db } from '@tr/db';
 import type { Task, TaskStatus } from './types.js';
 
 const COLS = `id, title, space_id, list_id, assignee_id, status, due_at, waiting_on,
-              created_at, completed_at, source_platform, source_channel_id,
-              source_message_ts, created_by`;
+              details, created_at, completed_at, source_platform,
+              source_channel_id, source_message_ts, created_by`;
 
 export interface ListTasksFilter {
   spaceId?: string;

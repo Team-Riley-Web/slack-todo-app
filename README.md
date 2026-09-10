@@ -93,8 +93,12 @@ pnpm sync-channels            # add --prune to delete mappings absent from confi
 ```
 
 A Space may be named by its canonical name (`Client - Secure Logic`), its slug
-(`secure-logic`), or its name without the client prefix (`Secure Logic`). Any
-other value aborts the whole sync rather than importing a partial mapping.
+(`secure-logic`), its name without the client prefix (`Secure Logic`), or a
+configured alias (`Personal tasks` → `Personal`). Any other value aborts the
+whole sync rather than importing a partial mapping.
+
+Twelve Spaces are seeded: Inbox, Agency / Internal, Marketing, Sales, Personal,
+Music, and the six clients.
 
 An unmapped channel routes to **Inbox**. Client identity is never inferred from
 channel or message text.

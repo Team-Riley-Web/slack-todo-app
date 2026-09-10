@@ -66,6 +66,12 @@ export function buildTools(db: Db): McpTool[] {
           space_id: { type: 'string' },
           assignee_id: { type: 'string' },
           due_at: { type: 'string', description: 'ISO 8601 timestamp' },
+          details: {
+            type: 'string',
+            description:
+              'Optional capture notes stored alongside the task. Write-once — there ' +
+              'is no way to change it afterwards.',
+          },
         },
         required: ['title', 'space_id'],
       },
@@ -81,6 +87,7 @@ export function buildTools(db: Db): McpTool[] {
             dueAt: str(a.due_at) ? new Date(String(a.due_at)) : null,
             sourcePlatform: 'hermes',
             createdBy: str(a.created_by) ?? null,
+            details: str(a.details) ?? null,
           }),
         };
       },
@@ -195,6 +202,7 @@ export function buildTools(db: Db): McpTool[] {
           space: { type: 'string', description: 'Optional explicit destination Space.' },
           due_at: { type: 'string', description: 'ISO 8601 timestamp' },
           assignee_id: { type: 'string' },
+          details: { type: 'string', description: 'Optional capture notes. Write-once.' },
         },
         required: ['channel_id', 'title'],
       },
@@ -212,6 +220,7 @@ export function buildTools(db: Db): McpTool[] {
           dueAt: str(a.due_at) ? new Date(String(a.due_at)) : null,
           sourcePlatform: 'hermes',
           sourceChannelId: str(a.channel_id) ?? null,
+          details: str(a.details) ?? null,
         });
         return { task, space: dest.space, resolved_from: dest.source };
       },

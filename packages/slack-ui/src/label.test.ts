@@ -7,7 +7,7 @@ const space = (name: string): Space => ({ id: 's', name, slug: 'x', is_inbox: fa
 const task = (over: Partial<Task> = {}): Task => ({
   id: '11111111-1111-4111-8111-111111111111',
   title: 'Call Neil', space_id: 's', list_id: null, assignee_id: null,
-  status: 'open', due_at: null, waiting_on: null, created_at: new Date(),
+  status: 'open', due_at: null, waiting_on: null, details: null, created_at: new Date(),
   completed_at: null, source_platform: 'slack', source_channel_id: null,
   source_message_ts: null, created_by: null, ...over,
 });

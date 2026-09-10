@@ -10,7 +10,8 @@ describe('migrations', () => {
     );
     expect(rows.map((r) => r.table_name)).toEqual([
       'channel_space_map', 'lists', 'processed_interactions',
-      'schema_migrations', 'slack_cards', 'spaces', 'task_events', 'tasks',
+      'schema_migrations', 'slack_cards', 'space_aliases', 'spaces',
+      'task_events', 'tasks',
     ]);
     await db.close();
   });

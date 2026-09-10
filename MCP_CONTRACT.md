@@ -36,9 +36,12 @@ through verbatim."*
 |---|---|---|---|
 | `list_tasks` | — | `space_id`, `assignee_id`, `status`, `actionable_only`, `limit` | `{ tasks }` |
 | `get_task` | `task_id` | — | `{ task }` |
-| `create_task` | `title`, `space_id` | `assignee_id`, `due_at` | `{ task }` |
+| `create_task` | `title`, `space_id` | `assignee_id`, `due_at`, `details` | `{ task }` |
 | `complete_task` | `task_id` | — | `{ task }` |
 | `move_task` | `task_id` | `space_id`, `status`, `waiting_on` | `{ task }` |
+
+`details` is write-once, like `title`: settable at create, returned on reads, and
+changeable by nothing. A `details` key on a `move_task` call is ignored.
 | `list_spaces` | — | — | `{ spaces }` |
 | `list_waiting` | — | `space_id` | `{ tasks }` |
 | `get_task_counts` | — | `assignee_id` | `{ counts }` |
@@ -53,7 +56,7 @@ database-backed mapping.
 |---|---|---|---|
 | `get_space_for_channel` | `channel_id` | — | `{ space, mapped, channel_name }` |
 | `list_tasks_for_context` | `channel_id` | `space`, `include_waiting`, `status`, `limit` | `{ space, resolved_from, tasks }` |
-| `create_task_for_context` | `channel_id`, `title` | `space`, `due_at`, `assignee_id` | `{ task, space, resolved_from }` |
+| `create_task_for_context` | `channel_id`, `title` | `space`, `due_at`, `assignee_id`, `details` | `{ task, space, resolved_from }` |
 
 Use these for natural-language requests arriving from a channel:
 
@@ -78,9 +81,9 @@ deliberately does not fall back to the channel mapping: silently filing a task
 somewhere other than where the user said is the failure this service exists to
 prevent. Retry with a name from the `available` list.
 
-A Space may be named by canonical name, slug, or name without the `Client - `
-prefix — each an exact match after one fixed normalization. Partial names like
-`secure` are refused.
+A Space may be named by canonical name, slug, name without the `Client - `
+prefix, or a configured alias (`Personal tasks` → `Personal`) — each an exact
+match after one fixed normalization. Partial names like `secure` are refused.
 
 **Do not resolve channels yourself.** Do not keep your own channel table, and do
 not infer a client from a channel's name or a message's text. Call
@@ -126,6 +129,7 @@ an empty database of its own.
   "status": "open",             // open | waiting | completed
   "due_at": null,               // timestamptz
   "waiting_on": null,           // free text, nullable, only meaningful when waiting
+  "details": null,              // capture notes; write-once, no update path
   "created_at": "…",
   "completed_at": null,         // non-null iff status is completed
   "source_platform": "slack",   // slack | api | hermes | workast

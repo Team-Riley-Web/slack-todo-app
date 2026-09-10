@@ -149,3 +149,41 @@ it('ignores any title field supplied to a mutation', async () => {
   );
   expect((await getTask(db, t.id))!.title).toBe('Original exact title');
 });
+
+// --- details column, approved 2026-09-09 ---
+
+it('stores details verbatim, including the long multi-line Workast form', async () => {
+  const details = [
+    'Workstream: Client onboarding automation',
+    'Next actor: Joshua',
+    'When: none',
+    '',
+    'Scope:',
+    '• Identify the authoritative form/completion signal.',
+    '',
+    'Boundary: Do not activate a production workflow without approval.',
+  ].join('\n');
+  const t = await createTask(db, {
+    title: 'Automate onboarding AI primer after client form completion',
+    spaceId, details,
+  });
+  expect(t.details).toBe(details);
+  expect((await getTask(db, t.id))!.details).toBe(details);
+});
+
+it('accepts a details field far longer than any Slack limit', async () => {
+  const details = 'x'.repeat(3224); // longest in the Workast export
+  const t = await createTask(db, { title: 'Long details', spaceId, details });
+  expect((await getTask(db, t.id))!.details).toHaveLength(3224);
+});
+
+it('defaults details to null and never invents content', async () => {
+  const t = await createTask(db, { title: 'No details', spaceId });
+  expect(t.details).toBeNull();
+});
+
+it('exposes no update path for details in Phase 1', async () => {
+  const t = await createTask(db, { title: 'X', spaceId, details: 'original' });
+  await moveTask(db, t.id, { status: 'waiting', details: 'rewritten' } as never, actor);
+  expect((await getTask(db, t.id))!.details).toBe('original');
+});

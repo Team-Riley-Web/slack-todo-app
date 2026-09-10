@@ -122,7 +122,7 @@ it('serves spaces, waiting, and counts', async () => {
     payload: { status: 'waiting', waiting_on: 'Neil' },
   });
   expect((await app.inject({ method: 'GET', url: '/spaces', headers: auth })).json().spaces)
-    .toHaveLength(11);
+    .toHaveLength(12);
   expect((await app.inject({ method: 'GET', url: '/waiting', headers: auth })).json().tasks[0].waiting_on)
     .toBe('Neil');
   expect((await app.inject({ method: 'GET', url: '/counts', headers: auth })).json().counts[0].waiting)
@@ -250,4 +250,55 @@ it('requires a title on the context create route', async () => {
   });
   expect(r.statusCode).toBe(400);
   expect(r.json().error).toBe('title_required');
+});
+
+// --- details column, approved 2026-09-09 ---
+
+it('round-trips details verbatim through create and read', async () => {
+  const details = 'Workstream: onboarding\nNext actor: Joshua\n\nBoundary: no live sends.';
+  const created = await app.inject({
+    method: 'POST', url: '/tasks', headers: auth,
+    payload: { title: 'Automate onboarding AI primer', space_id: spaceId, details },
+  });
+  expect(created.json().task.details).toBe(details);
+  const read = await app.inject({
+    method: 'GET', url: `/tasks/${created.json().task.id}`, headers: auth,
+  });
+  expect(read.json().task.details).toBe(details);
+});
+
+it('accepts details on the channel-context create route', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const r = await app.inject({
+    method: 'POST', url: '/context/C_SECURE/tasks', headers: auth,
+    payload: { title: 'X', details: 'context notes' },
+  });
+  expect(r.json().task.details).toBe('context notes');
+});
+
+it('offers no route that can change details', async () => {
+  const created = await app.inject({
+    method: 'POST', url: '/tasks', headers: auth,
+    payload: { title: 'X', space_id: spaceId, details: 'original' },
+  });
+  const id = created.json().task.id;
+  const moved = await app.inject({
+    method: 'POST', url: `/tasks/${id}/move`, headers: auth,
+    payload: { status: 'waiting', details: 'rewritten' },
+  });
+  expect(moved.json().task.details).toBe('original');
+});
+
+it('resolves the Personal tasks alias and Music as a Space', async () => {
+  const alias = await app.inject({
+    method: 'POST', url: '/context/C_NONE/tasks', headers: auth,
+    payload: { title: 'Reflect on control', space: 'Personal tasks' },
+  });
+  expect(alias.json().space.name).toBe('Personal');
+
+  const music = await app.inject({
+    method: 'POST', url: '/context/C_NONE/tasks', headers: auth,
+    payload: { title: 'Get and make new merch', space: 'Music' },
+  });
+  expect(music.json().space.name).toBe('Music');
 });
