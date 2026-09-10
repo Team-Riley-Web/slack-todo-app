@@ -233,8 +233,18 @@ describe('the completion control is actually operable', () => {
    * from the web was impossible. Verified in a real browser before the fix and
    * after.
    */
-  const rowSource = async (): Promise<string> =>
-    readFile('apps/web/src/components/TaskRow.tsx', 'utf8');
+  /**
+   * Comments are stripped first. The first version of these guards matched the
+   * comment explaining the bug and failed on prose -- the same trap the
+   * importer's fuzzy-match scan and the credential scan above both hit.
+   */
+  const rowSource = async (): Promise<string> => {
+    const raw = await readFile('apps/web/src/components/TaskRow.tsx', 'utf8');
+    return raw
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  };
 
   it('uses a submit button, not a checkbox input', async () => {
     const src = await rowSource();
