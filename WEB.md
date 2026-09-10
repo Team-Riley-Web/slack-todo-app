@@ -11,13 +11,28 @@ functions. There is no second copy of any rule.
 
 | Route | What it is |
 | --- | --- |
-| `/` | My Tasks. Open and waiting tasks, filterable by space, status, assignee, due bucket, and title search. |
+| `/` | My Tasks. Open and waiting tasks, filterable by status, assignee, due bucket, and title search. No Space chips — the rail is the Space filter. |
+| `/today` | Everything due today, across every Space. |
 | `/spaces` | Every Space with its open / waiting / completed counts. Empty Spaces are listed too, and an empty one can be deleted here. |
-| `/spaces/<slug>` | One Space, plus the form for adding a task to it. |
+| `/spaces/<slug>` | One Space in three collapsible sections — Open, Waiting, Completed — plus the form for adding a task. The rows do not repeat the Space name the heading already carries. |
 | `/waiting` | Waiting and blocked tasks, oldest first, with an age in days. |
 | `/history` | Completed tasks, filterable by date range. |
 | `/settings` | Channel → Space mappings, the authorized user list, the timezone, and import history. |
-| `/tasks/<id>/edit` | The only place a title changes from the web. Every field the Slack modal offers, prefilled, plus the task's event history. |
+| `/tasks/<id>/edit` | The only place a title changes from the web. Renders as a pane over the list. Every field the Slack modal offers, prefilled, plus the task's event history. |
+
+## Why there is no client JavaScript, and what that costs
+
+Every interaction is a form posting a server action or a link. That is a
+deliberate constraint, and it shapes three things:
+
+- **Completing a task is a submit button**, drawn as a circle check. It was
+  once a `readOnly` checkbox next to a hidden submit button, which could not
+  be clicked at all — a checkbox does not submit a form, and there was no
+  script to submit one for it.
+- **Collapsible sections are `details`/`summary`**, with a CSS-only chevron.
+- **The edit pane is a real route**, not a dialog. The backdrop is a link back
+  to the list, so closing needs no script, the URL is linkable, and the back
+  button behaves.
 
 ## The Spaces rail
 

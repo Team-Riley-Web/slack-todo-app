@@ -9,9 +9,15 @@ import { Shell } from '@/components/Shell';
 /**
  * The one place a title can be changed.
  *
- * Deliberately a page of its own rather than an inline field in the list: a
- * title must only change through an explicit, deliberate submission, and a form
- * here cannot be triggered by a stray click while scanning tasks.
+ * Rendered as a pane over a dimmed backdrop, so it reads as a panel sliding in
+ * from the right rather than a page you navigated to. It IS still its own
+ * route: the pane is CSS, and the backdrop is a link back to the list. That
+ * keeps it working with no client JavaScript, gives it a real URL that can be
+ * linked and bookmarked, and means the back button behaves.
+ *
+ * Still not an inline field in the list: a title must only change through an
+ * explicit submission, and a form here cannot be triggered by a stray click
+ * while scanning tasks.
  *
  * Every field the Slack modal offers is here, prefilled, so an unchanged
  * submission writes nothing — `editTask` compares against current state.
@@ -39,11 +45,18 @@ export default async function EditTaskPage({
 
   return (
     <Shell current="/" who={user.name ?? user.slackUserId}>
-      <h1>Edit task</h1>
-      <p className="muted small">
-        Changing the title here is an explicit edit and is recorded in the task
-        history against your Slack account.
-      </p>
+      {/* The backdrop is a link, so clicking away closes the pane. */}
+      <Link className="pane-backdrop" href="/" aria-label="Close" />
+
+      <aside className="pane" aria-label="Edit task">
+        <header className="pane-head">
+          <h1>Edit task</h1>
+          <Link className="pane-close" href="/" aria-label="Close">×</Link>
+        </header>
+        <p className="muted small">
+          Changing the title here is an explicit edit and is recorded in the
+          task history against your Slack account.
+        </p>
 
       {error ? <p className="error">{String(error)}</p> : null}
 
@@ -115,8 +128,9 @@ export default async function EditTaskPage({
         </div>
       </form>
 
-      <h2>History</h2>
-      <TaskHistory taskId={task.id} />
+        <h2>History</h2>
+        <TaskHistory taskId={task.id} />
+      </aside>
     </Shell>
   );
 }
