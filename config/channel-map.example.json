@@ -1,0 +1,6 @@
+{
+  "C0000000001": { "name": "#agency-ops",              "space": "Agency / Internal" },
+  "C0000000002": { "name": "#client-joy-within-birth", "space": "Client - Joy Within Birth" },
+  "C0000000003": { "name": "#marketing",               "space": "Marketing" },
+  "C0000000004": { "name": "#sales",                   "space": "Sales" }
+}
