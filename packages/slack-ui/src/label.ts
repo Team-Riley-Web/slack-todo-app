@@ -26,6 +26,28 @@ export function truncateLabel(title: string): { label: string; truncated: boolea
   return { label: `${points.slice(0, LABEL_BUDGET).join('')}…`, truncated: true };
 }
 
+/**
+ * Slack's native date token. Renders in the VIEWER's own timezone, which
+ * server-side formatting cannot do.
+ *
+ * mrkdwn ONLY. A plain_text field renders this literally, so it must never be
+ * used in a checkbox option.description - see metaLine below.
+ */
+export function slackDate(d: Date, token = '{date_short}', timeZone = 'UTC'): string {
+  const seconds = Math.floor(d.getTime() / 1000);
+  const fallback = DateTime.fromJSDate(d, { zone: timeZone }).toFormat('LLL d, yyyy');
+  return `<!date^${seconds}^${token}|${fallback}>`;
+}
+
+/**
+ * Native user mention. Slack renders the person's current display name and
+ * avatar, so no label configuration is needed and it can never go stale.
+ * mrkdwn ONLY, same constraint as slackDate.
+ */
+export function slackUser(userId: string | null | undefined): string | null {
+  return userId ? `<@${userId}>` : null;
+}
+
 function shortSpace(name: string): string {
   return name.startsWith('Client - ') ? name.slice('Client - '.length) : name;
 }
@@ -42,6 +64,13 @@ function clip(text: string, budget: number): string {
 /**
  * plain_text, max 75. Compaction order when over budget: drop the assignee,
  * then clip. Meta is derived data and is not covered by the exact-title guarantee.
+ *
+ * This is the one surface that CANNOT use Slack's native date tokens or user
+ * mentions: a checkbox option.description is typed `PlainTextElement`, and
+ * plain_text renders `<!date^...>` and `<@U...>` as literal source. Keeping the
+ * checkbox on the left is what confines the meta line here, so the trade is
+ * deliberate: native left-side checkbox, server-formatted meta. Every mrkdwn
+ * surface uses slackDate and slackUser instead.
  */
 export function metaLine(task: Task, space: Space, opts: MetaOpts): string {
   const assignee = task.assignee_id

@@ -33,6 +33,63 @@ export const MAX_OPTIONS_PER_ELEMENT = 10;
 export const MAX_ENTRIES_PER_MESSAGE = 400;
 
 export interface CardEntry { task: Task; space: Space }
+
+/**
+ * Native heading block. Replaces a section carrying bold mrkdwn, which only
+ * looked like a heading. plain_text, capped at Slack's 150-char limit.
+ */
+export function headerBlock(text: string): KnownBlock {
+  return {
+    type: 'header',
+    text: { type: 'plain_text', text: text.slice(0, 150), emoji: true },
+  } as unknown as KnownBlock;
+}
+
+/**
+ * Native confirmation dialog, for destructive actions. Slack renders and gates
+ * this itself, so a mis-click cannot reach the handler at all.
+ */
+export function confirmObject(title: string, text: string) {
+  return {
+    title: { type: 'plain_text' as const, text: title.slice(0, 100) },
+    text: { type: 'plain_text' as const, text: text.slice(0, 300) },
+    confirm: { type: 'plain_text' as const, text: 'Yes, do it' },
+    deny: { type: 'plain_text' as const, text: 'Cancel' },
+    style: 'danger' as const,
+  };
+}
+
+export interface SpaceCountLike {
+  space_name: string;
+  open: number;
+  waiting: number;
+}
+
+/**
+ * The /tasks summary. Native `header` plus `section.fields`, which Slack lays
+ * out in two columns itself - previously this was newline-joined text in one
+ * section. `fields` caps at 10 per section, so spaces are chunked.
+ */
+export function summaryBlocks(counts: SpaceCountLike[]): KnownBlock[] {
+  const blocks: KnownBlock[] = [headerBlock('MY TASKS')];
+  if (counts.length === 0) {
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: '_Nothing open._' },
+    } as KnownBlock);
+    return blocks;
+  }
+  const fields = counts.map((c) => ({
+    type: 'mrkdwn' as const,
+    text: `*${c.space_name.replace(/^Client - /, '')}*\n${c.open} open${
+      c.waiting > 0 ? ` \u00b7 ${c.waiting} waiting` : ''
+    }`,
+  }));
+  for (let i = 0; i < fields.length; i += 10) {
+    blocks.push({ type: 'section', fields: fields.slice(i, i + 10) } as unknown as KnownBlock);
+  }
+  return blocks;
+}
 export interface CardGroup { heading: string | null; entries: CardEntry[] }
 
 /**
@@ -151,10 +208,7 @@ export function taskListBlocks(groups: CardGroup[], opts: MetaOpts): KnownBlock[
   for (const group of groups) {
     if (group.entries.length === 0) continue;
     if (group.heading) {
-      blocks.push({
-        type: 'section',
-        text: { type: 'mrkdwn', text: `*${group.heading}*` },
-      } as KnownBlock);
+      blocks.push(headerBlock(group.heading));
     }
     blocks.push(...taskCardBlocks(group.entries, opts));
   }
