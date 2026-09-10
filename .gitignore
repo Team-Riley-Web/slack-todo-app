@@ -6,3 +6,5 @@ dist/
 .pglite/
 .DS_Store
 coverage/
+.next/
+next-env.d.ts

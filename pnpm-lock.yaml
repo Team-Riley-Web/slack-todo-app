@@ -74,6 +74,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@slack/web-api':
+        specifier: ^7.19.0
+        version: 7.19.0
       '@tr/db':
         specifier: workspace:*
         version: link:../../packages/db
