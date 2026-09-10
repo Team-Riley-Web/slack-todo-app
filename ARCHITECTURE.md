@@ -62,19 +62,45 @@ be able to fix their own typo.
 What was given up, and what was kept:
 
 - **One** function writes `tasks.title`: `editTask` in `task-core`.
-- It is reachable from human surfaces only — the Slack edit modal, and the web
-  UI when that lands.
+- It is reachable from human surfaces only — the Slack edit modal and the web
+  UI's edit page.
 - It is **not** an MCP tool and **not** a REST route.
 
 So the threat the guarantee existed to stop — AI silently rewriting what you
 said — is still structurally prevented, rather than merely discouraged.
 `tests/determinism.test.ts` asserts three things instead of trusting this text:
 exactly one file contains a title write, neither the MCP tool list nor the
-Fastify routes mention `editTask`, and its only callers are `task-core` and the
-Slack modal handler.
+Fastify routes mention `editTask`, and its only callers are `task-core`, the
+Slack modal handler, and the web app's operations layer.
 
 `editTask` takes an explicit typed patch and reads nothing outside it, so a
 `title` key smuggled into any other call is not rejected — it is never looked at.
+
+## The web app
+
+`apps/web` is a second surface over the same backend, not a second backend.
+Every mutation goes through `task-core`; every read goes through
+`task-core/queries`. Nothing in it re-implements a rule.
+
+Two layers exist so the rules stay testable without a Next runtime:
+
+- `src/operations/` — the actual behaviour, taking an explicit deps object
+  (`db`, `actorId`, an optional Slack client, config). Pure Node, unit-tested.
+- `src/actions/` — `'use server'` wrappers that add only the Next-specific
+  parts: resolving the signed-in user, building the deps, revalidating paths.
+
+A web mutation redraws the Slack card through `packages/slack-sync`, which was
+extracted from `apps/slack` for exactly this reason: card storage, per-card
+locking, render versioning, and redrawing are now shared rather than
+duplicated. `syncCardsForTask` finds every card showing the task and redraws
+each under its own lock, counting Slack failures rather than throwing — a
+Slack API error must not fail a write that already committed.
+
+The web app cannot use PGlite. Next bundles the server code; the bundled PGlite
+module then reads its WASM file with a `URL` where Node's `fs.readFile` wants a
+path, and every route 500s with `ERR_INVALID_ARG_TYPE`. `serverExternalPackages`
+does not prevent it. So `src/db.ts` requires a `postgres://` URL and says so
+plainly, rather than letting the failure surface from inside a dependency.
 
 ## Transactions
 
