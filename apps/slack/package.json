@@ -1,0 +1,14 @@
+{
+  "name": "@tr/slack-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@slack/bolt": "^4.2.0",
+    "@tr/db": "workspace:*",
+    "@tr/slack-ui": "workspace:*",
+    "@tr/task-core": "workspace:*",
+    "dotenv": "^16.4.5"
+  }
+}

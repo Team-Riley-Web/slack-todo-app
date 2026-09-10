@@ -1,0 +1,13 @@
+{
+  "name": "@tr/slack-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@tr/task-core": "workspace:*",
+    "@slack/types": "^2.14.0",
+    "luxon": "^3.5.0"
+  }
+}
