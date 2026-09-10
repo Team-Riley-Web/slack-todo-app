@@ -1,6 +1,6 @@
 import type { Db } from '@tr/db';
 import type { Task, TaskStatus } from './types.js';
-import { assertTaskId, TaskNotFoundError } from './errors.js';
+import { assertTaskId, InvalidDueDateError, TaskNotFoundError } from './errors.js';
 
 export interface Actor { id: string | null; source: string }
 
@@ -28,6 +28,11 @@ const COLS = `id, title, space_id, list_id, assignee_id, status, due_at, waiting
 export async function createTask(db: Db, input: CreateTaskInput): Promise<Task> {
   if (typeof input.title !== 'string' || input.title.length === 0) {
     throw new Error('title is required');
+  }
+  // Guarded here rather than in each adapter: REST, MCP, and Slack all route
+  // through createTask, and an Invalid Date reaches Postgres as a type error.
+  if (input.dueAt != null && Number.isNaN(input.dueAt.getTime())) {
+    throw new InvalidDueDateError(input.dueAt);
   }
   const { rows } = await db.query<Task>(
     `INSERT INTO tasks (title, space_id, assignee_id, due_at, source_platform,

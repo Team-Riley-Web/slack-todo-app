@@ -302,3 +302,32 @@ it('resolves the Personal tasks alias and Music as a Space', async () => {
   });
   expect(music.json().space.name).toBe('Music');
 });
+
+// Regression: ISSUE-002 / ISSUE-003 — bad input returned 500 instead of a
+// validation error or a safe default.
+// Found by /qa on 2026-09-09
+// Report: .gstack/qa-reports/qa-report-team-riley-tasks-2026-09-09.md
+it('returns 400 for an unparseable due_at on both create routes', async () => {
+  const a = await app.inject({
+    method: 'POST', url: '/tasks', headers: auth,
+    payload: { title: 'X', space_id: spaceId, due_at: 'not-a-date' },
+  });
+  expect(a.statusCode).toBe(400);
+  expect(a.json().error).toBe('invalid_due_at');
+
+  const b = await app.inject({
+    method: 'POST', url: '/context/C_NONE/tasks', headers: auth,
+    payload: { title: 'X', due_at: 'garbage' },
+  });
+  expect(b.statusCode).toBe(400);
+  expect(b.json().error).toBe('invalid_due_at');
+});
+
+it('ignores a non-numeric limit instead of erroring', async () => {
+  await createTask(db, { title: 'A', spaceId });
+  for (const q of ['limit=abc', 'limit=', 'limit=-1', 'limit=NaN', 'limit=1e999']) {
+    const r = await app.inject({ method: 'GET', url: `/tasks?${q}`, headers: auth });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().tasks).toHaveLength(1);
+  }
+});
