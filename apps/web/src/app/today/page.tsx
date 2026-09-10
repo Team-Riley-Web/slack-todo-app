@@ -22,7 +22,8 @@ export default async function TodayPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireUser();
+  // Called for the gate, not for a value: it redirects when not signed in.
+  await requireUser();
   const query = await searchParams;
   const filters = { ...parseFilters(query), due: 'today' as const };
   const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
@@ -47,7 +48,6 @@ export default async function TodayPage({
   return (
     <Shell
       current="/today"
-      who={user.name ?? user.slackUserId}
       spaces={summary.map(({ space, open, waiting }) => ({ space, open, waiting }))}
       railPath="/today"
       activeSlug={filters.space ?? null}

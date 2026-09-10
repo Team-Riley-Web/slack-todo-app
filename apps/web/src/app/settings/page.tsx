@@ -24,7 +24,6 @@ export default async function SettingsPage({
   return (
     <Shell
       current="/settings"
-      who={user.name ?? user.slackUserId}
       spaces={railSpaces}
       title="Settings"
     >

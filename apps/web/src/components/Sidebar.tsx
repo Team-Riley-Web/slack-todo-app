@@ -19,13 +19,12 @@ export interface SidebarSpace {
  * `createSpace` does not add the prefix for you — the prefix is the signal.
  */
 export function Sidebar({
-  spaces, activeSlug, current, path, who,
+  spaces, activeSlug, current, path,
 }: {
   spaces: SidebarSpace[];
   activeSlug: string | null;
   current: string;
   path: string;
-  who: string | null;
 }) {
   const spaceHref = (slug: string | null) =>
     slug === null ? path : `${path}?space=${encodeURIComponent(slug)}`;
@@ -62,9 +61,14 @@ export function Sidebar({
     <nav className="rail" aria-label="Navigation">
       <Link className="workspace" href="/">
         <Image src="/tasks-logo.png" alt="" width={30} height={30} priority />
+        {/*
+          The signed-in name used to sit under the workspace name. With no
+          production sign-in it only ever read "Local development user", which
+          is chrome describing the environment rather than anything about the
+          work. requireUser() still gates every page; only the label is gone.
+        */}
         <span className="names">
           <span className="team">Team Riley</span>
-          {who ? <span className="who">{who}</span> : null}
         </span>
       </Link>
 
