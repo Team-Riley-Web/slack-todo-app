@@ -8,6 +8,13 @@ export const WAITING_ACTION_ID = 'task_waiting';
 export const CONTROLS_BLOCK_PREFIX = 'task_controls';
 /** Slack allows at most 10 options per checkboxes element. */
 export const MAX_OPTIONS_PER_ELEMENT = 10;
+/**
+ * Slack rejects a message with more than 50 blocks. At 10 tasks per checkbox
+ * element, 500 tasks is 50 blocks before a heading or a context note, which
+ * pushed a full `/tasks <space>` message to 51 and failed the whole post.
+ * 400 leaves room for the heading, the truncation note, and the overflow.
+ */
+export const MAX_ENTRIES_PER_MESSAGE = 400;
 
 export interface CardEntry { task: Task; space: Space }
 export interface CardGroup { heading: string | null; entries: CardEntry[] }
@@ -64,7 +71,12 @@ export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock
   if (entries.length === 0) return [];
   const blocks: KnownBlock[] = [];
 
-  chunk(entries, MAX_OPTIONS_PER_ELEMENT).forEach((group, groupIndex) => {
+  // Capped here rather than in each caller so no code path can build a message
+  // Slack will refuse. The overflow is reported, never silently dropped.
+  const shown = entries.slice(0, MAX_ENTRIES_PER_MESSAGE);
+  const hidden = entries.length - shown.length;
+
+  chunk(shown, MAX_OPTIONS_PER_ELEMENT).forEach((group, groupIndex) => {
     // Build each option exactly once. initial_options must contain the SAME
     // object references, or Slack fails to match them and a completed task
     // renders unchecked. See spec section 4.
@@ -87,12 +99,12 @@ export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock
 
   // A single-task card carries the secondary overflow. Driven off entry count
   // rather than a flag so a redraw always reproduces exactly what was posted.
-  if (entries.length === 1) {
-    blocks.push(...taskControlBlocks(entries[0]!));
+  if (shown.length === 1) {
+    blocks.push(...taskControlBlocks(shown[0]!));
   }
 
   // Any title too long for a 75-char option label keeps its exact form here.
-  const truncated = entries.filter((e) => truncateLabel(e.task.title).truncated);
+  const truncated = shown.filter((e) => truncateLabel(e.task.title).truncated);
   if (truncated.length > 0) {
     blocks.push({
       type: 'context',
@@ -101,6 +113,17 @@ export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock
         text: `Full title: ${e.task.title}`,
         emoji: true,
       })),
+    } as unknown as KnownBlock);
+  }
+
+  if (hidden > 0) {
+    blocks.push({
+      type: 'context',
+      elements: [{
+        type: 'plain_text',
+        text: `Showing ${shown.length} of ${entries.length}. ${hidden} more not shown — narrow the scope.`,
+        emoji: true,
+      }],
     } as unknown as KnownBlock);
   }
 

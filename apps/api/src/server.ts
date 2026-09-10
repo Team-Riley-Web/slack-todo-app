@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Db } from '@tr/db';
 import {
@@ -10,6 +11,14 @@ import {
 
 export interface ApiDeps { db: Db; apiToken: string | null }
 
+/** Constant-time, matching the Slack signature path rather than `!==`. */
+function tokenMatches(header: string, apiToken: string): boolean {
+  const expected = Buffer.from(`Bearer ${apiToken}`, 'utf8');
+  const given = Buffer.from(header, 'utf8');
+  if (expected.length !== given.length) return false;
+  return timingSafeEqual(expected, given);
+}
+
 export function buildServer(deps: ApiDeps): FastifyInstance {
   const app = Fastify({ logger: false });
   const { db } = deps;
@@ -18,7 +27,7 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
     if (!deps.apiToken) {
       return reply.code(503).send({ error: 'API_TOKEN not configured' });
     }
-    if ((req.headers.authorization ?? '') !== `Bearer ${deps.apiToken}`) {
+    if (!tokenMatches(req.headers.authorization ?? '', deps.apiToken)) {
       return reply.code(401).send({ error: 'unauthorized' });
     }
   });

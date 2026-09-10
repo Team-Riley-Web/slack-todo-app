@@ -211,3 +211,26 @@ it('still accepts a valid due date and a null one', async () => {
   const without = await createTask(db, { title: 'B', spaceId, dueAt: null });
   expect(without.due_at).toBeNull();
 });
+
+// Regression: ISSUE-008 — moveTask stamped completed_at from the app clock
+// while completeTask used the database clock, so the two paths could disagree.
+// Found by /qa on 2026-09-09
+// Report: .gstack/qa-reports/qa-report-team-riley-tasks-2026-09-09.md
+it('stamps completed_at from the database clock on both completion paths', async () => {
+  const viaComplete = await completeTask(db, (await make('A')).id, actor);
+  const viaMove = await moveTask(db, (await make('B')).id, { status: 'completed' }, actor);
+
+  const { rows } = await db.query<{ now: Date }>(`SELECT now() AS now`);
+  const dbNow = new Date(rows[0]!.now).getTime();
+  for (const t of [viaComplete, viaMove]) {
+    expect(t.completed_at).toBeInstanceOf(Date);
+    expect(Math.abs(t.completed_at!.getTime() - dbNow)).toBeLessThan(60_000);
+  }
+});
+
+it('preserves the original completed_at when moving an already-completed task', async () => {
+  const t = await make('C');
+  const done = await completeTask(db, t.id, actor);
+  const moved = await moveTask(db, t.id, { status: 'completed' }, actor);
+  expect(moved.completed_at!.getTime()).toBe(done.completed_at!.getTime());
+});
