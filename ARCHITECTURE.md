@@ -53,6 +53,64 @@ multi-statement SQL (`cannot insert multiple commands into a prepared
 statement`). Migrations are multi-statement scripts, so they need the simple
 protocol. This was found by a failing test, not anticipated.
 
+## The title guarantee, as it now stands
+
+Phase 1 had a stronger property than this one: `title` was unwritable by any
+code path at all. Phase 2A gave that up deliberately, because a human needs to
+be able to fix their own typo.
+
+What was given up, and what was kept:
+
+- **One** function writes `tasks.title`: `editTask` in `task-core`.
+- It is reachable from human surfaces only — the Slack edit modal, and the web
+  UI when that lands.
+- It is **not** an MCP tool and **not** a REST route.
+
+So the threat the guarantee existed to stop — AI silently rewriting what you
+said — is still structurally prevented, rather than merely discouraged.
+`tests/determinism.test.ts` asserts three things instead of trusting this text:
+exactly one file contains a title write, neither the MCP tool list nor the
+Fastify routes mention `editTask`, and its only callers are `task-core` and the
+Slack modal handler.
+
+`editTask` takes an explicit typed patch and reads nothing outside it, so a
+`title` key smuggled into any other call is not rejected — it is never looked at.
+
+## Transactions
+
+`Db` originally exposed only `query` and `exec`, both over a **pool**. A `BEGIN`
+issued through `query` therefore would not bracket the statements after it,
+because they could land on a different connection. Nothing was actually
+transactional, and no "a failure writes nothing" claim was testable.
+
+`Db.transaction(fn)` pins one client for `pg` and uses `pglite.transaction()`
+otherwise, handing the callback a `Db` bound to that connection so `task-core`
+functions work unchanged inside it. A nested call joins the same transaction
+rather than opening a second one.
+
+The importer depends on this entirely. A test stages three rows, lets another
+batch claim one of their source ids so the unique index fires mid-import, and
+asserts zero tasks survive — not the two that had already been inserted.
+
+## The importer
+
+`packages/importer` owns parse → stage → map → analyze → write → verify →
+rollback, and calls `task-core` for every task write. Adapters are pure
+functions — bytes in, staging rows out, no database and no network — so each is
+testable alone, and importing can never reach back into the source system.
+
+Staging keeps source bytes and resolved values in separate columns, so mapping
+cannot overwrite a title even by accident. Nothing reaches `tasks` until the
+batch state is `CONFIRMED`, which `importBatch` enforces rather than assumes.
+
+One documented exception to "only `task-core` writes tasks": after
+`createTask`, the importer issues a follow-up `UPDATE` inside the same
+transaction to set `source_external_id`, `import_batch_id`, and the historical
+`created_at` and `completed_at`, none of which `createTask` accepts. That
+statement's SET list contains no `title`, and a test asserts it.
+
+Full detail in `IMPORT.md`.
+
 ## Schema decisions
 
 **`completed_at_iff_completed`** is a table CHECK constraint:

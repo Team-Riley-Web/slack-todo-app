@@ -121,6 +121,48 @@ well-formed id throws `TaskNotFoundError`.
 Point `DATABASE_URL` at the same database the Slack app uses, or Hermes will read
 an empty database of its own.
 
+## Import inspection — read only
+
+| Tool | Required | Optional | Returns |
+|---|---|---|---|
+| `list_import_batches` | — | `limit` | `{ batches }` |
+| `get_import_batch` | `batch_id` | — | `{ batch, counts, audit }` |
+| `preview_import` | `batch_id` | `verdict` | `{ rows, counts }` |
+| `get_import_conflicts` | `batch_id` | — | `{ conflicts }` |
+
+Hermes may inspect batches, explain why rows conflict, and suggest mappings. It
+may **not** confirm, import, roll back, or merge. `preview_import` takes a
+`batch_id` and its schema has no file field at all — parsing and staging happen
+through the CLI, never here.
+
+A test seeds a `CONFIRMED` batch, calls all four tools, and asserts the task
+count is still zero and the batch state never advanced. That is the guarantee,
+not this paragraph. Full detail in `IMPORT.md`.
+
+## Reporting — read only
+
+| Tool | Required | Optional | Returns |
+|---|---|---|---|
+| `get_open_counts_by_space` | — | — | `{ counts }` |
+| `get_completed_between` | `from`, `to` | `space_id` | `{ tasks }` |
+| `get_this_week` | — | — | `{ created, completed }` |
+| `get_task_health` | — | `stale_after_days`, `space_id` | `{ average_age_days, stale }` |
+
+Three semantics worth relying on:
+
+- `get_completed_between` is **half-open**: `from` inclusive, `to` exclusive, so
+  two abutting ranges never double-count the same task.
+- `average_age_days` counts **open tasks only**. Including completed ones would
+  make the number drift down as work gets finished, which is backwards.
+- `stale` excludes **waiting** tasks. They are parked deliberately, and counting
+  them as neglected would bury the ones that actually are.
+
+The week starts Monday 00:00 UTC.
+
+Twenty tools in total. Five can write — `create_task`,
+`create_task_for_context`, `complete_task`, `move_task`, `set_task_details` —
+and none of them can touch a title.
+
 ## Task shape
 
 ```jsonc
