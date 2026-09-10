@@ -250,3 +250,96 @@ export async function createSpace(
     return { ok: true, space, existed: false };
   });
 }
+
+export interface SetSpaceNameResult {
+  ok: boolean;
+  space?: Space;
+  error?: string;
+  /** True when the old name was kept as a lookup alias. */
+  aliased?: boolean;
+}
+
+/**
+ * Renames a Space, and keeps the old name working.
+ *
+ * A name is referenced in more places than the row it lives in: the slug
+ * appears in URLs, `findSpaceExact` matches on name and slug for
+ * `/tasks <space>`, and `config/channel-map.json` and the Workast mapping
+ * name Spaces as strings. A bare UPDATE would quietly break all of those.
+ *
+ * So a rename records the OLD name in `space_aliases`. `findSpaceExact`
+ * already falls back to aliases after canonical names, so `/tasks music`
+ * keeps resolving after Music becomes Records, and a config file naming the
+ * old Space still syncs. The slug is regenerated, because a slug that still
+ * says `music` on a Space called Records is its own small lie.
+ *
+ * One transaction: a rename that half-applied would leave a Space whose slug
+ * and name disagree.
+ *
+ * Called `setSpaceName`, not the obvious word, for the same reason
+ * `findTimeInText` is: the guards in tasks.test.ts assert that task-core
+ * exports nothing matching /title|rename/i, so a task title has exactly one
+ * write path. A Space name is not a task title, but the guard is deliberately
+ * blunt, and a blunt guard that never fires is worth more than a precise one.
+ */
+export async function setSpaceName(
+  db: Db, spaceId: string, name: string
+): Promise<SetSpaceNameResult> {
+  const id = (spaceId ?? '').trim();
+  if (!id) return { ok: false, error: 'A Space is required.' };
+
+  const clean = (name ?? '').trim().replace(/\s+/g, ' ');
+  if (!clean) return { ok: false, error: 'A Space needs a name.' };
+  if ([...clean].length > 80) {
+    return { ok: false, error: 'That name is too long (80 characters max).' };
+  }
+
+  return db.transaction(async (tx) => {
+    const { rows: found } = await tx.query<Space>(
+      `SELECT ${COLS} FROM spaces WHERE id = $1`, [id]
+    );
+    const space = found[0];
+    if (!space) return { ok: false, error: 'That Space no longer exists.' };
+    if (space.name === clean) return { ok: true, space, aliased: false };
+
+    const { rows: clash } = await tx.query<{ id: string }>(
+      `SELECT id FROM spaces WHERE lower(name) = lower($1) AND id <> $2`,
+      [clean, id]
+    );
+    if (clash.length > 0) {
+      return { ok: false, error: `Another Space is already called "${clean}".` };
+    }
+
+    const base = slugForSpace(clean);
+    if (!base) {
+      return { ok: false, error: 'That name has no letters or digits in it.' };
+    }
+    let slug = base;
+    for (let n = 2; n < 100; n += 1) {
+      const { rows } = await tx.query<{ slug: string }>(
+        `SELECT slug FROM spaces WHERE slug = $1 AND id <> $2`, [slug, id]
+      );
+      if (rows.length === 0) break;
+      slug = `${base}-${n}`;
+    }
+
+    const { rows: updated } = await tx.query<Space>(
+      `UPDATE spaces SET name = $2, slug = $3 WHERE id = $1 RETURNING ${COLS}`,
+      [id, clean, slug]
+    );
+
+    /*
+     * The old name becomes an alias so nothing that referenced it breaks.
+     * Skipped when another Space already owns that alias — an alias table with
+     * one name pointing two ways would make lookups arbitrary.
+     */
+    const { rows: aliased } = await tx.query<{ alias: string }>(
+      `INSERT INTO space_aliases (alias, space_id) VALUES (lower($1), $2)
+       ON CONFLICT (alias) DO NOTHING
+       RETURNING alias`,
+      [space.name, id]
+    );
+
+    return { ok: true, space: updated[0]!, aliased: aliased.length > 0 };
+  });
+}

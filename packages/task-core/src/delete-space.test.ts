@@ -1,10 +1,10 @@
 import { it, expect, beforeEach, afterEach } from 'vitest';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
-import { listSpaces, deleteSpace, createSpace } from './spaces.js';
+import { listSpaces, deleteSpace, createSpace, setSpaceName } from './spaces.js';
 import { createTask, completeTask } from './tasks.js';
 import { mapChannelToSpace } from './channel-map.js';
-import { getSpaceForChannel } from './context.js';
+import { getSpaceForChannel, findSpaceExact } from './context.js';
 
 let db: Db;
 const actor = { id: 'U_JOSH', source: 'test' };
@@ -206,4 +206,100 @@ it('sorts a new Space into place, not onto the end', async () => {
 it('creates a Space that can then be deleted while empty', async () => {
   const made = await createSpace(db, 'Temporary');
   expect((await deleteSpace(db, made.space!.id)).ok).toBe(true);
+});
+
+// --- renaming a Space ---
+
+it('renames a Space and regenerates its slug', async () => {
+  const music = await byName('Music');
+  const r = await setSpaceName(db, music.id, 'Records');
+  expect(r.ok).toBe(true);
+  expect(r.space!.name).toBe('Records');
+  // A slug still saying "music" on a Space called Records is its own lie.
+  expect(r.space!.slug).toBe('records');
+});
+
+it('keeps the old name working, as an alias', async () => {
+  // The reason this matters: findSpaceExact matches name and slug for
+  // `/tasks <space>`, and config/channel-map.json names Spaces as strings.
+  // A bare UPDATE would quietly break both.
+  const music = await byName('Music');
+  const r = await setSpaceName(db, music.id, 'Records');
+  expect(r.aliased).toBe(true);
+
+  const found = await findSpaceExact(db, 'Music');
+  expect(found?.id).toBe(music.id);
+  expect(found?.name).toBe('Records');
+});
+
+it('resolves the new name too', async () => {
+  const music = await byName('Music');
+  await setSpaceName(db, music.id, 'Records');
+  expect((await findSpaceExact(db, 'Records'))?.id).toBe(music.id);
+});
+
+it('keeps a channel mapping pointing at the renamed Space', async () => {
+  const music = await byName('Music');
+  await mapChannelToSpace(db, { channelId: 'C_MUS', spaceName: 'Music' });
+  await setSpaceName(db, music.id, 'Records');
+
+  // The map stores a space_id, so it follows the rename without touching it.
+  const context = await getSpaceForChannel(db, 'C_MUS');
+  expect(context.mapped).toBe(true);
+  expect(context.space.name).toBe('Records');
+});
+
+it('keeps tasks with the Space through a rename', async () => {
+  const music = await byName('Music');
+  const task = await createTask(db, { title: 'Mix the record', spaceId: music.id });
+  await setSpaceName(db, music.id, 'Records');
+  const { rows } = await db.query<{ space_id: string }>(
+    `SELECT space_id FROM tasks WHERE id = $1`, [task.id]
+  );
+  expect(rows[0]!.space_id).toBe(music.id);
+});
+
+it('strips the client prefix from the new slug, as creation does', async () => {
+  const music = await byName('Music');
+  const r = await setSpaceName(db, music.id, 'Client - Rosario Landscaping');
+  expect(r.space!.slug).toBe('rosario-landscaping');
+});
+
+it('refuses a name another Space already has', async () => {
+  const music = await byName('Music');
+  const r = await setSpaceName(db, music.id, 'marketing');
+  expect(r.ok).toBe(false);
+  expect(r.error).toContain('already called');
+  expect((await byName('Music')).name).toBe('Music');
+});
+
+it('treats renaming to the same name as a no-op, not an error', async () => {
+  const music = await byName('Music');
+  const r = await setSpaceName(db, music.id, 'Music');
+  expect(r.ok).toBe(true);
+  expect(r.aliased).toBe(false);
+});
+
+it('rejects a blank name, a too-long name, and one with no letters', async () => {
+  const music = await byName('Music');
+  expect((await setSpaceName(db, music.id, '   ')).ok).toBe(false);
+  expect((await setSpaceName(db, music.id, 'x'.repeat(81))).ok).toBe(false);
+  expect((await setSpaceName(db, music.id, '!!!')).ok).toBe(false);
+  expect((await byName('Music')).name).toBe('Music');
+});
+
+it('reports a Space that no longer exists', async () => {
+  const r = await setSpaceName(db, '00000000-0000-4000-8000-000000000000', 'X');
+  expect(r.ok).toBe(false);
+  expect(r.error).toContain('no longer exists');
+});
+
+it('does not steal an alias another Space already owns', async () => {
+  // 'personal tasks' is seeded as an alias of Personal by migration 004.
+  const music = await byName('Music');
+  await setSpaceName(db, music.id, 'Personal tasks');
+  const r = await setSpaceName(db, music.id, 'Records');
+  expect(r.ok).toBe(true);
+  // The alias stays with Personal, so lookups do not become arbitrary.
+  expect((await findSpaceExact(db, 'personal tasks'))?.name).toBe('Personal');
 });

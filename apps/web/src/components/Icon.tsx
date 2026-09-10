@@ -9,7 +9,8 @@
  * without shouting.
  */
 export type IconName =
-  | 'check' | 'calendar' | 'pause' | 'done' | 'space' | 'client' | 'cog' | 'search';
+  | 'check' | 'calendar' | 'pause' | 'done' | 'space' | 'client' | 'cog'
+  | 'search' | 'pencil' | 'trash';
 
 const PATHS: Record<IconName, string> = {
   // My tasks: a ticked box
@@ -26,6 +27,8 @@ const PATHS: Record<IconName, string> = {
   client: 'M12 12.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM5 19.5a7 7 0 0114 0',
   cog: 'M12 15a3 3 0 100-6 3 3 0 000 6zM12 3.5v2M12 18.5v2M4.9 7.5l1.7 1M17.4 15.5l1.7 1M4.9 16.5l1.7-1M17.4 8.5l1.7-1',
   search: 'M10.5 17a6.5 6.5 0 100-13 6.5 6.5 0 000 13zM15.2 15.2L20 20',
+  pencil: 'M4.5 19.5h4l10-10a2.1 2.1 0 00-3-3l-10 10v3zM15 6.5l2.5 2.5',
+  trash: 'M4.5 7.5h15M9.5 7.5v-2a1 1 0 011-1h3a1 1 0 011 1v2M6.5 7.5l.8 11a1 1 0 001 .9h7.4a1 1 0 001-.9l.8-11M10.5 11v5M13.5 11v5',
 };
 
 export function Icon({ name }: { name: IconName }) {

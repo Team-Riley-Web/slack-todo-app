@@ -46,7 +46,9 @@ export function SectionCard({
             <span className="num">Open</span>
             <span className="num">Waiting</span>
             <span className="num">Done</span>
-            <span className="rowactions" />
+            {/* Same class as the rows' icon column, so the header lines up
+                with it rather than merely happening to share a track. */}
+            <span className="iconactions" />
           </div>
         ) : null}
         {children}

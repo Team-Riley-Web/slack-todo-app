@@ -2,7 +2,7 @@ import type { Db } from '@tr/db';
 import {
   listChannelMap, listSpaces, getInboxSpace,
   mapChannelToSpace, unmapChannel, deleteSpace as deleteSpaceCore,
-  createSpace as createSpaceCore,
+  createSpace as createSpaceCore, setSpaceName as setSpaceNameCore,
   type Space, UnknownSpaceError,
 } from '@tr/task-core';
 import { listBatches, type ImportBatch } from '@tr/importer';
@@ -101,6 +101,17 @@ export async function addSpace(db: Db, name: string): Promise<OperationResult> {
   const result = await createSpaceCore(db, name);
   if (!result.ok || !result.space) {
     return { ok: false, error: result.error ?? 'Could not create that Space.' };
+  }
+  return { ok: true, taskId: result.space.id };
+}
+
+/** Renames a Space. The rule, including keeping the old name as an alias, is in task-core. */
+export async function editSpace(
+  db: Db, spaceId: string, name: string
+): Promise<OperationResult> {
+  const result = await setSpaceNameCore(db, spaceId, name);
+  if (!result.ok || !result.space) {
+    return { ok: false, error: result.error ?? 'Could not rename that Space.' };
   }
   return { ok: true, taskId: result.space.id };
 }
