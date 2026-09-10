@@ -1,5 +1,7 @@
 import type { Db } from '@tr/db';
-import { getTask, listSpaces, type Space, type Task } from '@tr/task-core';
+import {
+  getTask, listSpaces, getSpaceForChannel, type Space, type Task,
+} from '@tr/task-core';
 import {
   taskCardBlocks, taskListBlocks, taskCardFallback,
   type CardEntry, type CardGroup,
@@ -38,8 +40,23 @@ export async function redrawCard(
     if (task && space) entries.push({ task, space });
   }
 
+  /**
+   * A card in the channel that routes to its own Space does not name it, and
+   * that has to hold on a redraw too -- otherwise ticking a checkbox made
+   * "Marketing" reappear on a card posted in #marketing.
+   */
+  const distinctSpaces = new Set(entries.map((e) => e.task.space_id));
+  let showSpace = true;
+  if (distinctSpaces.size === 1) {
+    const context = await getSpaceForChannel(db, channelId);
+    if (context.mapped && distinctSpaces.has(context.space.id)) showSpace = false;
+  }
+
   const opts = {
-    timeZone: config.timeZone, assigneeLabels: config.assigneeLabels, version,
+    timeZone: config.timeZone,
+    assigneeLabels: config.assigneeLabels,
+    version,
+    showSpace,
   };
   await client.chat.update({
     channel: channelId,

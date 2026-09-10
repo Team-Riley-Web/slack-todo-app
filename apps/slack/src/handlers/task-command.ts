@@ -20,6 +20,10 @@ export interface CommandDeps {
 
 export interface SlashCommandLike {
   text: string; channel_id: string; user_id: string; team_id: string;
+  /** Present on real payloads; needed by anything that opens a modal. */
+  trigger_id?: string;
+  /** Slack sends this without a leading '#'. */
+  channel_name?: string;
 }
 
 export async function handleTaskCommand(
@@ -51,6 +55,10 @@ export async function handleTaskCommand(
   }
 
   const space = await resolveSpaceForChannel(db, command.channel_id);
+  // A card posted in the channel that routes to this Space does not need to
+  // name it: standing in #marketing, "Marketing" is not information. An
+  // unmapped channel still shows it, because Inbox there IS worth knowing.
+  const mappedHere = !space.is_inbox;
   const task = await createTask(db, {
     title,
     spaceId: space.id,
@@ -62,7 +70,11 @@ export async function handleTaskCommand(
   });
 
   const entries = [{ task, space }];
-  const opts = { timeZone: config.timeZone, assigneeLabels: config.assigneeLabels };
+  const opts = {
+    timeZone: config.timeZone,
+    assigneeLabels: config.assigneeLabels,
+    showSpace: !mappedHere,
+  };
   const blocks = taskCardBlocks(entries, opts);
   const notes: string[] = [];
   if (space.is_inbox) {

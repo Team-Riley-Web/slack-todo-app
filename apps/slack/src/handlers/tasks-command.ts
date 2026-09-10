@@ -11,6 +11,7 @@ import { authorize } from '../auth.js';
 import { saveCard } from '@tr/slack-sync';
 import type { AppConfig } from '../config.js';
 import type { SlashCommandLike } from './task-command.js';
+import { handleMapCommand, isMapCommand } from './map-command.js';
 
 export interface TasksDeps {
   db: Db;
@@ -19,6 +20,8 @@ export interface TasksDeps {
       postMessage: (args: Record<string, unknown>) => Promise<{ ts?: string }>;
       postEphemeral: (args: Record<string, unknown>) => Promise<unknown>;
     };
+    /** Only `/tasks map` uses this, so it stays optional for other callers. */
+    views?: { open: (args: Record<string, unknown>) => Promise<unknown> };
   };
   config: AppConfig;
 }
@@ -40,6 +43,14 @@ export async function handleTasksCommand(
   }
 
   const scope = (command.text ?? '').trim().toLowerCase();
+
+  // `/tasks map` opens the channel-to-Space modal. Checked before any Space
+  // lookup so the word is never read as a Space search.
+  if (isMapCommand(scope)) {
+    const result = await handleMapCommand(deps as never, command);
+    return { scope: 'map', count: result.outcome === 'opened' ? 1 : 0 };
+  }
+
   const spaces = new Map((await listSpaces(db)).map((s: Space) => [s.id, s]));
   const toEntries = (tasks: Task[]): CardEntry[] =>
     tasks.flatMap((task) => {
@@ -117,7 +128,7 @@ export async function handleTasksCommand(
   if (!space) {
     await client.chat.postEphemeral({
       channel: command.channel_id, user: command.user_id,
-      text: `No space matches "${command.text.trim()}". Try \`/tasks\` to see everything.`,
+      text: `No space matches "${command.text.trim()}". Try \`/tasks\` to see everything, or \`/tasks map\` to set this channel's Space.`,
     });
     return { scope, count: 0 };
   }

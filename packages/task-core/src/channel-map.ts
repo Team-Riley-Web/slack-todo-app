@@ -1,6 +1,7 @@
 import type { Db } from '@tr/db';
 import { UnknownSpaceError } from './errors.js';
 import { findSpaceExact } from './context.js';
+import type { Space } from './types.js';
 
 export interface ChannelMapEntry {
   /** Human-readable channel name, for operator legibility only. */
@@ -90,4 +91,53 @@ export async function listChannelMap(db: Db): Promise<
     channelName: r.slack_channel_name,
     spaceName: r.name,
   }));
+}
+
+/**
+ * Maps one channel to one Space.
+ *
+ * The single-channel case, for the surfaces that set a mapping interactively:
+ * the Slack modal and the web settings page. Both used to reach for
+ * `syncChannelMap` with a one-entry object, or -- worse -- their own SQL. This
+ * is the one place the rule lives.
+ *
+ * The Space must already exist. An unknown name throws rather than creating a
+ * Space, because Spaces are configuration and a typo in a channel mapping is
+ * not an instruction to invent one.
+ */
+export async function mapChannelToSpace(
+  db: Db,
+  args: { channelId: string; channelName?: string | null; spaceName: string }
+): Promise<Space> {
+  const channelId = args.channelId.trim();
+  // Not an UnknownSpaceError: nothing is wrong with the Space here.
+  if (!channelId) throw new Error('a Slack channel id is required');
+
+  const space = await findSpaceExact(db, args.spaceName);
+  if (!space) {
+    const { rows } = await db.query<{ name: string }>(
+      `SELECT name FROM spaces ORDER BY name`
+    );
+    throw new UnknownSpaceError(args.spaceName, rows.map((r) => r.name));
+  }
+
+  await syncChannelMap(db, {
+    [channelId]: {
+      name: args.channelName?.trim() || undefined,
+      space: args.spaceName,
+    },
+  });
+  return space;
+}
+
+/** Removes a mapping. Idempotent: an unmapped channel is not an error. */
+export async function unmapChannel(db: Db, channelId: string): Promise<boolean> {
+  const id = channelId.trim();
+  if (!id) return false;
+  const { rows } = await db.query<{ slack_channel_id: string }>(
+    `DELETE FROM channel_space_map WHERE slack_channel_id = $1
+      RETURNING slack_channel_id`,
+    [id]
+  );
+  return rows.length > 0;
 }

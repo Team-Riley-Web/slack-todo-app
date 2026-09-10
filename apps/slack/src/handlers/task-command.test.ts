@@ -1,6 +1,7 @@
 import { it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
+import { mapChannelToSpace } from '@tr/task-core';
 import { handleTaskCommand } from './task-command.js';
 
 let db: Db;
@@ -133,4 +134,29 @@ it('does not read a due date out of a number that is not a time', async () => {
   );
   expect(r.created!.due_at).toBeNull();
   expect(r.created!.title).toBe('Consolidate 401(k): move Corebridge to Fidelity');
+});
+
+// --- the Space is not repeated when the channel already implies it ---
+
+it('omits the Space on a card posted in the channel that routes there', async () => {
+  await mapChannelToSpace(db, {
+    channelId: 'C_MKT', channelName: '#marketing', spaceName: 'Marketing',
+  });
+  const r = await handleTaskCommand(
+    deps(), cmd('Ship the landing page', { channel_id: 'C_MKT' }) as never
+  );
+  expect(r.created!.title).toBe('Ship the landing page');
+
+  const arg = client.chat.postMessage.mock.calls[0]![0] as any;
+  const option = (arg.blocks as any[])
+    .find((b) => b.type === 'actions').elements[0].options[0];
+  expect(option.description?.text ?? '').not.toContain('Marketing');
+});
+
+it('still names Inbox on a card from an unmapped channel, because that IS worth knowing', async () => {
+  await handleTaskCommand(deps(), cmd('Something', { channel_id: 'C_NOWHERE' }) as never);
+  const arg = client.chat.postMessage.mock.calls[0]![0] as any;
+  const option = (arg.blocks as any[])
+    .find((b) => b.type === 'actions').elements[0].options[0];
+  expect(option.description.text).toContain('Inbox');
 });

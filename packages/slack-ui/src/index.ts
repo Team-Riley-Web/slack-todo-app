@@ -30,3 +30,8 @@ export {
   PICKER_CALLBACK_ID, PICKER_BLOCK, PICKER_ACTION,
   type PickerAction, type PickerMeta, type PickerEntry, type ParsedPick,
 } from './picker-view.js';
+export {
+  channelMapView, parseMapSubmission,
+  MAP_CALLBACK_ID, MAP_BLOCK, MAP_ACTION, MAP_NONE,
+  type MapMeta, type ParsedMap,
+} from './map-view.js';

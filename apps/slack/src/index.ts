@@ -20,6 +20,7 @@ import {
   handlePreviewSubmit, handleWizardClosed, type ImportDeps,
 } from './handlers/import-wizard.js';
 import { makeFetchFile } from './slack-file.js';
+import { handleMapSubmission, MAP_CALLBACK_ID } from './handlers/map-command.js';
 import { retentionDays, startRetentionSweep } from './retention.js';
 import { acquireLock } from './single-instance.js';
 
@@ -203,6 +204,25 @@ for (const id of [
 ]) {
   app.view({ callback_id: id, type: 'view_closed' }, wizardStep(handleWizardClosed) as never);
 }
+
+/**
+ * `/tasks map` submit. A bad Space is returned as a native field error so the
+ * modal stays open with the choice still in it.
+ */
+app.view(MAP_CALLBACK_ID, async ({ ack, body, client, view }) => {
+  const result = await handleMapSubmission(
+    { db, client: client as never, config },
+    { ...(body as unknown as Record<string, unknown>), view } as never
+  );
+  if (result.outcome === 'invalid' && result.error) {
+    await ack({
+      response_action: 'errors',
+      errors: { [result.error.blockId]: result.error.message },
+    } as never);
+    return;
+  }
+  await ack();
+});
 
 app.error(async (error) => {
   console.error('[slack] unhandled error', error);
