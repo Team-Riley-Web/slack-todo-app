@@ -126,6 +126,13 @@ Music, and the six clients.
 An unmapped channel routes to **Inbox**. Client identity is never inferred from
 channel or message text.
 
+## Task actions
+
+A card is the checkbox and nothing else. Everything else is in Slack's own
+**More actions** (⋮) menu on the message: **Edit task** and **Toggle
+Waiting**. When a card holds several tasks the app asks which one you mean
+rather than acting on the first.
+
 ## The task card
 
 ```

@@ -144,23 +144,6 @@ export function taskControlBlocks(entry: CardEntry, index = 0): KnownBlock[] {
   } as unknown as KnownBlock];
 }
 
-/**
- * The same overflow as an element rather than a block, so it can be placed
- * INSIDE the checkbox's actions block.
- *
- * An actions block lays its elements out in a row, so the menu sits to the
- * right of the task instead of in a block of its own underneath -- which
- * rendered as a stray button separated by a large vertical gap.
- *
- * Returns null for a completed task: a completed card is checkbox-only.
- */
-export function taskControlElement(entry: CardEntry): Record<string, unknown> | null {
-  const blocks = taskControlBlocks(entry);
-  if (blocks.length === 0) return null;
-  const [block] = blocks as unknown as Array<{ elements: Record<string, unknown>[] }>;
-  return block!.elements[0]!;
-}
-
 export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock[] {
   if (entries.length === 0) return [];
   const blocks: KnownBlock[] = [];
@@ -184,21 +167,14 @@ export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock
     };
     if (initial.length > 0) element.initial_options = initial;
 
-    const elements: Record<string, unknown>[] = [element];
-
-    // A single-task card carries the secondary overflow, in this same block so
-    // it renders to the right of the task rather than below it. Driven off
-    // entry count rather than a flag, so a redraw reproduces exactly what was
-    // posted.
-    if (shown.length === 1) {
-      const control = taskControlElement(shown[0]!);
-      if (control) elements.push(control);
-    }
-
+    // The checkbox is the ONLY thing on a card now. "Toggle Waiting" and
+    // "Edit task" moved to Slack's own "More actions" menu as message
+    // shortcuts, so the card carries no control of its own -- an overflow
+    // beside or below the task was clutter either way.
     blocks.push({
       type: 'actions',
       block_id: checkboxBlockId(groupIndex, opts.version ?? 1),
-      elements,
+      elements: [element],
     } as unknown as KnownBlock);
   });
 
