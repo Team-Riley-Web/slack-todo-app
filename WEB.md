@@ -65,14 +65,40 @@ version's problem was architectural rather than chromatic:
   toolbar row, then cards.
 - **Task lists are cards**, each with a collapse chevron, a count, a table
   header naming the columns, and a "+ Create new task" footer.
-- **Rows are a grid**, not a flex line: `34px 1fr 110px 92px 78px` shared by
-  the header row and every task row, so the columns line up without a table
-  element. Below 860px the assignee and due columns drop out and the title
-  keeps its sub-line.
+- **Rows are a grid**, not a flex line:
+  `34px minmax(0,1fr) 128px 110px 92px 78px` — tick, title, Space, assignee,
+  due, actions — shared by the header row and every task row, so the columns
+  line up without a table element. A view filtered to one Space drops the
+  Space track (`.row.nospace`), because naming it on every row of its own
+  Space is not information. Below 860px the Space, assignee and due columns
+  drop out and the Space returns to the title's sub-line, where it costs no
+  width.
 
-Colours were sampled from the reference screenshots with ImageMagick rather
-than guessed — `#1e2432` rail, `#5986ff` active row, `#35ca8c` for the
-completed check, `#ea4954` for overdue.
+Colour and type now come from `docs/brand-spec.md`, whose tokens are declared
+in `globals.css` twice each: a hex fallback, then the spec's own `oklch()`.
+Five of its six values converted to exactly the hex already sampled from the
+reference, so the spec documents this interface rather than redirecting it.
+
+The one value it does change is the accent, which becomes the same cornflower
+as the rail's selected row — one selection colour across both halves of the
+app. White text on it measures 3.34:1, which clears the 3:1 bar for a UI
+surface, border or focus ring but not the 4.5:1 one for text, so there is a
+second token: `--accent-strong` at `oklch(0.57 0.1862 266.03)`, the lightest
+point on the spec's own hue and chroma that passes AA in both directions
+(4.63:1). The split is by surface, not by concept — the cornflower stays the
+selection colour on the graphite rail, and anything on the near-white
+workspace that puts white ON blue (the primary button, a selected chip) or
+uses blue AS text (links) takes the darker step.
+
+The rail keeps its own sampled greys (`#1e2432` and friends); the spec gives
+no values for it. `#35ca8c` for the completed check and `#ea4954` for overdue
+also stay: the spec reserves blue for selection and the primary action, which
+says nothing about the status hues.
+
+Type is three stacks: `--font-display` (Iowan Old Style, Charter, Georgia) on
+the page heading, the pane heading and the team name in the rail;
+`--font-body` on everything else; `--font-mono` wherever a literal is shown —
+a slash command, a slug, a channel id.
 
 **This is a structural match, not a pixel-perfect one**, and it cannot be from
 screenshots alone: font metrics, the exact spacing scale, and precise region

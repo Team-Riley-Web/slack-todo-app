@@ -1,27 +1,63 @@
 /*
  * Structure follows the reference: one dark rail carrying all navigation, a
- * light main column, and task lists grouped into white cards with a table
- * header. Colours are sampled from the reference screenshots rather than
- * invented, but the layout is the part that makes it read the same.
+ * light main column, and task lists grouped into white surfaces with a table
+ * header. The layout is the part that makes it read the same.
+ *
+ * Colours and type come from docs/brand-spec.md. Each brand token is declared
+ * twice: a hex fallback first, then the spec's own oklch, which any browser
+ * that does not parse oklch simply ignores. Five of the six spec values
+ * converted to exactly the hex already in use here -- the spec was sampled
+ * from this interface -- so the oklch is the authority and the hex is a
+ * faithful sRGB rendering of it, not a second opinion.
  */
 
 :root {
+  /* --- rail: the graphite navigation column. No spec values; sampled. --- */
   --rail-bg: #1e2432;
   --rail-fg: #c4c5cb;
   --rail-muted: #7d8188;
   --rail-line: #2b3242;
-  --rail-active: #5986ff;
 
+  /* --- brand tokens, docs/brand-spec.md --- */
   --bg: #fcfcfd;
-  --card: #ffffff;
+  --bg: oklch(0.9913 0.0013 286.38);
+  --surface: #ffffff;
+  --surface: oklch(1 0 89.88);
   --fg: #22262e;
+  --fg: oklch(0.2681 0.016 264.26);
   --muted: #6b7280;
-  --line: #e6e8eb;
-  --accent: #2563eb;
+  --muted: oklch(0.551 0.0234 264.36);
+  --border: #e6e8eb;
+  --border: oklch(0.9303 0.0046 258.33);
+
+  /*
+   * The one token the spec actually changes: the accent becomes the same
+   * cornflower as the rail's selected row, so selection is one colour in both
+   * halves of the app. It replaces --rail-active, which held this exact value.
+   */
+  --accent: #5986ff;
+  --accent: oklch(0.6493 0.1862 266.03);
+
+  /*
+   * White on that accent is 3.34:1. That clears the 3:1 bar for a UI surface,
+   * a border or a focus ring, but not the 4.5:1 one for text -- so a solid
+   * primary button and a link, which ARE text, use this darker companion.
+   * L 0.57 is the lightest point on the spec's own hue and chroma that passes
+   * AA in both directions (4.63:1), so the brand hue is kept rather than
+   * swapped for a different blue.
+   */
+  --accent-strong: #436de3;
+  --accent-strong: oklch(0.57 0.1862 266.03);
+
   --danger: #b42318;
   --soon: #b54708;
   --done: #35ca8c;
   --overdue: #ea4954;
+
+  /* --- type, docs/brand-spec.md --- */
+  --font-display: "Iowan Old Style", Charter, Georgia, serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 
   --radius: 6px;
   --rail-w: 240px;
@@ -29,14 +65,19 @@
 
 * { box-sizing: border-box; }
 
+/* The mono stack, used where a literal is shown: slash commands, slugs,
+   channel ids. Nothing here declared a family before, so these fell back to
+   whatever the browser picked. */
+code, pre, kbd, samp { font-family: var(--font-mono); font-size: 0.92em; }
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font: 14px/1.5 var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
-a { color: var(--accent); }
+a { color: var(--accent-strong); }
 
 /* --- app frame --- */
 
@@ -48,7 +89,13 @@ a { color: var(--accent); }
   padding: 22px 0 6px;
 }
 .page-head .heading { flex: 1; min-width: 0; }
-.page-head h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+.page-head h1 {
+  margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em;
+  /* The display face earns its keep on the page title and the team name in
+     the rail, and nowhere else: section headings staying sans is what keeps
+     a list of tasks reading as a table rather than a document. */
+  font-family: var(--font-display);
+}
 .page-head .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
 .toolbar { padding: 12px 0 4px; }
 
@@ -56,7 +103,7 @@ a { color: var(--accent); }
 form.search { margin: 0; flex: none; }
 .search-field {
   display: flex; align-items: center; gap: 6px;
-  background: var(--card); border: 1px solid var(--line);
+  background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 0 10px;
 }
 .search-field .icon { width: 15px; height: 15px; color: var(--muted); flex: none; }
@@ -86,7 +133,10 @@ nav.rail a.workspace {
 }
 nav.rail a.workspace img { border-radius: 6px; display: block; }
 nav.rail .names { display: flex; flex-direction: column; min-width: 0; }
-nav.rail .team { font-weight: 650; font-size: 15px; letter-spacing: -0.01em; }
+nav.rail .team {
+  font-weight: 600; font-size: 16px; letter-spacing: -0.01em;
+  font-family: var(--font-display);
+}
 nav.rail .who {
   color: var(--rail-muted); font-size: 12px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -113,7 +163,7 @@ nav.rail ul.group a {
 nav.rail .icon { opacity: .72; }
 nav.rail a:hover .icon, nav.rail a[aria-current="page"] .icon { opacity: 1; }
 nav.rail ul.group a:hover { background: rgba(255, 255, 255, .07); color: #fff; }
-nav.rail ul.group a[aria-current="page"] { background: var(--rail-active); color: #fff; }
+nav.rail ul.group a[aria-current="page"] { background: var(--accent); color: #fff; }
 nav.rail .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 nav.rail .count { color: var(--rail-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 nav.rail a[aria-current="page"] .count { color: #fff; }
@@ -121,7 +171,7 @@ nav.rail a[aria-current="page"] .count { color: #fff; }
 /* --- section cards --- */
 
 details.card {
-  background: var(--card); border: 1px solid var(--line);
+  background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; margin: 0 0 16px;
   box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
 }
@@ -131,7 +181,7 @@ details.card > summary {
   font-weight: 650; font-size: 15px;
 }
 details.card > summary::-webkit-details-marker { display: none; }
-details.card[open] > summary { border-bottom: 1px solid var(--line); }
+details.card[open] > summary { border-bottom: 1px solid var(--border); }
 details.card > summary .name { flex: 1; }
 details.card > summary .count {
   color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums;
@@ -169,16 +219,23 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
   grid-template-columns: 34px minmax(0, 1fr) 128px 110px 92px 78px;
   align-items: center;
   padding: 0 16px; min-height: 42px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border);
 }
 ul.rows li.row:last-child { border-bottom: 0; }
 .row.head {
-  min-height: 34px; color: var(--muted); font-size: 12px; font-weight: 600;
-  background: #fafbfc; border-bottom: 1px solid var(--line);
+  /*
+   * --fg, not --muted: the spec asks for secondary metadata to read quieter
+   * than the column labels, and both were --muted, so there was no hierarchy
+   * to read. Darkening the label is the direction that works -- the sub-line
+   * is already at 4.83:1 on white, so making IT quieter would have taken it
+   * under the 4.5:1 floor.
+   */
+  min-height: 34px; color: var(--fg); font-size: 12px; font-weight: 600;
+  background: #fafbfc; border-bottom: 1px solid var(--border);
 }
 .row .title { min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-right: 12px; }
 .row .title a { color: var(--fg); text-decoration: none; word-break: break-word; }
-.row .title a:hover { color: var(--accent); }
+.row .title a:hover { color: var(--accent-strong); }
 .row .meta { color: var(--muted); font-size: 12px; }
 /* The Space has its own column at this width, so the sub-line copy is off. */
 .row .space-inline { display: none; }
@@ -199,7 +256,7 @@ ul.rows li.row:last-child { border-bottom: 0; }
   background: none; border: 1px solid transparent; color: var(--muted);
   border-radius: var(--radius); padding: 3px 8px; font-size: 12px; cursor: pointer;
 }
-.row:hover .rowactions button { border-color: var(--line); }
+.row:hover .rowactions button { border-color: var(--border); }
 .row .rowactions button:hover { color: var(--fg); background: #f3f4f6; }
 
 /* The circle check. A real submit button, so completing needs no JavaScript. */
@@ -235,23 +292,32 @@ h2 { font-size: 15px; margin: 26px 0 8px; }
 .filters form { display: flex; gap: 6px; align-items: center; margin: 0; }
 input[type="text"], input[type="search"], input[type="date"],
 input[type="datetime-local"], select, textarea {
-  font: inherit; padding: 6px 10px; border: 1px solid var(--line);
-  border-radius: var(--radius); background: var(--card); color: var(--fg);
+  font: inherit; padding: 6px 10px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface); color: var(--fg);
 }
 textarea { min-height: 90px; }
 button, .btn {
-  font: inherit; padding: 6px 12px; border: 1px solid var(--line);
-  border-radius: var(--radius); background: var(--card); color: var(--fg);
+  font: inherit; padding: 6px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface); color: var(--fg);
   cursor: pointer; text-decoration: none;
 }
 button:hover, .btn:hover { background: #f3f4f6; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+/*
+ * The split between --accent and --accent-strong is by surface, not concept.
+ * On the graphite rail the cornflower is the selection colour the spec names,
+ * and it stays. On the near-white workspace the same fill would put white
+ * text at 3.34:1, so anything here that sets white ON blue -- the single
+ * primary action, a selected chip -- takes the darker step of the same hue.
+ */
+button.primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
 button.primary:hover { filter: brightness(1.06); }
 a.chip, .filters .chip {
-  padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px;
-  font-size: 13px; text-decoration: none; color: var(--fg); background: var(--card);
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px;
+  font-size: 13px; text-decoration: none; color: var(--fg); background: var(--surface);
 }
-a.chip[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+a.chip[aria-current="true"] {
+  background: var(--accent-strong); border-color: var(--accent-strong); color: #fff;
+}
 
 .stack { display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
 .stack label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
@@ -263,7 +329,7 @@ a.chip[aria-current="true"] { background: var(--accent); border-color: var(--acc
   display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 12px;
 }
 .space-card {
-  background: var(--card); border: 1px solid var(--line);
+  background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; padding: 12px 14px;
 }
 .space-card h3 { margin: 0 0 4px; font-size: 14px; }
@@ -273,7 +339,7 @@ a.chip[aria-current="true"] { background: var(--accent); border-color: var(--acc
 
 table.plain { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.plain th, table.plain td {
-  text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line);
+  text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border);
 }
 .scroll-x { overflow-x: auto; }
 
@@ -287,7 +353,7 @@ details.confirm-delete > summary::-webkit-details-marker { display: none; }
 details.confirm-delete[open] > summary { font-weight: 600; }
 details.confirm-delete p { margin: 6px 0; }
 button.danger {
-  background: none; border: 1px solid var(--line); color: var(--danger);
+  background: none; border: 1px solid var(--border); color: var(--danger);
   border-radius: var(--radius); padding: 4px 8px; font-size: 13px; cursor: pointer;
 }
 button.danger:hover { border-color: var(--danger); }
@@ -324,7 +390,7 @@ button.danger:hover { border-color: var(--danger); }
 .pane {
   position: fixed; z-index: 5; top: 0; right: 0; bottom: 0;
   width: min(560px, 100%);
-  background: var(--bg); border-left: 1px solid var(--line);
+  background: var(--bg); border-left: 1px solid var(--border);
   padding: 16px 20px 40px;
   overflow-y: auto;
   box-shadow: -8px 0 24px rgba(0, 0, 0, .12);
@@ -334,13 +400,18 @@ button.danger:hover { border-color: var(--danger); }
   position: sticky; top: 0; background: var(--bg);
   padding-bottom: 8px; margin-bottom: 4px;
 }
-.pane-head h1 { flex: 1; margin: 8px 0; }
+/* h2, not h1: a pane sits inside a page that already has an h1, and both
+   panes render an h2. The old `.pane-head h1` rule matched nothing. */
+.pane-head h2 {
+  flex: 1; margin: 8px 0; font-size: 18px; font-weight: 600;
+  font-family: var(--font-display);
+}
 a.pane-close {
   text-decoration: none; color: var(--muted);
   font-size: 24px; line-height: 1; padding: 4px 10px;
   border-radius: var(--radius);
 }
-a.pane-close:hover { background: var(--line); color: var(--fg); }
+a.pane-close:hover { background: var(--border); color: var(--fg); }
 
 @media (max-width: 620px) {
   /* Full width on a phone: a 560px pane on a 390px screen is just a page. */
@@ -353,14 +424,15 @@ form.inline, .inline {
   display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin: 0;
 }
 button.link {
-  border: none; background: none; padding: 0; color: var(--accent);
+  /* Blue as text, so the AA-passing step. */
+  border: none; background: none; padding: 0; color: var(--accent-strong);
   cursor: pointer; font: inherit;
 }
 
 /* --- settings panels --- */
 
 details.panel {
-  background: var(--card); border: 1px solid var(--line);
+  background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; margin: 0 0 12px;
 }
 details.panel > summary {
@@ -369,7 +441,7 @@ details.panel > summary {
   font-weight: 600; font-size: 14px;
 }
 details.panel > summary::-webkit-details-marker { display: none; }
-details.panel[open] > summary { border-bottom: 1px solid var(--line); }
+details.panel[open] > summary { border-bottom: 1px solid var(--border); }
 details.panel > *:not(summary) { margin-left: 16px; margin-right: 16px; }
 details.panel > *:last-child { margin-bottom: 14px; }
 details.panel .scroll-x { margin-top: 8px; }
@@ -408,7 +480,7 @@ a.iconbtn .icon { width: 15px; height: 15px; }
   color: var(--muted); font-size: 13px; text-align: right;
   padding-right: 14px; font-variant-numeric: tabular-nums;
 }
-.row.head .num { color: var(--muted); }
+.row.head .num { color: var(--fg); }
 
 @media (max-width: 860px) {
   .row.spacerow { grid-template-columns: minmax(0, 1fr) 48px 76px; }
