@@ -1,15 +1,17 @@
 import { csvAdapter } from './csv.js';
 import { jsonAdapter } from './json.js';
+import { workastAdapter } from './workast.js';
 import type { Adapter, ImportSourceType } from '../types.js';
 
 export { csvAdapter } from './csv.js';
 export { jsonAdapter } from './json.js';
+export { workastAdapter } from './workast.js';
 
 export const ADAPTERS: Record<ImportSourceType, Adapter> = {
   csv: csvAdapter,
   json: jsonAdapter,
   // Provider adapters are registered here as they land.
-  workast: jsonAdapter,
+  workast: workastAdapter,
   kanban: jsonAdapter,
 };
 
