@@ -82,7 +82,7 @@ it('moves a waiting task back to open and clears waiting_on', async () => {
 it('redraws the same message in place', async () => {
   const task = await seed('X');
   await handleWaitingAction(deps(), body(`waiting:${task.id}`) as never);
-  expect(client.chat.update.mock.calls[0][0].ts).toBe('1700000000.000300');
+  expect(client.chat.update.mock.calls[0]![0]!.ts).toBe('1700000000.000300');
 });
 
 it('rejects an unauthorized user with no mutation', async () => {

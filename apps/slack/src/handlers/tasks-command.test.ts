@@ -30,7 +30,7 @@ const add = (space: string, title: string) =>
   createTask(db, { title, spaceId: spaceIds[space]!, assigneeId: 'U_JOSH' });
 const posted = () =>
   JSON.stringify(
-    client.chat.postEphemeral.mock.calls[0]?.[0] ?? client.chat.postMessage.mock.calls[0][0]
+    client.chat.postEphemeral.mock.calls[0]?.[0] ?? client.chat.postMessage.mock.calls[0]![0]!
   );
 
 // Required tests 9, 12
@@ -114,7 +114,7 @@ it('records posted list cards so their checkboxes work', async () => {
 it('paginates a scope with more than ten tasks into multiple checkbox elements', async () => {
   for (let i = 0; i < 12; i += 1) await add('Sales', `Task ${i}`);
   await handleTasksCommand(deps(), cmd('sales') as never);
-  const blocks = client.chat.postMessage.mock.calls[0][0].blocks as any[];
+  const blocks = client.chat.postMessage.mock.calls[0]![0]!.blocks as any[];
   const groups = blocks.filter((b) => b.type === 'actions');
   expect(groups.map((g: any) => g.elements[0].options.length)).toEqual([10, 2]);
 });

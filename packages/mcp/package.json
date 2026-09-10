@@ -1,0 +1,13 @@
+{
+  "name": "@tr/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@tr/db": "workspace:*",
+    "@tr/task-core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -59,7 +59,7 @@ it('routes an unmapped channel to Inbox and says so', async () => {
     deps(), cmd('Buy a new vehicle', { channel_id: 'C_NEW' }) as never
   );
   expect(await spaceOf(created!.id)).toBe('Inbox');
-  expect(JSON.stringify(client.chat.postMessage.mock.calls[0][0])).toContain('Inbox');
+  expect(JSON.stringify(client.chat.postMessage.mock.calls[0]![0]!)).toContain('Inbox');
 });
 
 it('parses a strict due token without altering the remaining title', async () => {
@@ -70,7 +70,7 @@ it('parses a strict due token without altering the remaining title', async () =>
 
 it('posts a native checkbox card and records it for later toggles', async () => {
   const { created } = await handleTaskCommand(deps(), cmd('Call Neil') as never);
-  const arg = client.chat.postMessage.mock.calls[0][0];
+  const arg = client.chat.postMessage.mock.calls[0]![0]!;
   const el = arg.blocks.find((b: any) => b.type === 'actions').elements[0];
   expect(el.type).toBe('checkboxes');
   expect(el.options[0].value).toBe(created!.id);
