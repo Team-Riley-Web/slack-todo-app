@@ -63,9 +63,14 @@ const app = new Bolt.App({
     : { socketMode: false }),
 });
 
-app.command('/task', async ({ command, ack, client }) => {
+app.command('/task', async ({ command, ack, client, respond }) => {
   await ack();
-  await handleTaskCommand({ db, client: client as never, config }, command as never);
+  // `respond` posts to the command's response_url, which works in a channel
+  // this app has not been invited to. postEphemeral does not, and a command
+  // whose reply silently fails looks like a command that did nothing.
+  await handleTaskCommand(
+    { db, client: client as never, respond, config }, command as never
+  );
 });
 
 /**
@@ -75,14 +80,18 @@ app.command('/task', async ({ command, ack, client }) => {
  * stays absolute: a subcommand would mean nobody could have a task called
  * exactly "space".
  */
-app.command('/space', async ({ command, ack, client }) => {
+app.command('/space', async ({ command, ack, client, respond }) => {
   await ack();
-  await handleMapCommand({ db, client: client as never, config }, command as never);
+  await handleMapCommand(
+    { db, client: client as never, respond, config }, command as never
+  );
 });
 
-app.command('/tasks', async ({ command, ack, client }) => {
+app.command('/tasks', async ({ command, ack, client, respond }) => {
   await ack();
-  await handleTasksCommand({ db, client: client as never, config }, command as never);
+  await handleTasksCommand(
+    { db, client: client as never, respond, config }, command as never
+  );
 });
 
 // The native checkbox is the single task-state control, in both directions.

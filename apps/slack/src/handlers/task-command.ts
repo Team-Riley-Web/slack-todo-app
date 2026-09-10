@@ -7,9 +7,18 @@ import { authorize } from '../auth.js';
 import { handleCaptureOpen } from './capture-modal.js';
 import { saveCard } from '@tr/slack-sync';
 import type { AppConfig } from '../config.js';
+import {
+  replyPrivately, isCannotPostError, cannotPostHere, type Respond,
+} from '../reply.js';
 
 export interface CommandDeps {
   db: Db;
+  /**
+   * Bolt's response_url sender. Optional because modal submits have none,
+   * but for a slash command it is the only reply path that works in a
+   * channel this app has not been invited to.
+   */
+  respond?: Respond;
   client: {
     /** Only the bare-`/task` modal needs this, so it stays optional. */
     views?: { open: (args: Record<string, unknown>) => Promise<unknown> };
@@ -38,10 +47,11 @@ export async function handleTaskCommand(
     { team: { id: command.team_id }, user: { id: command.user_id } } as never, config
   );
   if (!auth.ok) {
-    await client.chat.postEphemeral({
-      channel: command.channel_id, user: command.user_id,
-      text: 'You are not authorized to create tasks with this app.',
-    });
+    await replyPrivately(
+      deps,
+      { channelId: command.channel_id, userId: command.user_id },
+      'You are not authorized to create tasks with this app.'
+    );
     return { created: null, reason: auth.reason };
   }
 
@@ -58,10 +68,11 @@ export async function handleTaskCommand(
       await handleCaptureOpen(deps as never, command);
       return { created: null, reason: 'opened_modal' };
     }
-    await client.chat.postEphemeral({
-      channel: command.channel_id, user: command.user_id,
-      text: 'Usage: `/task <task title>` — optionally ending with `due:YYYY-MM-DD`.',
-    });
+    await replyPrivately(
+      deps,
+      { channelId: command.channel_id, userId: command.user_id },
+      'Usage: `/task <task title>` — optionally ending with `due:YYYY-MM-DD`.'
+    );
     return { created: null, reason: 'empty_title' };
   }
 
@@ -105,11 +116,31 @@ export async function handleTaskCommand(
     } as never);
   }
 
-  const posted = await client.chat.postMessage({
-    channel: command.channel_id,
-    text: taskCardFallback(entries),
-    blocks,
-  });
+  /*
+   * The task is already written at this point, on purpose: capture must not
+   * depend on whether the app can post. So a channel it cannot post in is
+   * reported, not thrown -- the person hears that the task was saved and how
+   * to make cards appear, instead of nothing at all.
+   */
+  let posted: { ts?: string };
+  try {
+    posted = await client.chat.postMessage({
+      channel: command.channel_id,
+      text: taskCardFallback(entries),
+      blocks,
+    });
+  } catch (error) {
+    if (!isCannotPostError(error)) throw error;
+    await replyPrivately(
+      deps,
+      { channelId: command.channel_id, userId: command.user_id },
+      cannotPostHere(
+        `Saved *${task.title}* to *${space.name}*.`,
+        command.channel_name
+      )
+    );
+    return { created: task, reason: 'cannot_post_in_channel' };
+  }
 
   if (posted.ts) {
     await db.query(`UPDATE tasks SET source_message_ts = $2 WHERE id = $1`, [task.id, posted.ts]);

@@ -10,6 +10,7 @@ import {
 import { authorize } from '../auth.js';
 import type { AppConfig } from '../config.js';
 import type { SlashCommandLike } from './task-command.js';
+import { replyPrivately, type Respond } from '../reply.js';
 
 export { MAP_CALLBACK_ID, MAP_BLOCK, MAP_ACTION, MAP_NONE } from '@tr/slack-ui';
 
@@ -24,6 +25,8 @@ export { MAP_CALLBACK_ID, MAP_BLOCK, MAP_ACTION, MAP_NONE } from '@tr/slack-ui';
 
 export interface MapDeps {
   db: Db;
+  /** Reaches the user even in a channel this app has not joined. */
+  respond?: Respond;
   client: {
     views: { open: (args: Record<string, unknown>) => Promise<unknown> };
     chat: { postEphemeral: (args: Record<string, unknown>) => Promise<unknown> };
@@ -155,14 +158,15 @@ export async function handleMapSubmission(
   }
 }
 
-/** Ephemeral: a mapping change is not news the whole channel needs. */
+/**
+ * Ephemeral: a mapping change is not news the whole channel needs.
+ *
+ * Via response_url where there is one, because postEphemeral needs channel
+ * membership and this command is most useful in a channel that has not been
+ * wired up yet -- which is often one the app has not been invited to either.
+ */
 async function tell(
   deps: MapDeps, channelId: string, userId: string | null, text: string
 ): Promise<void> {
-  if (!userId) return;
-  try {
-    await deps.client.chat.postEphemeral({ channel: channelId, user: userId, text });
-  } catch {
-    // A failed confirmation must not undo a mapping that already succeeded.
-  }
+  await replyPrivately(deps, { channelId, userId }, text);
 }
