@@ -130,8 +130,12 @@ To find your own user ID: Slack profile → **⋮** → Copy member ID.
 
 ## 7. Channel → Space mapping
 
-Deterministic configuration. Invite the bot to each channel, then declare the
-mapping in JSON and apply it:
+**In Slack:** run `/tasks map` in the channel. A modal lists every Space, with
+the current one preselected; picking "none" unmaps the channel and sends its
+tasks to Inbox. Nothing to type, no Space name to get wrong.
+
+**In bulk:** for a first rollout across many channels, the JSON file is still
+faster. Invite the bot to each channel, then declare the mapping and apply it:
 
 ```bash
 cp config/channel-map.example.json config/channel-map.json

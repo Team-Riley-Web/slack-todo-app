@@ -1,7 +1,7 @@
 import type { Db } from '@tr/db';
 import {
-  listChannelMap, syncChannelMap, listSpaces, getInboxSpace,
-  findSpaceExact, type Space, UnknownSpaceError,
+  listChannelMap, listSpaces, getInboxSpace,
+  mapChannelToSpace, unmapChannel, type Space, UnknownSpaceError,
 } from '@tr/task-core';
 import { listBatches, type ImportBatch } from '@tr/importer';
 import { authorizedUserIds, timeZone } from '@/lib/env';
@@ -56,16 +56,16 @@ export async function setChannelMapping(
   const id = channelId.trim();
   if (!id) return { ok: false, error: 'A Slack channel ID is required.' };
 
-  const space = await findSpaceExact(db, spaceName);
-  if (!space) return { ok: false, error: `No Space matches "${spaceName}".` };
-
+  // Delegates to task-core: the Slack modal sets mappings too, and two copies
+  // of this rule would be two chances to disagree about what a valid mapping
+  // is.
   try {
-    await syncChannelMap(db, {
-      [id]: { name: channelName?.trim() || undefined, space: spaceName },
-    });
+    await mapChannelToSpace(db, { channelId: id, channelName, spaceName });
     return { ok: true, taskId: id };
   } catch (err) {
-    if (err instanceof UnknownSpaceError) return { ok: false, error: err.message };
+    if (err instanceof UnknownSpaceError) {
+      return { ok: false, error: `No Space matches "${spaceName}".` };
+    }
     throw err;
   }
 }
@@ -75,6 +75,6 @@ export async function removeChannelMapping(
 ): Promise<OperationResult> {
   const id = channelId.trim();
   if (!id) return { ok: false, error: 'A Slack channel ID is required.' };
-  await db.query(`DELETE FROM channel_space_map WHERE slack_channel_id = $1`, [id]);
+  await unmapChannel(db, id);
   return { ok: true, taskId: id };
 }

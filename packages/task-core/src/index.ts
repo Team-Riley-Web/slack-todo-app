@@ -14,7 +14,7 @@ export {
   type Actor, type CreateTaskInput, type MovePatch,
 } from './tasks.js';
 export {
-  syncChannelMap, listChannelMap,
+  syncChannelMap, listChannelMap, mapChannelToSpace, unmapChannel,
   type ChannelMapConfig, type ChannelMapEntry, type SyncResult,
 } from './channel-map.js';
 export {
