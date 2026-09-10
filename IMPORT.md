@@ -4,6 +4,36 @@ Nothing is written to your task database without an explicit confirmation, and
 every batch can be rolled back. Task titles are stored byte for byte as the
 source has them.
 
+## Two ways in
+
+**In Slack**, run `/import`. This is the normal route, and it needs no
+terminal:
+
+1. Pick a file and say whether it is CSV, JSON, or a Workast export. The
+   source type is asked rather than guessed, because a Workast export and a
+   plain JSON file are both valid JSON and mean different things.
+2. The file is read and staged. Whatever already matches a Space by name, slug
+   or alias is resolved silently; anything left over becomes a question with a
+   native `static_select` per unresolved category.
+3. A preview shows the per-verdict counts and the exact titles that will be
+   created. Its submit button is the only thing in the system that flips a
+   batch to `CONFIRMED`, and with nothing ready to import the button is not
+   rendered at all — so a no-op cannot be confirmed.
+4. Confirming closes the modal and posts a report: how many were imported,
+   skipped, or need review, whether every title verified byte-exact, and the
+   batch id to roll back with.
+
+Closing the wizard at any point before confirming marks the batch `ABORTED`
+rather than leaving it staged forever.
+
+Two details worth knowing. `/import` needs the `files:read` scope, so adding
+it requires reinstalling the Slack app. And each step acknowledges Slack
+before doing its work, because Slack discards a modal submission that is not
+answered within 3 seconds and staging a large file does not fit in that
+budget — which is why you briefly see a "Working" view.
+
+**In a terminal**, use the CLI. Same engine, same batches, same rollback.
+
 ## The short version
 
 ```bash

@@ -66,6 +66,7 @@ prunes `node_modules`, and pnpm's own commands take precedence over scripts.
 | `/task <title> due:2026-09-15` | Same, with a due date. |
 | `/tasks` | **From a mapped channel:** that Space's list. **From an unmapped channel or DM:** per-Space counts. |
 | `/tasks all` | Force the cross-Space summary from anywhere. |
+| `/import` | Import tasks from a CSV or JSON file, entirely in Slack. See IMPORT.md. |
 | `/tasks agency` | Full interactive list for a Space, matched by partial name. |
 | `/tasks joy within` | Multi-word Space scopes work. |
 | `/tasks waiting` | Everything waiting or blocked. |
@@ -145,7 +146,7 @@ Waiting* — for the state the checkbox cannot express.
 ## Layout
 
 ```
-apps/slack        Bolt app: slash commands, block actions, the edit modal
+apps/slack        Bolt app: slash commands, block actions, the edit modal, the import wizard
 apps/api          Fastify REST API for Hermes
 apps/web          Next.js web UI: lists, filters, history, settings, editing
 packages/db       query/exec/transaction interface, PGlite + node-postgres, migrations

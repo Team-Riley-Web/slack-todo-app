@@ -30,4 +30,10 @@ unchecked task unless you are starting it.
   - Done 2026-09-10: merged with --no-ff (612dc7d) so the Phase 2B boundary stays visible, then
     re-ran install, 656 tests and typecheck on master before pushing over the new SSH remote.
     phase2b-web-ui is fully merged and can be deleted whenever you want.
-- [ ] Build the Slack import wizard (file_input + views.push)
+- [x] Build the Slack import wizard (file_input + views.push)
+  - Done 2026-09-10: `/import` runs the whole flow in Slack over the existing importer engine.
+    72 new tests (728 total). Two deviations from the spec, both recorded in code: the steps use
+    views.update rather than views.push, because a view_submission must be acked within 3 seconds
+    and staging cannot finish in that budget (update also frees the 3-view stack ceiling); and the
+    handler does not re-check declared type against content, because assertWithinLimits already
+    owns that rule. Adds the files:read scope, so the Slack app needs a reinstall.

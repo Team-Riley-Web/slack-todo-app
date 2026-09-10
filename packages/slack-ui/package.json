@@ -10,7 +10,8 @@
   "dependencies": {
     "@tr/task-core": "workspace:*",
     "@slack/types": "^2.14.0",
-    "luxon": "^3.5.0"
+    "luxon": "^3.5.0",
+    "@tr/importer": "workspace:*"
   },
   "devDependencies": {
     "@types/luxon": "^3.4.2"
