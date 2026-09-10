@@ -1,0 +1,430 @@
+{
+  "exported_at_utc": "2026-09-10T00:11:47.424415+00:00",
+  "source": "Workast live API",
+  "scope": "Non-completed Team Riley tasks only; excludes Workast onboarding/demo tasks without a Hermes source marker.",
+  "task_count": 21,
+  "categories": {
+    "Agency / Internal": [
+      {
+        "workast_task_id": "b15995dadbd4fcfa0b9fc0ec00dd274e",
+        "canonical_source_id": "t_1efcfcdb",
+        "title": "Automate onboarding AI primer after client form completion",
+        "category": "Agency / Internal",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Workstream: Client onboarding automation\nNext actor: Joshua\nWhen: none\nPriority: normal\nSource: WebUI request 2026-08-29\n\nDesign and implement an internal automation that detects completion of a client onboarding form and generates the client’s onboarding AI primer.\n\nScope:\n• Identify the authoritative form/completion signal and map approved form fields into a repeatable primer template/prompt.\n• Define the generation destination, review/approval step, error handling, retry/alert path, and an auditable completion record.\n• Validate output quality with representative test data before any live use.\n\nBoundary: Do not activate or modify a production workflow, access unapproved client data, send the primer to a client, or trigger other external communication without Joshua’s explicit approval.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TDRF"
+      },
+      {
+        "workast_task_id": "d6179874468e181ffc1cf2682e0ccf50",
+        "canonical_source_id": "t_00758e37",
+        "title": "Complete GMB verification",
+        "category": "Agency / Internal",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Workstream: Agency operations — Google Business Profile\nNext actor: Emory\nWhen: Not specified\nPriority: Not specified\nSource: Joshua — Slack\n\nComplete Google Business Profile (GMB) verification.\n\nRequirements:\n• Print the verification sign.\n• Gather the addresses of the other buildings.\n• Arrange or complete the required unlocking step.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/T914"
+      },
+      {
+        "workast_task_id": "9c2519f8929769bdb716871993530413",
+        "canonical_source_id": "t_df948a04",
+        "title": "Connect GitHub and Netlify to Hermes",
+        "category": "Agency / Internal",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Workstream: Hermes setup\nNext actor: Joshua\nWhen: none\nPriority: normal\nSource: Slack request 2026-08-29\n\nConnect the agency GitHub and Netlify accounts to Hermes. Start by confirming the supported authentication/integration path and required permissions. Do not authorize broad production access, deploy, publish, modify repositories/sites, or make paid changes without Joshua’s explicit approval.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TVG5"
+      },
+      {
+        "workast_task_id": "d679278c17fe9677fbba51906014655c",
+        "canonical_source_id": "t_c0ac0f3e",
+        "title": "Create client onboarding access-information document",
+        "category": "Agency / Internal",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Workstream: Client onboarding\nNext actor: Joshua\nWhen: none\nPriority: normal\nSource: Slack request 2026-09-01\n\nCreate a client-friendly onboarding access-information document or intake form that lets clients provide required account/access details in one place. Include clear instructions and a secure credential-handoff approach; do not request or store raw passwords in an ordinary shared document. Prepare the first version for Joshua review before external/client use.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TJBT"
+      },
+      {
+        "workast_task_id": "cc678c701dd0dee3873316344ef7c6b8",
+        "canonical_source_id": "t_43b53e1b",
+        "title": "Print EOS documents and review with Rachael",
+        "category": "Agency / Internal",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Workstream: EOS\nNext actor: Joshua\nWhen: Not specified\nPriority: Not specified\nSource: Joshua — Slack\n\nPrint all EOS documents, then review them with Rachael.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/T91A"
+      },
+      {
+        "workast_task_id": "501ad4335ea6bc48d257c218a5e928fc",
+        "canonical_source_id": "t_bd0b4d2f",
+        "title": "Reach out to other business insurance providers",
+        "category": "Agency / Internal",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Category: Agency Operations\nWorkstream: Finance\nNext actor: Joshua\nSource: fast task capture",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/T5GC"
+      },
+      {
+        "workast_task_id": "a1399ea56fe18ca2f465b173ea49d73d",
+        "canonical_source_id": "t_6604bbab",
+        "title": "Watch GHL Training",
+        "category": "Agency / Internal",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Workstream: Agency Operations\nNext actor: Joshua\nWhen: none\nPriority: normal\nSource: Slack request 2026-08-30\n\nWatch the GoHighLevel training: https://live.automatedmarketer.net/agency?utm_source=facebook&utm_medium=paid_social&utm_campaign=buildathon_evergreen_agency_202606&utm_content=r1_unstaged&utm_term=agency_challenger&utm_id=120246830828780784&fbclid=IwY2xjawUBebJwZG9mBWV4dG4DYWVtATAAYWRpZAGrNP9A6wvwc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHgmVuFkcRU_91QrQhrBYJ5Wzq8dgwpkj-EFJbzhkzjQ3X8_8JBZn8rvuYRLr_aem_DKrxOVNoiBg9Evi09gzZtg",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/T1DG"
+      }
+    ],
+    "Client - Milltown Cabinets": [
+      {
+        "workast_task_id": "d6a1f0b5fae6093f868dd1d933260c06",
+        "canonical_source_id": "t_f3a65885",
+        "title": "Waiting on Milltown’s reply to the email proposal",
+        "category": "Client - Milltown Cabinets",
+        "status": "pending",
+        "assignees": [],
+        "waiting": true,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [
+          "Waiting"
+        ],
+        "details": "Joshua completed the call with Milltown. Next action is externally blocked pending Milltown’s reply to his email proposal.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TT9N"
+      }
+    ],
+    "Client - Nazareth Law": [
+      {
+        "workast_task_id": "35957323b8c5bb5efe10a26c00e4e534",
+        "canonical_source_id": "t_1c594145",
+        "title": "Bring Neil to $400 website package",
+        "category": "Client - Nazareth Law",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Client: Nazareth Law (Neil Nazareth)\nNext actor: Joshua\nCurrent state: actionable\nPriority: normal\nSource: Slack/chat capture 2026-08-27\n\nBring Neil to the $400 website package.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TMPZ"
+      },
+      {
+        "workast_task_id": "1e5fd057e2174403943f874ce14d053a",
+        "canonical_source_id": "t_8358e407",
+        "title": "Offer Neil Instagram and Facebook package for $100",
+        "category": "Client - Nazareth Law",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Client: Nazareth Law (Neil Nazareth)\nNext actor: Joshua\nCurrent state: actionable\nPriority: normal\nSource: Slack/chat capture 2026-08-27\n\nOffer Instagram and Facebook management for $100/mo (discounted from standard $150/mo).",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TBYB"
+      }
+    ],
+    "Client - Secure Logic": [
+      {
+        "workast_task_id": "c40afb37c7965173d9ce85a112271c6d",
+        "canonical_source_id": "t_802656ca",
+        "title": "Give Rachael access to Marty’s photos",
+        "category": "Client - Secure Logic",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Category: Social Media\nClient: Secure Logic\nWorkstream: Social Media\nNext actor: Joshua\nSource: fast task capture",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TGB6"
+      },
+      {
+        "workast_task_id": "d80b450bbd4a4ee93b22dffd6e67dc6f",
+        "canonical_source_id": "t_a026f1cd",
+        "title": "Secure Logic — three-month honeymoon check-in with Marty",
+        "category": "Client - Secure Logic",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": "2026-11-13",
+        "due_time": "09:00:00",
+        "due_timezone": "America/Chicago",
+        "tags": [],
+        "details": "Workstream: Secure Logic client relationship\nNext actor: Joshua\nWhen: 2026-11-13 at 9:00 AM America/Chicago\nPriority: normal\nSource: Secure Logic three-month reminder\n\nCheck in with Marty after the three-month “honeymoon” period following the August 13, 2026 contract signing, and reassess the arrangement. The matching Slack reminder is scheduled for #client-secure-logic.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/T37X"
+      }
+    ],
+    "Marketing": [
+      {
+        "workast_task_id": "5a04ff4aed4e3144ddfd8f90ab9453ee",
+        "canonical_source_id": "t_fec25fd7",
+        "title": "Develop Team Riley website positioning for AI Business OS offer",
+        "category": "Marketing",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Workstream: Team Riley website / agency positioning\nNext actor: Joshua\nWhen: none\nPriority: normal\nSource: Slack planning thread 2026-08-29\n\nUse this planning brief to update the Team Riley website positioning and related offer messaging. Do not publish or change the live site without Joshua’s explicit approval.\n\nPlanning brief\n\nTeam Riley should not sell “Hermes setup.” Hermes is part of the implementation stack. The core offer is an AI Business Operating System Implementation: identify how a company operates, connect systems and data, build AI agents and automations around workflows, and create an operating layer that reduces manual work while making the business faster, more consistent, and more scalable.\n\nPosition the offer as fractional-CTO-level business transformation rather than generic “AI automation.” Suggested central message: “We build an AI operating layer for your company so your people spend less time managing information and more time doing the work only humans should be doing.”\n\nOffer ladder:\n• AI Opportunity Audit — interviews, systems/process audit, AI opportunities, roadmap, ROI priorities — $3K–$7.5K.\n• AI Automation Build — 1–3 important workflows, integrations, agent(s), testing, documentation — $10K–$15K.\n• AI Business OS — implementation across several functions/systems — $25K–$40K.\n• Fractional AI CTO — continuous optimization, new agents, integrations, oversight — $3K–$7.5K+/month.\n\nA fully integrated $30K implementation is within the market range for SMB AI projects; larger custom engagements can be scoped at $50K–$100K+ once Team Riley has proof and a repeatable methodology. Price against delivered business value, not effort or hours. Example outcome: a 30-person company saving 150 employee-hours/month at a blended $50/hour yields $7,500/month or $90,000/year before incremental revenue, alongside instant lead responses, marketing drafting/scheduling, sales follow-up monitoring, management reporting, institutional knowledge, meeting preparation, task routing, connected CRM/email/calendar/Slack, and fewer dropped handoffs.\n\nBuild the case study on Team Riley itself. Document “Before Hermes: How Team Riley operated” and “After Hermes: What the system handles.” Measure hours saved, response time, tasks automated, marketing output, follow-up consistency, information retrieval, meetings prepared, leads handled, and other concrete operational outcomes.\n\nThe eventual proof-led proposition: “I spent six months turning my own agency into an AI-operated company. We documented the architecture, figured out what works and what doesn’t, and now we install that operating model into other businesses.” This moves Team Riley from “guy who builds websites” toward the person who understands and improves the business technology layer.\n\nDo not immediately put a “$30,000 AI package” on the pricing page. Treat this as consultative selling initially: privately offer an AI Transformation Sprint starting at $15,000, then scope larger implementations at $20K, $30K, $50K, and beyond. After two or three real implementations establish a repeatable process, productize the flagship as “Team Riley AI Business OS — $30,000 implementation + $3,000–$5,000/month management.”",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TV7F"
+      },
+      {
+        "workast_task_id": "a2f1ef65350ee605778452af050ba51f",
+        "canonical_source_id": "t_f137e4b0",
+        "title": "Select niche + offer and outline the landing-page brief.",
+        "category": "Marketing",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Workstream: Lead generation\nNext actor: Joshua\nPriority: highest\nEOS: Rock — Launch Team Riley’s first predictable lead-generation campaign (due 2026-09-30)\n\nSelect a niche and offer, then outline the landing-page brief. This is the immediate executable next action for the Rock; maintain one clear next action as the work progresses. Do not create speculative sub-tasks until the next scope is clear.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TPNW"
+      },
+      {
+        "workast_task_id": "a083fcc73e280ae29858a148c7532ab6",
+        "canonical_source_id": "t_93ff4977",
+        "title": "Set up automated AI social-media workflow schedule",
+        "category": "Marketing",
+        "status": "pending",
+        "assignees": [
+          {
+            "name": "Joshua Riley",
+            "email": "josh@teamrileyweb.com"
+          }
+        ],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Workstream: Social media process\nNext actor: Joshua\nWhen: Not specified\nPriority: Not specified\nSource: Joshua — Slack\n\nReview the shared Canva AI Workflow and define/setup the social-media process it describes.\n\nReference: https://chatgpt.com/share/6a99cceb-39e0-83ea-aa98-035c0da8833d",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TLWX"
+      }
+    ],
+    "Music": [
+      {
+        "workast_task_id": "4586c4eefeb5ceb5dba8f78e21e9f138",
+        "canonical_source_id": "t_ef842ae1",
+        "title": "Get and make new merch",
+        "category": "Music",
+        "status": "pending",
+        "assignees": [],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Domain: Personal\nCategory: music\nWorkstream: Music merch\nNext actor: Joshua\nWhen: Not specified\nPriority: normal\nSource: Slack update 2026-09-05\n\nGet new merch and make new merch.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/T9R9"
+      },
+      {
+        "workast_task_id": "391be8f9237bbc398f9374a7fbf22f76",
+        "canonical_source_id": "t_67c0f97d",
+        "title": "Prepare for YFF",
+        "category": "Music",
+        "status": "pending",
+        "assignees": [],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Domain: Personal\nCategory: music\nWorkstream: Music\nNext actor: Joshua\nWhen: tomorrow (2026-09-05, America/Chicago)\nPriority: highest\nSource: Slack request 2026-09-04\n\nPrepare for YFF.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TZWG"
+      }
+    ],
+    "Personal tasks": [
+      {
+        "workast_task_id": "6219915199e7a1f2fb84edc8e9e1c7d9",
+        "canonical_source_id": "t_2ff8f6c0",
+        "title": "Arrange barn office mini-split maintenance",
+        "category": "Personal tasks",
+        "status": "pending",
+        "assignees": [],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Domain: Personal\nCategory: home\nWorkstream: barn office HVAC maintenance\nNext actor: Joshua\nWhen: none\nPriority: normal\nSource: Slack request 2026-09-03\n\nAsk AJ and Becky for recommended air-conditioning maintenance providers, then use the recommendation to arrange maintenance for the mini split in the barn office.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/T2QH"
+      },
+      {
+        "workast_task_id": "fdbe3476d882748cb37724caebe348de",
+        "canonical_source_id": "t_356f5d72",
+        "title": "Buy a new vehicle",
+        "category": "Personal tasks",
+        "status": "pending",
+        "assignees": [],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Domain: Personal\nCategory: vehicle\nNext actor: Joshua\nPriority: normal\nSource: Slack request 2026-08-28\n\nResearch and purchase a new vehicle.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TF7Z"
+      },
+      {
+        "workast_task_id": "9d36765272048d282d0f04169db2decc",
+        "canonical_source_id": "t_cc69c5cf",
+        "title": "Consolidate 401(k): move Corebridge to Fidelity",
+        "category": "Personal tasks",
+        "status": "pending",
+        "assignees": [],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Domain: Personal\nCategory: money\nNext actor: Joshua\nPriority: normal\nSource: Slack request 2026-08-28\n\nCall Corebridge at 1-800-448-2542 to start the request to consolidate the 401(k) by moving it from Corebridge to Fidelity.\n\nStart request: https://myaccount.valic.com/distributions/app/index\n\nFidelity follow-up (before initiating the Corebridge transfer):\n• Contact Fidelity and provide account #44912371 plus the current account value.\n• Confirm whether Fidelity can hold the VOOG fund.\n• Confirm the $100 charge mentioned for a full transfer.\n• Leave $1 in the settlement fund.\n• Request a partial transfer of $558.\n• Afterward, transfer $4 to the bank.\n\nTransfer progress — August 28:\n• Fidelity has emailed the transfer instructions to Corebridge; this is Step 3 (Fidelity provides the request directly to the firm).\n• Fidelity shows a separate full-account Vanguard Roth IRA transfer (Vanguard Roth IRA ending 2371 → Fidelity Roth IRA ending 7236) with estimated completion September 3, 2026.\n• Follow up Tuesday, September 8 at 9:00 AM: verify the transfer reimbursement posted; if it has not, call Fidelity.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TPMP"
+      },
+      {
+        "workast_task_id": "3c307fb75e612d9be5be8e3bf9588e19",
+        "canonical_source_id": "t_05ac185d",
+        "title": "Reflect on control versus being with what is inside",
+        "category": "Personal tasks",
+        "status": "pending",
+        "assignees": [],
+        "waiting": false,
+        "waiting_on": null,
+        "due_date": null,
+        "due_time": null,
+        "due_timezone": null,
+        "tags": [],
+        "details": "Domain: Personal\nCategory: life-vision\nWorkstream: spiritual reflection\nNext actor: Joshua\nPriority: normal\nSource: Slack request 2026-09-02\n\nReflect on trying to control what is outside versus simply being with what is inside.",
+        "workast_url": "https://open.workast.app/c744904087568d865725da88637e2999/task/TNVU"
+      }
+    ]
+  }
+}
