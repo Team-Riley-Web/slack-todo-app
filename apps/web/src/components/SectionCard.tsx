@@ -12,7 +12,8 @@ import Link from 'next/link';
  * involved.
  */
 export function SectionCard({
-  label, count, startOpen = true, createHref, columns = 'tasks', children,
+  label, count, startOpen = true, createHref, columns = 'tasks',
+  showSpace = true, children,
 }: {
   label: string;
   count: number;
@@ -21,6 +22,13 @@ export function SectionCard({
   createHref?: string;
   /** Which column headings to show. */
   columns?: 'tasks' | 'spaces' | 'none';
+  /**
+   * Must match the `showSpace` given to the rows below. The header is a
+   * sibling of the list, not a parent, so it cannot read that from the rows
+   * -- and a header one column out of step with its rows is worse than no
+   * header at all.
+   */
+  showSpace?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -33,9 +41,13 @@ export function SectionCard({
 
       <div className="card-body">
         {columns === 'tasks' ? (
-          <div className="row head" aria-hidden="true">
+          <div
+            className={showSpace ? 'row head' : 'row head nospace'}
+            aria-hidden="true"
+          >
             <span className="tick" />
             <span className="title">Task</span>
+            {showSpace ? <span className="space">Space</span> : null}
             <span className="assignee">Assignee</span>
             <span className="due">Due date</span>
           </div>

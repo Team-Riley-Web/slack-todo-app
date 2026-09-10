@@ -62,6 +62,7 @@ export default async function SpacePage({
       count={rows.length}
       startOpen={startOpen}
       createHref={`/spaces/${space.slug}`}
+      showSpace={false}
     >
       {/* The heading names the Space; the rows do not repeat it. */}
       <TaskList
