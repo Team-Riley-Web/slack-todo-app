@@ -1,4 +1,5 @@
 import type { Space } from '@tr/task-core';
+import { spaceOptionGroups } from './space-options.js';
 
 /**
  * One modal for everything a channel's Space needs: pick an existing Space,
@@ -41,20 +42,19 @@ const mrkdwn = (text: string) => ({ type: 'mrkdwn' as const, text });
 export function channelMapView(
   meta: MapMeta, spaces: Space[], current: Space | null
 ): Record<string, unknown> {
-  const none = { text: plain('— none, send to Inbox —'), value: MAP_NONE };
-  const options = [
-    none,
-    ...spaces.map((s) => ({
-      text: plain(s.name.slice(0, 75)),
-      value: s.name,
-    })),
-  ];
+  /*
+   * The VALUE is the Space NAME, not its id, because mapChannelToSpace feeds
+   * it to findSpaceExact. Sending an id would resolve to nothing and every
+   * capture would fall through to the Inbox.
+   */
+  const { groups, byValue } = spaceOptionGroups(
+    spaces,
+    (s) => s.name,
+    { label: '— none, send to Inbox —', value: MAP_NONE }
+  );
 
-  // Slack matches an initial option by exact equality, so the SAME object is
-  // reused rather than a structural copy -- the trap the card taught us.
-  const initial = current
-    ? options.find((o) => o.value === current.name) ?? none
-    : none;
+  // The SAME object, not a structural copy: Slack matches by exact equality.
+  const initial = (current && byValue.get(current.name)) ?? byValue.get(MAP_NONE)!;
 
   const where = meta.channelName ? `*${meta.channelName}*` : 'this channel';
 
@@ -80,7 +80,9 @@ export function channelMapView(
         element: {
           type: 'static_select',
           action_id: MAP_ACTION,
-          options,
+          // option_groups and options are mutually exclusive; only one may be
+          // sent.
+          option_groups: groups,
           initial_option: initial,
         },
       },

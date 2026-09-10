@@ -1,5 +1,6 @@
 import type { Space, Task, TaskStatus, EditableFields } from '@tr/task-core';
 import type { MetaOpts } from './label.js';
+import { spaceOptionGroups } from './space-options.js';
 
 export const EDIT_ACTION_ID = 'task_edit';
 export const EDIT_CALLBACK_ID = 'task_edit_modal';
@@ -52,11 +53,8 @@ export function editTaskView(
   // Build each option exactly once and reference the same object in
   // initial_option. Slack matches initial options by exact equality, and the
   // card's initial_options trap taught us that a structural copy is not enough.
-  const spaceOptions = spaces.map((s) => ({
-    text: { type: 'plain_text' as const, text: s.name.slice(0, 75) },
-    value: s.id,
-  }));
-  const initialSpace = spaceOptions.find((o) => o.value === task.space_id);
+  const { groups: spaceGroups, byValue } = spaceOptionGroups(spaces, (s) => s.id);
+  const initialSpace = byValue.get(task.space_id);
 
   const statusOptions = STATUSES.map((s) => ({
     text: { type: 'plain_text' as const, text: STATUS_LABELS[s] },
@@ -84,7 +82,7 @@ export function editTaskView(
       element: {
         type: 'static_select',
         action_id: 'space',
-        options: spaceOptions,
+        option_groups: spaceGroups,
         ...(initialSpace ? { initial_option: initialSpace } : {}),
       },
     },

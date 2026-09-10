@@ -32,6 +32,16 @@ const cmd = (over: Record<string, unknown> = {}) => ({
 
 const view = () => client.views.open.mock.calls[0]![0].view as any;
 
+/**
+ * The picker uses option_groups (Spaces / Clients), so options live one level
+ * deeper. Flattened here rather than in each test, since what the tests care
+ * about is the set of options and their identity, not the grouping.
+ */
+const spaceEl = () =>
+  view().blocks.find((b: any) => b.block_id === MAP_BLOCK).element;
+const allOptions = () =>
+  (spaceEl().option_groups as any[]).flatMap((g) => g.options);
+
 const submission = (
   value: string | null, newName: string | null = null,
   over: Record<string, unknown> = {}
@@ -74,17 +84,20 @@ it('opens a modal listing every Space plus a none option', async () => {
   const result = await handleMapCommand(deps(), cmd() as never);
   expect(result.outcome).toBe('opened');
 
-  const v = view();
-  expect(v.callback_id).toBe(MAP_CALLBACK_ID);
-  const options = v.blocks.find((b: any) => b.block_id === MAP_BLOCK).element.options;
+  expect(view().callback_id).toBe(MAP_CALLBACK_ID);
+  const options = allOptions();
   expect(options[0].value).toBe(MAP_NONE);
   expect(options).toHaveLength((await listSpaces(db)).length + 1);
+
+  // Clients are their own group, so a list sorted by displayed name also
+  // reads that way instead of interleaving "Client - ..." among the rest.
+  const labels = (spaceEl().option_groups as any[]).map((g) => g.label.text);
+  expect(labels).toEqual(['Spaces', 'Clients']);
 });
 
 it('defaults to none for an unmapped channel', async () => {
   await handleMapCommand(deps(), cmd() as never);
-  const el = view().blocks.find((b: any) => b.block_id === MAP_BLOCK).element;
-  expect(el.initial_option.value).toBe(MAP_NONE);
+  expect(spaceEl().initial_option.value).toBe(MAP_NONE);
 });
 
 it('prefills the Space a mapped channel already uses', async () => {
@@ -92,15 +105,13 @@ it('prefills the Space a mapped channel already uses', async () => {
     channelId: 'C_MKT', channelName: '#marketing', spaceName: 'Marketing',
   });
   await handleMapCommand(deps(), cmd() as never);
-  const el = view().blocks.find((b: any) => b.block_id === MAP_BLOCK).element;
-  expect(el.initial_option.value).toBe('Marketing');
+  expect(spaceEl().initial_option.value).toBe('Marketing');
 });
 
 it('reuses the same option object for initial_option, which Slack matches by identity', async () => {
   await mapChannelToSpace(db, { channelId: 'C_MKT', spaceName: 'Marketing' });
   await handleMapCommand(deps(), cmd() as never);
-  const el = view().blocks.find((b: any) => b.block_id === MAP_BLOCK).element;
-  expect(el.options).toContain(el.initial_option);
+  expect(allOptions()).toContain(spaceEl().initial_option);
 });
 
 it('shows the channel name with a hash, the way the sidebar does', async () => {

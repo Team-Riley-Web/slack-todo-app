@@ -99,7 +99,22 @@ describe('prefilled values', () => {
   it('selects the current space by object identity with its option', () => {
     const el = block(view(task({ space_id: 's-nl' })), EDIT_BLOCKS.space).element;
     expect(el.initial_option.value).toBe('s-nl');
-    expect(el.options).toContain(el.initial_option); // same reference, not a copy
+    // option_groups, so the options are one level deeper. Same reference, not
+    // a structural copy: Slack matches by exact equality.
+    const options = (el.option_groups as any[]).flatMap((g) => g.options);
+    expect(options).toContain(el.initial_option);
+  });
+
+  it('groups clients separately, so the list reads alphabetically', () => {
+    // Sorted by displayed name, "Client - CFC Skincare" lands under C. Shown
+    // with its prefix in one flat list, a correct sort looks scrambled.
+    const el = block(view(task()), EDIT_BLOCKS.space).element;
+    const groups = el.option_groups as any[];
+    expect(groups.map((g) => g.label.text)).toContain('Clients');
+    const clientLabels = groups.find((g) => g.label.text === 'Clients')
+      .options.map((o: any) => o.text.text);
+    // The prefix is dropped from the label; the value keeps the full name.
+    expect(clientLabels.some((l: string) => l.startsWith('Client - '))).toBe(false);
   });
 
   it('selects the current status by object identity, with three options', () => {
