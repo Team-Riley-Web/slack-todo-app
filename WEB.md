@@ -46,9 +46,17 @@ connection. Two independent reasons:
 
 - Prepared statements are disabled automatically on that port, which is what
   transaction pooling requires.
-- The direct host (`db.<ref>.supabase.co`) resolves to IPv6 only on the free
-  plan. From an IPv4-only network that fails as `ENETUNREACH`, which reads
-  like the database being down rather than a routing problem.
+- The direct host (`db.<ref>.supabase.co`) resolves to IPv6 only. From an
+  IPv4-only network that fails as `ENETUNREACH`, which reads like the database
+  being down rather than a routing problem. Checked 2026-09-10: that host has
+  no A record at all, only AAAA.
+
+The dashboard shows a notice on the Transaction pooler saying it "uses IPv6 by
+default" and offering a dedicated IPv4 add-on. That notice did not match DNS
+for this project on 2026-09-10: `aws-0-us-east-1.pooler.supabase.com` returned
+three A records and no AAAA, and port 6543 accepted a connection over IPv4. So
+the pooler is the IPv4 path today and the add-on is not needed. Re-check with
+`dig +short A <pooler host>` before believing either source.
 
 Get the exact string from the dashboard's **Connect** button, "Transaction
 pooler". Do not hand-assemble it — the pooler hostname's region prefix is not
