@@ -17,3 +17,4 @@ unchecked task unless you are starting it.
 
 ## Queue
 - [ ] Set up everything in Supabase via MCP — org https://supabase.com/dashboard/org/erzjknefhtmrscfudncn: new project for the task app, apply all 8 migrations, then verify the web UI renders
+  - Blocked 2026-09-10: `plugin:supabase:supabase` reports `! Needs authentication`. Needs `/mcp` auth + a session restart before its tools load. Everything not needing the MCP is done: migrations verified extension-free, migration 009 locks down the PostgREST/anon exposure, `.env` staged with one blank, WEB.md written.
