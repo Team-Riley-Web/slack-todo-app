@@ -165,7 +165,8 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
  */
 .row {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 110px 92px 78px;
+  /* tick | title | space | assignee | due | actions */
+  grid-template-columns: 34px minmax(0, 1fr) 128px 110px 92px 78px;
   align-items: center;
   padding: 0 16px; min-height: 42px;
   border-bottom: 1px solid var(--line);
@@ -179,7 +180,12 @@ ul.rows li.row:last-child { border-bottom: 0; }
 .row .title a { color: var(--fg); text-decoration: none; word-break: break-word; }
 .row .title a:hover { color: var(--accent); }
 .row .meta { color: var(--muted); font-size: 12px; }
-.row .assignee, .row .due {
+/* The Space has its own column at this width, so the sub-line copy is off. */
+.row .space-inline { display: none; }
+/* A Space page names its Space in the heading, so those rows carry no Space
+   cell and need the template without the track. */
+.row.nospace { grid-template-columns: 34px minmax(0, 1fr) 110px 92px 78px; }
+.row .space, .row .assignee, .row .due {
   color: var(--muted); font-size: 13px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -294,10 +300,13 @@ button.danger:hover { border-color: var(--danger); }
   nav.rail { position: static; height: auto; }
   
   .main { padding: 0 14px 40px; }
-  /* Assignee and due date drop out; the title keeps its sub-line. */
-  .row { grid-template-columns: 30px minmax(0, 1fr) 66px; }
-  .row .assignee, .row .due { display: none; }
-  .row.head .assignee, .row.head .due { display: none; }
+  /* Assignee and due date drop out, and so does the Space COLUMN -- a
+     128px track here wraps titles to four lines. The Space moves to the
+     title's sub-line instead, which costs no width. */
+  .row, .row.nospace { grid-template-columns: 30px minmax(0, 1fr) 66px; }
+  .row > .space, .row .assignee, .row .due { display: none; }
+  .row.head > .space, .row.head .assignee, .row.head .due { display: none; }
+  .row .space-inline { display: inline; }
 }
 
 /* --- edit pane --- */

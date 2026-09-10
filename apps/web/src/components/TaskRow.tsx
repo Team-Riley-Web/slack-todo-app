@@ -54,11 +54,10 @@ export function TaskRow({
   const due = dueLabel(task);
   const who = assigneeName(task, assigneeLabels);
 
-  const meta: React.ReactNode[] = showSpace
-    ? [<span key="space">{shortSpaceName(space)}</span>]
-    : [];
-  // Assignee and due date have their own columns now, so they are not
-  // repeated in the sub-line under the title.
+  // Space, assignee and due date all have their own columns now, so none of
+  // them is repeated in the sub-line under the title. What is left there is
+  // the per-view detail no column carries.
+  const meta: React.ReactNode[] = [];
   if (task.status === 'waiting') {
     meta.push(
       <span key="waiting">
@@ -72,7 +71,17 @@ export function TaskRow({
   }
 
   return (
-    <li className={done ? 'row task done' : 'row task'}>
+    <li
+      className={
+        [
+          'row', 'task',
+          done ? 'done' : null,
+          // Positional grid: with no Space cell the row needs the template
+          // that has no Space track, and so does the header above it.
+          showSpace ? null : 'nospace',
+        ].filter(Boolean).join(' ')
+      }
+    >
       {/*
         A submit BUTTON, not a checkbox.
         An input type=checkbox does not submit a form when clicked, and this
@@ -96,14 +105,32 @@ export function TaskRow({
       <span className="title">
         {/* Rendered as text, never as markup. */}
         <Link href={taskEditHref(task, basePath, params)}>{task.title}</Link>
-        {meta.length > 0 ? (
+        {showSpace || meta.length > 0 ? (
           <span className="meta">
+            {/*
+              The Space appears twice on purpose, and CSS shows exactly one:
+              the column below on a wide screen, this sub-line on a phone.
+              A phone has no room for a Space track without squeezing titles
+              to four lines, and hiding the column outright would make the
+              phone the one screen that cannot tell you which Space a task is
+              in. The separator lives inside this span so it disappears with
+              it -- otherwise the desktop would show a leading " · ".
+            */}
+            {showSpace ? (
+              <span className="space-inline">
+                {shortSpaceName(space)}{meta.length > 0 ? ' · ' : ''}
+              </span>
+            ) : null}
             {meta.map((node, i) => (
               <span key={i}>{i > 0 ? ' · ' : ''}{node}</span>
             ))}
           </span>
         ) : null}
       </span>
+
+      {showSpace ? (
+        <span className="space">{shortSpaceName(space)}</span>
+      ) : null}
 
       <span className="assignee">{who ?? '—'}</span>
 
