@@ -53,10 +53,20 @@ export async function loadCard(
   };
 }
 
-/** Returns false when this exact interaction was already processed. */
+/**
+ * Returns false when this exact interaction was already processed.
+ *
+ * An absent action_ts cannot identify an interaction, so it is treated as fresh
+ * rather than deduped. Deduping on a blank key would collapse every later
+ * toggle on that message into one "duplicate" and silently swallow real clicks
+ * — a far worse failure than the duplicate audit row a missed dedupe can cause,
+ * since transitions are idempotent by construction and task state stays correct
+ * either way.
+ */
 export async function claimInteraction(
   db: Db, channelId: string, messageTs: string, actionTs: string
 ): Promise<boolean> {
+  if (!actionTs) return true;
   const { rows } = await db.query(
     `INSERT INTO processed_interactions (channel_id, message_ts, action_ts)
      VALUES ($1, $2, $3) ON CONFLICT DO NOTHING RETURNING channel_id`,
