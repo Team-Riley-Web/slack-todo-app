@@ -23,8 +23,8 @@ function assigneeName(
 /**
  * One task.
  *
- * The checkbox is a form posting a server action, so the row works before any
- * JavaScript loads — the same reason the Slack card uses a native checkbox.
+ * The completion control is a submit button posting a server action, so the row
+ * works with no client JavaScript at all.
  *
  * Editing is a LINK to a dedicated form, never an inline field. A title must
  * only change through an explicit, deliberate action, and a form on its own
