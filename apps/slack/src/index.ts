@@ -20,7 +20,9 @@ import {
   handlePreviewSubmit, handleWizardClosed, type ImportDeps,
 } from './handlers/import-wizard.js';
 import { makeFetchFile } from './slack-file.js';
-import { handleMapSubmission, MAP_CALLBACK_ID } from './handlers/map-command.js';
+import {
+  handleMapCommand, handleMapSubmission, MAP_CALLBACK_ID,
+} from './handlers/map-command.js';
 import {
   handleCaptureSubmission, CAPTURE_CALLBACK_ID,
 } from './handlers/capture-modal.js';
@@ -64,6 +66,18 @@ const app = new Bolt.App({
 app.command('/task', async ({ command, ack, client }) => {
   await ack();
   await handleTaskCommand({ db, client: client as never, config }, command as never);
+});
+
+/**
+ * `/space` — pick this channel's Space, create one, or unmap, in one modal.
+ *
+ * Its own command rather than `/task space`, so the byte-exact title rule
+ * stays absolute: a subcommand would mean nobody could have a task called
+ * exactly "space".
+ */
+app.command('/space', async ({ command, ack, client }) => {
+  await ack();
+  await handleMapCommand({ db, client: client as never, config }, command as never);
 });
 
 app.command('/tasks', async ({ command, ack, client }) => {

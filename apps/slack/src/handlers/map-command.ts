@@ -1,10 +1,11 @@
 import type { Db } from '@tr/db';
 import {
   getSpaceForChannel, listSpaces, mapChannelToSpace, unmapChannel,
-  UnknownSpaceError, type Space,
+  createSpace, UnknownSpaceError, type Space,
 } from '@tr/task-core';
 import {
-  channelMapView, parseMapSubmission, MAP_BLOCK, type MapMeta,
+  channelMapView, parseMapSubmission, MAP_BLOCK, MAP_NEW_BLOCK,
+  type MapMeta,
 } from '@tr/slack-ui';
 import { authorize } from '../auth.js';
 import type { AppConfig } from '../config.js';
@@ -13,13 +14,12 @@ import type { SlashCommandLike } from './task-command.js';
 export { MAP_CALLBACK_ID, MAP_BLOCK, MAP_ACTION, MAP_NONE } from '@tr/slack-ui';
 
 /**
- * `/tasks map` — set this channel's Space without leaving Slack.
+ * `/space` — everything a channel's Space needs, in one modal.
  *
- * A subcommand of `/tasks` rather than a command of its own, so it needs no
- * change to the Slack app's configuration and no reinstall. It is matched only
- * as the exact single word `map`, so a Space search is never swallowed: any
- * Space called "Map" would still resolve through `/tasks map something`... and
- * there is no such Space, which is checked by a test rather than assumed.
+ * Pick an existing Space, create a new one, or unmap. `/tasks map` and
+ * `/tasks new <name>` still work so nothing breaks mid-session, but they are
+ * no longer the documented path: two commands for one idea is one too many to
+ * remember.
  */
 
 export interface MapDeps {
@@ -73,7 +73,7 @@ export async function handleMapCommand(
 }
 
 export type MapSubmitOutcome =
-  | 'mapped' | 'unmapped' | 'unchanged' | 'unauthorized' | 'invalid';
+  | 'mapped' | 'created' | 'unmapped' | 'unchanged' | 'unauthorized' | 'invalid';
 
 export interface MapSubmitResult {
   outcome: MapSubmitOutcome;
@@ -86,8 +86,38 @@ export async function handleMapSubmission(
   const auth = authorize(body as never, deps.config);
   if (!auth.ok) return { outcome: 'unauthorized' };
 
-  const { meta, spaceName } = parseMapSubmission(body?.view ?? {});
+  const { meta, spaceName, newSpaceName } = parseMapSubmission(body?.view ?? {});
   if (!meta.channelId) return { outcome: 'invalid' };
+
+  /**
+   * A typed name wins over the picker, and creating is idempotent, so the
+   * same client name twice points the channel at the existing Space instead
+   * of failing.
+   */
+  if (newSpaceName) {
+    const created = await createSpace(deps.db, newSpaceName);
+    if (!created.ok || !created.space) {
+      return {
+        outcome: 'invalid',
+        error: {
+          blockId: MAP_NEW_BLOCK,
+          message: created.error ?? 'Could not create that Space.',
+        },
+      };
+    }
+    await mapChannelToSpace(deps.db, {
+      channelId: meta.channelId,
+      channelName: meta.channelName,
+      spaceName: created.space.name,
+    });
+    await tell(
+      deps, meta.channelId, auth.userId,
+      created.existed
+        ? `*${created.space.name}* already existed. ${meta.channelName ?? 'This channel'} now maps to it.`
+        : `Created *${created.space.name}* and mapped ${meta.channelName ?? 'this channel'} to it.`
+    );
+    return { outcome: created.existed ? 'mapped' : 'created' };
+  }
 
   if (spaceName === null) {
     const removed = await unmapChannel(deps.db, meta.channelId);

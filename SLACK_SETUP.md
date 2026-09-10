@@ -61,18 +61,23 @@ Socket Mode needs no public URL, which is why it is the local default.
 
 ## 4. Slash commands
 
-**Slash Commands → Create New Command**, three times. Under Socket Mode the
+**Slash Commands → Create New Command**, four times. Under Socket Mode the
 Request URL field is not used.
 
 | Command | Short description | Usage hint |
 |---|---|---|
 | `/task` | Capture a task, exactly as typed. No text opens a form. | `<task title> [due:YYYY-MM-DD]` |
 | `/tasks` | View your tasks | `[space \| waiting]` |
+| `/space` | Set this channel's Space, or create a new one | (no arguments) |
 | `/import` | Import tasks from a CSV or JSON file | (no arguments) |
 
-Spaces are created with `/tasks new <name>`, or from the "…or a new Space"
-field in the `/task` modal, or on `/spaces` in the web UI. All three call the
-same `createSpace` in `task-core`.
+Spaces are created from `/space`, from the "…or a new Space" field in the
+bare-`/task` modal, or on `/spaces` in the web UI. All three call the same
+`createSpace` in `task-core`.
+
+`/space` is its own command rather than `/task space`. A subcommand would have
+carved an exception into the byte-exact title rule: nobody could then have a
+task called exactly "space". One line of manifest keeps that rule absolute.
 
 Leave **Escape channels, users, and links** OFF on `/task`. With it on, Slack
 rewrites references before the text reaches the app — `@joshua` becomes
@@ -134,9 +139,10 @@ To find your own user ID: Slack profile → **⋮** → Copy member ID.
 
 ## 7. Channel → Space mapping
 
-**In Slack:** run `/tasks map` in the channel. A modal lists every Space, with
-the current one preselected; picking "none" unmaps the channel and sends its
-tasks to Inbox. Nothing to type, no Space name to get wrong.
+**In Slack:** run `/space` in the channel. A modal lists every Space with the
+current one preselected, plus a field for creating a new one and pointing this
+channel at it in a single submit. Picking "none" unmaps the channel and sends
+its tasks to Inbox.
 
 **In bulk:** for a first rollout across many channels, the JSON file is still
 faster. Invite the bot to each channel, then declare the mapping and apply it:

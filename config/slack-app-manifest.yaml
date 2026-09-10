@@ -62,6 +62,10 @@ features:
       usage_hint: "[space | waiting | all]"
       should_escape: false
 
+    - command: /space
+      description: Set this channel's Space, or create a new one
+      should_escape: false
+
     - command: /import
       description: Import tasks from a CSV or JSON file
       should_escape: false
