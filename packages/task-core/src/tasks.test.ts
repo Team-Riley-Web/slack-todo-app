@@ -1,7 +1,9 @@
 import { it, expect, beforeEach, afterEach } from 'vitest';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
-import { createTask, getTask, completeTask, reopenTask, moveTask } from './tasks.js';
+import {
+  createTask, getTask, completeTask, reopenTask, moveTask, updateTaskDetails,
+} from './tasks.js';
 import { InvalidTaskIdError, TaskNotFoundError } from './errors.js';
 
 let db: Db;
@@ -182,7 +184,7 @@ it('defaults details to null and never invents content', async () => {
   expect(t.details).toBeNull();
 });
 
-it('exposes no update path for details in Phase 1', async () => {
+it('ignores a details field smuggled into a move', async () => {
   const t = await createTask(db, { title: 'X', spaceId, details: 'original' });
   await moveTask(db, t.id, { status: 'waiting', details: 'rewritten' } as never, actor);
   expect((await getTask(db, t.id))!.details).toBe('original');
@@ -233,4 +235,59 @@ it('preserves the original completed_at when moving an already-completed task', 
   const done = await completeTask(db, t.id, actor);
   const moved = await moveTask(db, t.id, { status: 'completed' }, actor);
   expect(moved.completed_at!.getTime()).toBe(done.completed_at!.getTime());
+});
+
+// --- details is updatable; title is not ---
+
+it('updates details and records an audit event', async () => {
+  const t = await createTask(db, { title: 'X', spaceId, details: 'first' });
+  const updated = await updateTaskDetails(db, t.id, 'second', actor);
+  expect(updated.details).toBe('second');
+  expect((await getTask(db, t.id))!.details).toBe('second');
+  const { rows } = await db.query<{ event: string }>(
+    `SELECT event FROM task_events WHERE task_id = $1 AND event = 'details'`, [t.id]
+  );
+  expect(rows).toHaveLength(1);
+});
+
+it('clears details with null or an empty string', async () => {
+  const t = await createTask(db, { title: 'X', spaceId, details: 'notes' });
+  expect((await updateTaskDetails(db, t.id, null, actor)).details).toBeNull();
+  await updateTaskDetails(db, t.id, 'again', actor);
+  expect((await updateTaskDetails(db, t.id, '', actor)).details).toBeNull();
+});
+
+it('adds details to a task created without any', async () => {
+  const t = await createTask(db, { title: 'X', spaceId });
+  expect((await updateTaskDetails(db, t.id, 'added later', actor)).details).toBe('added later');
+});
+
+it('logs no event when details are unchanged', async () => {
+  const t = await createTask(db, { title: 'X', spaceId, details: 'same' });
+  await updateTaskDetails(db, t.id, 'same', actor);
+  const { rows } = await db.query(
+    `SELECT 1 FROM task_events WHERE task_id = $1 AND event = 'details'`, [t.id]
+  );
+  expect(rows).toHaveLength(0);
+});
+
+it('cannot touch the title, the space, or the status', async () => {
+  const t = await createTask(db, { title: 'Exact original title', spaceId, details: 'a' });
+  await moveTask(db, t.id, { status: 'waiting', waitingOn: 'Neil' }, actor);
+  const after = await updateTaskDetails(db, t.id, 'b', actor);
+  expect(after.title).toBe('Exact original title');
+  expect(after.space_id).toBe(spaceId);
+  expect(after.status).toBe('waiting');
+  expect(after.waiting_on).toBe('Neil');
+});
+
+it('rejects a malformed id and a non-string details value', async () => {
+  const t = await createTask(db, { title: 'X', spaceId });
+  await expect(updateTaskDetails(db, 'not-a-uuid', 'x', actor)).rejects.toThrow(InvalidTaskIdError);
+  await expect(updateTaskDetails(db, t.id, 42 as never, actor)).rejects.toThrow();
+});
+
+it('still exposes no title-mutating function after adding the details path', async () => {
+  const mod = await import('./index.js');
+  expect(Object.keys(mod).some((n) => /title|rename/i.test(n))).toBe(false);
 });

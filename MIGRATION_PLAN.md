@@ -74,11 +74,15 @@ ALTER TABLE tasks ADD COLUMN details text;
 **Decision: added.** `migrations/003_task_details.sql` adds a nullable `details
 text` column.
 
-It is **write-at-create and read-only thereafter** — `createTask` accepts it,
-REST and MCP expose it on both create paths, reads return it, and no route or
-tool can change it. A `details` key on a move payload is ignored exactly as a
-`title` key is. That keeps it a record of what was captured rather than a mutable
-notes field, and a test asserts the absence of an update path.
+It is settable at create and updatable afterwards through a narrow path —
+`updateTaskDetails` in core, `POST /tasks/:id/details`, `set_task_details` over
+MCP — each of which reads only the id and the details, so none can reach the
+title. A `details` key on a move payload is still ignored, exactly as a `title`
+key is.
+
+(It was write-once in the first cut. That over-applied the title rule: the title
+is immutable so AI cannot rewrite what you said, but details are notes, and notes
+get edited. Changed 2026-09-09.)
 
 Still open: `source_external_id UNIQUE` for idempotent re-import (see below). Not
 added, since only `details` was approved.

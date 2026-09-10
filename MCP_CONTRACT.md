@@ -40,8 +40,12 @@ through verbatim."*
 | `complete_task` | `task_id` | — | `{ task }` |
 | `move_task` | `task_id` | `space_id`, `status`, `waiting_on` | `{ task }` |
 
-`details` is write-once, like `title`: settable at create, returned on reads, and
-changeable by nothing. A `details` key on a `move_task` call is ignored.
+| `set_task_details` | `task_id`, `details` | — | `{ task }` |
+
+`details` (a task's notes) IS updatable via `set_task_details`; `title` is not.
+That tool reads only `task_id` and `details`, so it can never become a route to
+the title. Pass `null` to clear. A `details` key on a `move_task` call is still
+ignored — `move_task` reads only space, status, and waiting_on.
 | `list_spaces` | — | — | `{ spaces }` |
 | `list_waiting` | — | `space_id` | `{ tasks }` |
 | `get_task_counts` | — | `assignee_id` | `{ counts }` |
@@ -129,7 +133,7 @@ an empty database of its own.
   "status": "open",             // open | waiting | completed
   "due_at": null,               // timestamptz
   "waiting_on": null,           // free text, nullable, only meaningful when waiting
-  "details": null,              // capture notes; write-once, no update path
+  "details": null,              // notes; updatable via set_task_details, unlike title
   "created_at": "…",
   "completed_at": null,         // non-null iff status is completed
   "source_platform": "slack",   // slack | api | hermes | workast
@@ -156,6 +160,7 @@ database constraint rather than convention.
 | POST | `/tasks/:id/complete` | idempotent |
 | POST | `/tasks/:id/reopen` | idempotent |
 | POST | `/tasks/:id/move` | `{ space_id?, status?, waiting_on? }` |
+| POST | `/tasks/:id/details` | `{ details }` — string or null; cannot touch the title |
 | GET | `/channel-map` | current channel → Space mapping |
 | GET | `/context/:channelId/space` | `{ space, mapped, channel_name }` |
 | GET | `/context/:channelId/tasks` | `?space=&include_waiting=true&status=&limit=` |

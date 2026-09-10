@@ -4,6 +4,22 @@ import { metaLine, truncateLabel, type MetaOpts } from './label.js';
 
 export const CHECKBOX_ACTION_ID = 'task_checkbox';
 export const CHECKBOX_BLOCK_PREFIX = 'task_toggle';
+
+/** `task_toggle:<groupIndex>:v<version>` */
+export function checkboxBlockId(groupIndex: number, version: number): string {
+  return `${CHECKBOX_BLOCK_PREFIX}:${groupIndex}:v${version}`;
+}
+
+/**
+ * Reads the render version out of a block_id. Returns null for a block_id with
+ * no version — a card posted before versioning existed.
+ */
+export function parseBlockVersion(blockId: string | undefined | null): number | null {
+  const match = /:v(\d+)$/.exec(blockId ?? '');
+  if (!match) return null;
+  const version = Number(match[1]);
+  return Number.isSafeInteger(version) && version > 0 ? version : null;
+}
 export const WAITING_ACTION_ID = 'task_waiting';
 export const CONTROLS_BLOCK_PREFIX = 'task_controls';
 /** Slack allows at most 10 options per checkboxes element. */
@@ -92,7 +108,7 @@ export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock
 
     blocks.push({
       type: 'actions',
-      block_id: `${CHECKBOX_BLOCK_PREFIX}:${groupIndex}`,
+      block_id: checkboxBlockId(groupIndex, opts.version ?? 1),
       elements: [element],
     } as unknown as KnownBlock);
   });

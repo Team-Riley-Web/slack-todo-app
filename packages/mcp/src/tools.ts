@@ -2,7 +2,7 @@ import type { Db } from '@tr/db';
 import {
   completeTask, createTask, getSpaceForChannel, getTask, getTaskCounts,
   listSpaces, listTasks, listWaiting, moveTask, resolveDestinationSpace,
-  TaskNotFoundError, type TaskStatus,
+  updateTaskDetails, TaskNotFoundError, type TaskStatus,
 } from '@tr/task-core';
 
 export interface McpTool {
@@ -124,6 +124,28 @@ export function buildTools(db: Db): McpTool[] {
       }),
     },
     {
+      name: 'set_task_details',
+      description:
+        'Replace a task\'s details (its notes). Cannot change the title — this tool ' +
+        'reads only task_id and details. Pass null to clear. Requires explicit user ' +
+        'instruction; do not rewrite a user\'s notes unasked.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string' },
+          details: { type: ['string', 'null'] },
+        },
+        required: ['task_id', 'details'],
+      },
+      handler: async (a) => ({
+        task: await updateTaskDetails(
+          db, String(a.task_id),
+          a.details === null ? null : (str(a.details) ?? null),
+          HERMES
+        ),
+      }),
+    },
+    {
       name: 'list_spaces',
       description: 'List all Spaces. Space names are deterministic configuration data.',
       inputSchema: { type: 'object', properties: {} },
@@ -236,7 +258,7 @@ export function buildTools(db: Db): McpTool[] {
 
 export const TOOL_NAMES: string[] = [
   'list_tasks', 'get_task', 'create_task', 'complete_task', 'move_task',
-  'list_spaces', 'list_waiting',
+  'list_spaces', 'list_waiting', 'set_task_details',
   'get_space_for_channel', 'list_tasks_for_context', 'create_task_for_context',
   'get_task_counts',
 ];

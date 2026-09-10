@@ -79,3 +79,33 @@ it('pnpm sync-channels rejects an unknown space and writes nothing', async () =>
     })).rejects.toThrow(/Unknown space/);
   });
 }, 90_000);
+
+// `prune` is a pnpm built-in that prunes node_modules, and pnpm gives its own
+// commands precedence over scripts — a script named `prune` was shadowed, so
+// running it would have pruned packages instead of the database.
+it('the interaction prune script is not shadowed by a pnpm built-in', async () => {
+  await withScratch(async (dir) => {
+    const { stdout } = await run('pnpm', ['prune-interactions'], {
+      env: { ...process.env, DATABASE_URL: `file://${join(dir, 'db')}` },
+    });
+    expect(stdout).toMatch(/pruned 0 interaction\(s\) older than 7 days/);
+  });
+}, 90_000);
+
+it('no npm script name collides with a pnpm built-in command', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const pkg = JSON.parse(await readFile('package.json', 'utf8')) as {
+    scripts: Record<string, string>;
+  };
+  const builtins = new Set([
+    'prune', 'install', 'add', 'remove', 'update', 'list', 'why', 'audit',
+    'publish', 'pack', 'link', 'unlink', 'import', 'rebuild', 'store', 'exec',
+    'dlx', 'create', 'init', 'run', 'test', 'start', 'env', 'server', 'setup',
+    'fetch', 'deploy', 'licenses', 'outdated', 'patch', 'dedupe', 'approve-builds',
+  ]);
+  // `test` and `start` are conventional npm lifecycle scripts, not shadowed.
+  const conventional = new Set(['test', 'start']);
+  const collisions = Object.keys(pkg.scripts)
+    .filter((name) => builtins.has(name) && !conventional.has(name));
+  expect(collisions).toEqual([]);
+}, 30_000);

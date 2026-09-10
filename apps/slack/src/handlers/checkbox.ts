@@ -3,9 +3,11 @@ import {
   completeTask, getTask, reopenTask, listSpaces,
   InvalidTaskIdError, TaskNotFoundError, type Space, type Task,
 } from '@tr/task-core';
-import { taskCardBlocks, taskCardFallback, type CardEntry } from '@tr/slack-ui';
+import {
+  parseBlockVersion, taskCardBlocks, taskCardFallback, type CardEntry,
+} from '@tr/slack-ui';
 import { authorize } from '../auth.js';
-import { claimInteraction, loadCard, saveCard } from '../cards.js';
+import { baselineFor, claimInteraction, loadCard, saveCard } from '../cards.js';
 import type { AppConfig } from '../config.js';
 
 export interface CheckboxDeps {
@@ -38,6 +40,37 @@ export function readSelectedValues(
   return chosen.map((o) => o?.value).filter((v): v is string => typeof v === 'string');
 }
 
+/**
+ * One in-flight interaction per card, serialized.
+ *
+ * Two toggles on the same message otherwise interleave read-modify-render: both
+ * read state, both mutate, both call chat.update, and whichever HTTP call lands
+ * last wins the rendered message — which may be the one that read older state.
+ * The database stays correct; the card can be left showing the wrong thing.
+ *
+ * Socket Mode holds one connection per process, so a per-process queue makes
+ * per-card handling fully serial. With several app instances each keeps its own
+ * queue; ordering is then only guaranteed within an instance.
+ */
+const cardLocks = new Map<string, Promise<void>>();
+
+export async function withCardLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const previous = cardLocks.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const mine = new Promise<void>((resolve) => { release = resolve; });
+  const chained = previous.then(() => mine);
+  cardLocks.set(key, chained);
+
+  await previous.catch(() => {});
+  try {
+    return await fn();
+  } finally {
+    release();
+    // Leave the entry in place if another interaction queued behind us.
+    if (cardLocks.get(key) === chained) cardLocks.delete(key);
+  }
+}
+
 export async function handleCheckboxToggle(
   deps: CheckboxDeps, body: Record<string, any>
 ): Promise<{ outcome: ToggleOutcome }> {
@@ -53,34 +86,41 @@ export async function handleCheckboxToggle(
   const actionId: string = action?.action_id ?? '';
   if (!channelId || !messageTs) return { outcome: 'unknown_card' };
 
-  const card = await loadCard(db, channelId, messageTs);
-  if (!card) return { outcome: 'unknown_card' };
+  return withCardLock(`${channelId}:${messageTs}`, async () => {
+    const card = await loadCard(db, channelId, messageTs);
+    if (!card) return { outcome: 'unknown_card' as ToggleOutcome };
 
-  const fresh = await claimInteraction(db, channelId, messageTs, action?.action_ts ?? '');
+    const fresh = await claimInteraction(db, channelId, messageTs, action?.action_ts ?? '');
 
-  const selected = new Set(readSelectedValues(body, blockId, actionId));
-  const actor = { id: auth.userId, source: 'slack' };
-  let applied = false;
+    const selected = new Set(readSelectedValues(body, blockId, actionId));
+    const actor = { id: auth.userId, source: 'slack' };
+    let applied = false;
 
-  if (fresh) {
-    for (const taskId of card.task_ids) {
-      const wasRendered = card.rendered_state[taskId] === true;
-      const nowSelected = selected.has(taskId);
-      if (wasRendered === nowSelected) continue; // this checkbox did not move
-      try {
-        if (nowSelected) await completeTask(db, taskId, actor);
-        else await reopenTask(db, taskId, actor);
-        applied = true;
-      } catch (err) {
-        if (!(err instanceof InvalidTaskIdError) && !(err instanceof TaskNotFoundError)) throw err;
+    // Diff against the render THIS client saw, named by its block_id version.
+    // Against the newest render instead, a second user's stale payload reads as
+    // a deliberate uncheck and silently reverts the first user's completion.
+    const { state: baseline } = baselineFor(card, parseBlockVersion(blockId));
+
+    if (fresh) {
+      for (const taskId of card.task_ids) {
+        const wasRendered = baseline[taskId] === true;
+        const nowSelected = selected.has(taskId);
+        if (wasRendered === nowSelected) continue; // this checkbox did not move
+        try {
+          if (nowSelected) await completeTask(db, taskId, actor);
+          else await reopenTask(db, taskId, actor);
+          applied = true;
+        } catch (err) {
+          if (!(err instanceof InvalidTaskIdError) && !(err instanceof TaskNotFoundError)) throw err;
+        }
       }
     }
-  }
 
-  await redrawCard(deps, channelId, messageTs, card.task_ids, card.view_scope ?? null);
+    await redrawCard(deps, channelId, messageTs, card.task_ids, card.view_scope ?? null);
 
-  if (!fresh) return { outcome: 'duplicate' };
-  return { outcome: applied ? 'applied' : 'noop' };
+    if (!fresh) return { outcome: 'duplicate' as ToggleOutcome };
+    return { outcome: (applied ? 'applied' : 'noop') as ToggleOutcome };
+  });
 }
 
 /** Reads every task back from the database and rewrites the same message. */
@@ -92,6 +132,10 @@ export async function redrawCard(
   viewScope: string | null
 ): Promise<void> {
   const { db, client, config } = deps;
+  const existing = await loadCard(db, channelId, messageTs);
+  // Compute the next version before rendering so the block_id stamped into the
+  // message matches the version recorded alongside it.
+  const version = (existing?.version ?? 0) + 1;
   const spaces = new Map((await listSpaces(db)).map((s: Space) => [s.id, s]));
 
   const entries: CardEntry[] = [];
@@ -101,12 +145,14 @@ export async function redrawCard(
     if (task && space) entries.push({ task, space });
   }
 
-  const opts = { timeZone: config.timeZone, assigneeLabels: config.assigneeLabels };
+  const opts = {
+    timeZone: config.timeZone, assigneeLabels: config.assigneeLabels, version,
+  };
   await client.chat.update({
     channel: channelId,
     ts: messageTs,
     text: taskCardFallback(entries),
     blocks: taskCardBlocks(entries, opts),
   });
-  await saveCard(db, { channelId, messageTs, entries, viewScope });
+  await saveCard(db, { channelId, messageTs, entries, viewScope, version });
 }
