@@ -20,6 +20,23 @@ functions. There is no second copy of any rule.
 | `/settings` | Channel → Space mappings, the authorized user list, the timezone, and import history. |
 | `/tasks/<id>/edit` | The only place a title changes from the web. Renders as a pane over the list. Every field the Slack modal offers, prefilled, plus the task's event history. |
 
+## The logo
+
+`apps/web/public/tasks-logo.png` — 512×512 — serves three jobs: the browser
+tab icon, the iOS home-screen icon, and the header mark beside "Team Riley".
+
+Declared through `metadata.icons` in `app/layout.tsx` rather than the
+`app/icon.png` file convention, because the convention wants its own copy of
+the file and two copies of an image drift apart. One source, three uses.
+
+It sits in the top bar rather than above the rail, where Workast puts it. The
+rail is absent on Settings and behind the edit pane, and an identity that
+disappears on some pages is worse than one that never moves.
+
+Worth knowing: a 512px PNG is a heavy favicon (86 KB) and the browser scales
+it down. Fine for an internal tool on a fast connection; if it ever matters,
+generate a 32px and a 180px variant and list both in `icons`.
+
 ## Why there is no client JavaScript, and what that costs
 
 Every interaction is a form posting a server action or a link. That is a
