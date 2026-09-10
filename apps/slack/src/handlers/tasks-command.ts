@@ -1,7 +1,7 @@
 import type { Db } from '@tr/db';
 import {
-  findSpaceByQuery, getTaskCounts, listSpaces, listTasks, listWaiting,
-  type Space, type Task,
+  findSpaceByQuery, getSpaceForChannel, getTaskCounts, listSpaces, listTasks,
+  listWaiting, type Space, type Task,
 } from '@tr/task-core';
 import { taskListBlocks, taskCardFallback, type CardEntry } from '@tr/slack-ui';
 import { authorize } from '../auth.js';
@@ -44,8 +44,25 @@ export async function handleTasksCommand(
       return space ? [{ task, space }] : [];
     });
 
-  // Summary view — no interactive controls, so it stays ephemeral.
+  /**
+   * Bare `/tasks` is channel-aware: from a mapped channel it shows that Space,
+   * because that is what someone standing in #client-secure-logic means. From an
+   * unmapped channel or a DM there is no such context, so it shows the
+   * cross-Space summary. `/tasks all` forces the summary from anywhere.
+   */
   if (!scope) {
+    const context = await getSpaceForChannel(db, command.channel_id);
+    if (context.mapped) {
+      const entries = toEntries(
+        await listTasks(db, { spaceId: context.space.id, actionableOnly: true })
+      );
+      await postList(deps, command, context.space.name.toUpperCase(), entries, context.space.slug);
+      return { scope: context.space.slug, count: entries.length };
+    }
+  }
+
+  // Summary view — no interactive controls, so it stays ephemeral.
+  if (!scope || scope === 'all' || scope === 'summary') {
     const counts = await getTaskCounts(db);
     const lines = counts.map((c) => {
       const label = c.space_name.replace(/^Client - /, '');

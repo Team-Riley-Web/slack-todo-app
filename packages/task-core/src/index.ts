@@ -9,6 +9,14 @@ export {
   type Actor, type CreateTaskInput, type MovePatch,
 } from './tasks.js';
 export {
+  syncChannelMap, listChannelMap,
+  type ChannelMapConfig, type ChannelMapEntry, type SyncResult,
+} from './channel-map.js';
+export {
+  getSpaceForChannel, findSpaceExact, resolveDestinationSpace,
+  type ChannelSpace, type Destination, type DestinationRequest,
+} from './context.js';
+export {
   listTasks, listWaiting, getTaskCounts,
   type ListTasksFilter, type SpaceCount,
 } from './queries.js';

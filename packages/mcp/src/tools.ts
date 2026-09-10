@@ -1,7 +1,8 @@
 import type { Db } from '@tr/db';
 import {
-  completeTask, createTask, getTask, getTaskCounts, listSpaces, listTasks,
-  listWaiting, moveTask, TaskNotFoundError, type TaskStatus,
+  completeTask, createTask, getSpaceForChannel, getTask, getTaskCounts,
+  listSpaces, listTasks, listWaiting, moveTask, resolveDestinationSpace,
+  TaskNotFoundError, type TaskStatus,
 } from '@tr/task-core';
 
 export interface McpTool {
@@ -128,6 +129,94 @@ export function buildTools(db: Db): McpTool[] {
       handler: async (a) => ({ tasks: await listWaiting(db, { spaceId: str(a.space_id) }) }),
     },
     {
+      name: 'get_space_for_channel',
+      description:
+        'Resolve a Slack channel ID to its canonical Space using the deterministic ' +
+        'configuration mapping. Returns mapped:false and the Inbox Space when the ' +
+        'channel has no mapping. Never infers a client from channel text.',
+      inputSchema: {
+        type: 'object',
+        properties: { channel_id: { type: 'string' } },
+        required: ['channel_id'],
+      },
+      handler: async (a) => {
+        const r = await getSpaceForChannel(db, str(a.channel_id) ?? null);
+        return { space: r.space, mapped: r.mapped, channel_name: r.channelName };
+      },
+    },
+    {
+      name: 'list_tasks_for_context',
+      description:
+        'List tasks for the Space that a Slack channel maps to — use this when the ' +
+        'user asks "show my tasks" or "what is open?" from a channel. Pass the ' +
+        'channel_id and nothing else; you do not need to know Space IDs. Optionally ' +
+        'pass space to look at a different Space instead. Excludes waiting and ' +
+        'completed tasks unless include_waiting or status says otherwise.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          channel_id: { type: 'string' },
+          space: { type: 'string', description: 'Optional explicit Space, overriding the channel mapping.' },
+          include_waiting: { type: 'boolean' },
+          status: { type: 'string', enum: ['open', 'waiting', 'completed'] },
+          limit: { type: 'number' },
+        },
+        required: ['channel_id'],
+      },
+      handler: async (a) => {
+        const dest = await resolveDestinationSpace(db, {
+          channelId: str(a.channel_id) ?? null,
+          space: str(a.space) ?? null,
+        });
+        const status = str(a.status) as TaskStatus | undefined;
+        const tasks = await listTasks(db, {
+          spaceId: dest.space.id,
+          status: status ?? (a.include_waiting === true ? ['open', 'waiting'] : undefined),
+          actionableOnly: !status && a.include_waiting !== true,
+          limit: typeof a.limit === 'number' ? a.limit : undefined,
+        });
+        return { space: dest.space, resolved_from: dest.source, tasks };
+      },
+    },
+    {
+      name: 'create_task_for_context',
+      description:
+        'Create a task in the Space that a Slack channel maps to — use this when the ' +
+        'user asks to add a task from a channel. The title is stored exactly as given ' +
+        'and can never be changed afterwards: pass their words through verbatim, do ' +
+        'not summarize or rewrite. Pass space only when the user names an explicit ' +
+        'destination; an explicit space overrides the channel mapping, and an ' +
+        'unrecognised one is rejected rather than guessed at.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          channel_id: { type: 'string' },
+          title: { type: 'string', description: 'The literal task title, verbatim.' },
+          space: { type: 'string', description: 'Optional explicit destination Space.' },
+          due_at: { type: 'string', description: 'ISO 8601 timestamp' },
+          assignee_id: { type: 'string' },
+        },
+        required: ['channel_id', 'title'],
+      },
+      handler: async (a) => {
+        const title = str(a.title);
+        if (!title) throw new Error('title must be a non-empty string');
+        const dest = await resolveDestinationSpace(db, {
+          channelId: str(a.channel_id) ?? null,
+          space: str(a.space) ?? null,
+        });
+        const task = await createTask(db, {
+          title,
+          spaceId: dest.space.id,
+          assigneeId: str(a.assignee_id) ?? null,
+          dueAt: str(a.due_at) ? new Date(String(a.due_at)) : null,
+          sourcePlatform: 'hermes',
+          sourceChannelId: str(a.channel_id) ?? null,
+        });
+        return { task, space: dest.space, resolved_from: dest.source };
+      },
+    },
+    {
       name: 'get_task_counts',
       description: 'Per-space open and waiting counts. Completed tasks are excluded.',
       inputSchema: { type: 'object', properties: { assignee_id: { type: 'string' } } },
@@ -138,5 +227,7 @@ export function buildTools(db: Db): McpTool[] {
 
 export const TOOL_NAMES: string[] = [
   'list_tasks', 'get_task', 'create_task', 'complete_task', 'move_task',
-  'list_spaces', 'list_waiting', 'get_task_counts',
+  'list_spaces', 'list_waiting',
+  'get_space_for_channel', 'list_tasks_for_context', 'create_task_for_context',
+  'get_task_counts',
 ];

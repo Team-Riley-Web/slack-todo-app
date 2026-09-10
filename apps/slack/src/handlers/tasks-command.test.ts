@@ -123,3 +123,96 @@ it('rejects an unauthorized workspace', async () => {
   const r = await handleTasksCommand(deps(), cmd('', { team_id: 'T_OTHER' }) as never);
   expect(r.scope).toBe('unauthorized');
 });
+
+// --- Phase 2: channel-aware context ---
+
+const mapChannel = (channelId: string, name: string, space: string) =>
+  db.query(
+    `INSERT INTO channel_space_map (slack_channel_id, slack_channel_name, space_id)
+     SELECT $1, $2, id FROM spaces WHERE name = $3`,
+    [channelId, name, space]
+  );
+
+it('defaults bare /tasks to the mapped Space of the channel it was run in', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  await add('Client - Secure Logic', 'Give Rachael access to Marty photos');
+  await add('Marketing', 'Unrelated marketing task');
+
+  const r = await handleTasksCommand(deps(), cmd('', { channel_id: 'C_SECURE' }) as never);
+  expect(r.scope).toBe('secure-logic');
+  expect(r.count).toBe(1);
+  const out = posted();
+  expect(out).toContain('Give Rachael access to Marty photos');
+  expect(out).not.toContain('Unrelated marketing task');
+  expect(out).toContain('CLIENT - SECURE LOGIC');
+});
+
+it('returns interactive checkboxes in the channel-defaulted view', async () => {
+  await mapChannel('C_AGENCY2', '#agency-ops', 'Agency / Internal');
+  await add('Agency / Internal', 'Complete GMB verification');
+  await handleTasksCommand(deps(), cmd('', { channel_id: 'C_AGENCY2' }) as never);
+  expect(posted()).toContain('checkboxes');
+});
+
+it('shows the cross-Space summary from an unmapped channel', async () => {
+  await add('Marketing', 'Mkt task');
+  const r = await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+  expect(r.scope).toBe('summary');
+  expect(posted()).toContain('MY TASKS');
+});
+
+it('forces the summary with /tasks all even from a mapped channel', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  await add('Client - Secure Logic', 'Secure task');
+  await add('Marketing', 'Mkt task');
+  const r = await handleTasksCommand(deps(), cmd('all', { channel_id: 'C_SECURE' }) as never);
+  expect(r.scope).toBe('summary');
+  const out = posted();
+  expect(out).toContain('MY TASKS');
+  expect(out).toContain('Marketing');
+});
+
+it('lets an explicit scope override the channel mapping', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  await add('Client - Secure Logic', 'Secure task');
+  await add('Marketing', 'Mkt task');
+  const r = await handleTasksCommand(deps(), cmd('marketing', { channel_id: 'C_SECURE' }) as never);
+  expect(r.scope).toBe('marketing');
+  const out = posted();
+  expect(out).toContain('Mkt task');
+  expect(out).not.toContain('Secure task');
+});
+
+it('still shows waiting from a mapped channel when asked', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const w = await add('Client - Secure Logic', 'Waiting task');
+  await moveTask(db, w.id, { status: 'waiting' }, actor);
+  const r = await handleTasksCommand(deps(), cmd('waiting', { channel_id: 'C_SECURE' }) as never);
+  expect(r.scope).toBe('waiting');
+  expect(r.count).toBe(1);
+});
+
+it('excludes waiting and completed from the channel-defaulted view', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const w = await add('Client - Secure Logic', 'Waiting task');
+  const c = await add('Client - Secure Logic', 'Done task');
+  await add('Client - Secure Logic', 'Open task');
+  await moveTask(db, w.id, { status: 'waiting' }, actor);
+  await completeTask(db, c.id, actor);
+
+  const r = await handleTasksCommand(deps(), cmd('', { channel_id: 'C_SECURE' }) as never);
+  expect(r.count).toBe(1);
+  const out = posted();
+  expect(out).toContain('Open task');
+  expect(out).not.toContain('Waiting task');
+  expect(out).not.toContain('Done task');
+});
+
+it('never infers a Space from channel-name text when the channel is unmapped', async () => {
+  await add('Client - Secure Logic', 'Secure task');
+  // The channel id itself looks like a client channel, but has no mapping row.
+  const r = await handleTasksCommand(
+    deps(), cmd('', { channel_id: 'C_client_secure_logic' }) as never
+  );
+  expect(r.scope).toBe('summary');
+});

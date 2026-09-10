@@ -144,3 +144,110 @@ it('returns 503 when no API token is configured, rather than allowing access', a
   expect((await open.inject({ method: 'GET', url: '/tasks' })).statusCode).toBe(503);
   await open.close();
 });
+
+// --- Phase 2: channel-aware context routes ---
+
+const mapChannel = (channelId: string, name: string, space: string) =>
+  db.query(
+    `INSERT INTO channel_space_map (slack_channel_id, slack_channel_name, space_id)
+     SELECT $1, $2, id FROM spaces WHERE name = $3`,
+    [channelId, name, space]
+  );
+
+it('resolves a channel to its Space', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const r = await app.inject({ method: 'GET', url: '/context/C_SECURE/space', headers: auth });
+  expect(r.json().space.name).toBe('Client - Secure Logic');
+  expect(r.json().mapped).toBe(true);
+  expect(r.json().channel_name).toBe('#client-secure-logic');
+});
+
+it('reports an unmapped channel as Inbox and unmapped', async () => {
+  const r = await app.inject({ method: 'GET', url: '/context/C_NOPE/space', headers: auth });
+  expect(r.json().mapped).toBe(false);
+  expect(r.json().space.name).toBe('Inbox');
+});
+
+it('creates a task for a channel context with a byte-exact title', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const raw = 'update the contact form';
+  const r = await app.inject({
+    method: 'POST', url: '/context/C_SECURE/tasks', headers: auth, payload: { title: raw },
+  });
+  expect(r.statusCode).toBe(201);
+  expect(r.json().task.title).toBe(raw);
+  expect(r.json().space.name).toBe('Client - Secure Logic');
+  expect(r.json().resolved_from).toBe('channel');
+  expect(r.json().task.source_channel_id).toBe('C_SECURE');
+});
+
+it('lets an explicit destination override the channel mapping', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const r = await app.inject({
+    method: 'POST', url: '/context/C_SECURE/tasks', headers: auth,
+    payload: { title: 'review pricing', space: 'Agency / Internal' },
+  });
+  expect(r.json().space.name).toBe('Agency / Internal');
+  expect(r.json().resolved_from).toBe('explicit');
+});
+
+it('rejects an unknown explicit destination with 400 and the valid options', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const r = await app.inject({
+    method: 'POST', url: '/context/C_SECURE/tasks', headers: auth,
+    payload: { title: 'X', space: 'Some Other Client' },
+  });
+  expect(r.statusCode).toBe(400);
+  expect(r.json().error).toBe('unknown_space');
+  expect(r.json().available).toContain('Client - Secure Logic');
+
+  const all = await app.inject({ method: 'GET', url: '/tasks', headers: auth });
+  expect(all.json().tasks).toHaveLength(0);
+});
+
+it('lists tasks for a channel context, excluding waiting and completed by default', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const mk = (title: string) => app.inject({
+    method: 'POST', url: '/context/C_SECURE/tasks', headers: auth, payload: { title },
+  });
+  await mk('Open one');
+  const w = (await mk('Waiting one')).json().task;
+  const c = (await mk('Done one')).json().task;
+  await app.inject({
+    method: 'POST', url: `/tasks/${w.id}/move`, headers: auth, payload: { status: 'waiting' },
+  });
+  await app.inject({ method: 'POST', url: `/tasks/${c.id}/complete`, headers: auth });
+
+  const bare = await app.inject({ method: 'GET', url: '/context/C_SECURE/tasks', headers: auth });
+  expect(bare.json().tasks.map((t: { title: string }) => t.title)).toEqual(['Open one']);
+
+  const withWaiting = await app.inject({
+    method: 'GET', url: '/context/C_SECURE/tasks?include_waiting=true', headers: auth,
+  });
+  expect(withWaiting.json().tasks).toHaveLength(2);
+});
+
+it('routes an unmapped channel to Inbox without inferring from the channel id', async () => {
+  const r = await app.inject({
+    method: 'POST', url: '/context/C_client_secure_logic/tasks', headers: auth,
+    payload: { title: 'Buy a new vehicle' },
+  });
+  expect(r.json().space.name).toBe('Inbox');
+  expect(r.json().resolved_from).toBe('inbox');
+});
+
+it('exposes the channel map for review', async () => {
+  await mapChannel('C_AGENCY', '#agency-ops', 'Agency / Internal');
+  const r = await app.inject({ method: 'GET', url: '/channel-map', headers: auth });
+  expect(r.json().channels).toEqual([
+    { channelId: 'C_AGENCY', channelName: '#agency-ops', spaceName: 'Agency / Internal' },
+  ]);
+});
+
+it('requires a title on the context create route', async () => {
+  const r = await app.inject({
+    method: 'POST', url: '/context/C_SECURE/tasks', headers: auth, payload: {},
+  });
+  expect(r.statusCode).toBe(400);
+  expect(r.json().error).toBe('title_required');
+});

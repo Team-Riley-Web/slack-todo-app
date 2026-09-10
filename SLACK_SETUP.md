@@ -86,20 +86,27 @@ To find your own user ID: Slack profile → **⋮** → Copy member ID.
 
 ## 7. Channel → Space mapping
 
-Deterministic configuration. Invite the bot to each channel, then insert a row
-per channel:
+Deterministic configuration. Invite the bot to each channel, then declare the
+mapping in JSON and apply it:
 
-```sql
-INSERT INTO channel_space_map (slack_channel_id, slack_channel_name, space_id)
-SELECT 'C0123456789', '#agency-ops', id FROM spaces WHERE name = 'Agency / Internal';
+```bash
+cp config/channel-map.example.json config/channel-map.json
+# fill in real channel IDs, then:
+pnpm sync-channels          # --prune also deletes mappings absent from config
 ```
 
-`config/channel-map.example.json` shows the intended shape. Channel IDs come from
-a channel's **View channel details → About**, at the bottom.
+Channel IDs come from a channel's **View channel details → About**, at the
+bottom. The sync validates every Space before writing anything, so a typo aborts
+the whole run rather than importing a partial mapping. Re-running is idempotent.
+
+`GET /channel-map` shows what is currently in effect.
 
 An unmapped channel routes to **Inbox** and the card says so — it never guesses a
 client from message text. Where a channel mapping resolves a client, message text
 is never consulted.
+
+The mapping also drives bare `/tasks` (which returns the channel's Space) and the
+channel-aware Hermes tools, so it is worth getting right before rollout.
 
 Suggested mapping:
 

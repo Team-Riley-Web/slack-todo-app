@@ -1,9 +1,10 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Db } from '@tr/db';
 import {
-  completeTask, createTask, getTask, getTaskCounts, listSpaces, listTasks,
-  listWaiting, moveTask, reopenTask,
-  InvalidTaskIdError, TaskNotFoundError, type TaskStatus,
+  completeTask, createTask, getSpaceForChannel, getTask, getTaskCounts,
+  listChannelMap, listSpaces, listTasks, listWaiting, moveTask, reopenTask,
+  resolveDestinationSpace,
+  InvalidTaskIdError, TaskNotFoundError, UnknownSpaceError, type TaskStatus,
 } from '@tr/task-core';
 
 export interface ApiDeps { db: Db; apiToken: string | null }
@@ -24,6 +25,11 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof InvalidTaskIdError) return reply.code(400).send({ error: 'invalid_task_id' });
     if (err instanceof TaskNotFoundError) return reply.code(404).send({ error: 'task_not_found' });
+    if (err instanceof UnknownSpaceError) {
+      return reply.code(400).send({
+        error: 'unknown_space', requested: err.requested, available: err.available,
+      });
+    }
     return reply.code(500).send({ error: 'internal_error' });
   });
 
@@ -63,6 +69,59 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
   app.get('/counts', async (req) => {
     const q = req.query as Record<string, string | undefined>;
     return { counts: await getTaskCounts(db, { assigneeId: q.assignee_id }) };
+  });
+
+  app.get('/channel-map', async () => ({ channels: await listChannelMap(db) }));
+
+  /**
+   * Channel-aware context routes. Hermes passes a Slack channel ID and never
+   * needs to know internal Space IDs; the service resolves
+   * channel -> canonical Space -> exact task operation.
+   */
+  app.get('/context/:channelId/space', async (req) => {
+    const { channelId } = req.params as { channelId: string };
+    const r = await getSpaceForChannel(db, channelId);
+    return { space: r.space, mapped: r.mapped, channel_name: r.channelName };
+  });
+
+  app.get('/context/:channelId/tasks', async (req) => {
+    const { channelId } = req.params as { channelId: string };
+    const q = req.query as Record<string, string | undefined>;
+    const dest = await resolveDestinationSpace(db, { channelId, space: q.space ?? null });
+    const status = q.status as TaskStatus | undefined;
+    const includeWaiting = q.include_waiting === 'true';
+    return {
+      space: dest.space,
+      resolved_from: dest.source,
+      tasks: await listTasks(db, {
+        spaceId: dest.space.id,
+        status: status ?? (includeWaiting ? ['open', 'waiting'] : undefined),
+        actionableOnly: !status && !includeWaiting,
+        limit: q.limit ? Number(q.limit) : undefined,
+      }),
+    };
+  });
+
+  app.post('/context/:channelId/tasks', async (req, reply) => {
+    const { channelId } = req.params as { channelId: string };
+    const b = (req.body ?? {}) as Record<string, unknown>;
+    if (typeof b.title !== 'string' || b.title.length === 0) {
+      return reply.code(400).send({ error: 'title_required' });
+    }
+    const dest = await resolveDestinationSpace(db, {
+      channelId,
+      space: typeof b.space === 'string' ? b.space : null,
+    });
+    const task = await createTask(db, {
+      title: b.title,
+      spaceId: dest.space.id,
+      assigneeId: typeof b.assignee_id === 'string' ? b.assignee_id : null,
+      dueAt: typeof b.due_at === 'string' ? new Date(b.due_at) : null,
+      sourcePlatform: typeof b.source_platform === 'string' ? b.source_platform : 'api',
+      sourceChannelId: channelId,
+      createdBy: typeof b.created_by === 'string' ? b.created_by : null,
+    });
+    return reply.code(201).send({ task, space: dest.space, resolved_from: dest.source });
   });
 
   /**

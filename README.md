@@ -38,6 +38,7 @@ to persist locally, or a `postgres://` URL to use Supabase.
 
 ```bash
 pnpm migrate              # apply migrations and seed Spaces
+pnpm sync-channels        # apply config/channel-map.json to the database
 pnpm slack                # Slack app (Socket Mode)
 pnpm api                  # REST API on :3030
 pnpm mcp                  # MCP server on stdio, for Hermes
@@ -49,10 +50,15 @@ pnpm mcp                  # MCP server on stdio, for Hermes
 |---|---|
 | `/task <title>` | Capture a task. Space comes from the channel mapping. |
 | `/task <title> due:2026-09-15` | Same, with a due date. |
-| `/tasks` | Per-space counts of open (and waiting) tasks. |
+| `/tasks` | **From a mapped channel:** that Space's list. **From an unmapped channel or DM:** per-Space counts. |
+| `/tasks all` | Force the cross-Space summary from anywhere. |
 | `/tasks agency` | Full interactive list for a Space, matched by partial name. |
 | `/tasks joy within` | Multi-word Space scopes work. |
 | `/tasks waiting` | Everything waiting or blocked. |
+
+Bare `/tasks` is channel-aware because someone standing in
+`#client-secure-logic` asking for "tasks" means that client's tasks. An unmapped
+channel or a DM carries no such context, so it falls back to the summary.
 
 ### Due-date grammar
 
@@ -68,6 +74,30 @@ Wednesday. Relative dates resolve against `DEFAULT_TIMEZONE`.
 
 `/task due tomorrow is part of this title` stores that whole sentence as the
 title, because `due tomorrow` is not the strict `due:` form.
+
+## Channel → Space mapping
+
+Deterministic configuration, never inferred. Copy the example and fill in real
+Slack channel IDs:
+
+```bash
+cp config/channel-map.example.json config/channel-map.json
+pnpm sync-channels            # add --prune to delete mappings absent from config
+```
+
+```json
+{
+  "C0123456789": { "name": "#client-secure-logic", "space": "Client - Secure Logic" },
+  "C0123456790": { "name": "#agency-ops",          "space": "Agency / Internal" }
+}
+```
+
+A Space may be named by its canonical name (`Client - Secure Logic`), its slug
+(`secure-logic`), or its name without the client prefix (`Secure Logic`). Any
+other value aborts the whole sync rather than importing a partial mapping.
+
+An unmapped channel routes to **Inbox**. Client identity is never inferred from
+channel or message text.
 
 ## The task card
 

@@ -19,6 +19,15 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export class UnknownSpaceError extends Error {
+  constructor(readonly requested: string, readonly available: string[]) {
+    super(
+      `Unknown space: "${requested}". Valid spaces: ${available.join(', ')}`
+    );
+    this.name = 'UnknownSpaceError';
+  }
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Guards every task entry point. Rejects before any SQL is issued. */
