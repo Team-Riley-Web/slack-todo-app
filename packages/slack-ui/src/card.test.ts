@@ -292,3 +292,70 @@ describe('where the overflow menu sits', () => {
     expect(blocks[0].elements[0].type).toBe('overflow');
   });
 });
+
+// --- block_id uniqueness across groups ---
+
+describe('a list covering several Spaces', () => {
+  const group = (heading: string, n: number, seed: string) => ({
+    heading,
+    entries: Array.from({ length: n }, (_, i) => ({
+      task: task({ id: `${seed}${i}`.padEnd(36, '0'), title: `${heading} ${i}` }),
+      space,
+    })),
+  });
+
+  it('gives every block a unique block_id', () => {
+    // The bug this pins: each group restarted its counter at 0, so seven
+    // Spaces all emitted task_toggle:0:v1 and Slack rejected the entire
+    // message with `invalid_blocks ... already exists`. Nothing rendered.
+    const groups = ['AGENCY', 'MARKETING', 'MUSIC', 'PERSONAL', 'SALES', 'INBOX', 'MILLTOWN']
+      .map((h, i) => group(h, 3, String(i)));
+    const blocks = taskListBlocks(groups, opts) as any[];
+
+    const ids = blocks.map((b) => b.block_id).filter(Boolean);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('numbers the ids consecutively across groups', () => {
+    const groups = [group('A', 2, 'a'), group('B', 2, 'b'), group('C', 2, 'c')];
+    const ids = (taskListBlocks(groups, opts) as any[])
+      .map((b) => b.block_id).filter(Boolean);
+    expect(ids).toEqual(['task_toggle:0:v1', 'task_toggle:1:v1', 'task_toggle:2:v1']);
+  });
+
+  it('keeps ids unique when a Space needs more than one checkbox element', () => {
+    // 12 entries is two chunks of ten, so the offset must advance by two.
+    const groups = [group('BIG', 12, 'x'), group('SMALL', 1, 'y')];
+    const ids = (taskListBlocks(groups, opts) as any[])
+      .map((b) => b.block_id).filter(Boolean);
+    expect(ids).toEqual(['task_toggle:0:v1', 'task_toggle:1:v1', 'task_toggle:2:v1']);
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it('carries the render version into every group', () => {
+    const groups = [group('A', 1, 'a'), group('B', 1, 'b')];
+    const ids = (taskListBlocks(groups, { ...opts, version: 7 }) as any[])
+      .map((b) => b.block_id).filter(Boolean);
+    expect(ids).toEqual(['task_toggle:0:v7', 'task_toggle:1:v7']);
+  });
+
+  it('stays within Slack 50-block limit and says what it left out', () => {
+    const groups = Array.from({ length: 40 }, (_, i) => group(`S${i}`, 2, `s${i}`));
+    const blocks = taskListBlocks(groups, opts) as any[];
+    expect(blocks.length).toBeLessThanOrEqual(50);
+    expect(JSON.stringify(blocks)).toContain('not shown');
+  });
+
+  it('skips an empty group without consuming a block_id', () => {
+    const groups = [group('A', 1, 'a'), { heading: 'EMPTY', entries: [] }, group('B', 1, 'b')];
+    const ids = (taskListBlocks(groups, opts) as any[])
+      .map((b) => b.block_id).filter(Boolean);
+    expect(ids).toEqual(['task_toggle:0:v1', 'task_toggle:1:v1']);
+    expect(JSON.stringify(blocks(groups))).not.toContain('EMPTY');
+  });
+});
+
+function blocks(groups: any[]) {
+  return taskListBlocks(groups, { timeZone: 'America/Chicago', assigneeLabels: {} });
+}
