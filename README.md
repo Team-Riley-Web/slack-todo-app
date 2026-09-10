@@ -58,6 +58,40 @@ pnpm --filter @tr/web dev # web UI on :3040; see WEB.md
 Note `prune-interactions`, not `prune` — `pnpm prune` is a pnpm built-in that
 prunes `node_modules`, and pnpm's own commands take precedence over scripts.
 
+## Running the web UI yourself
+
+```bash
+pnpm web            # http://localhost:3040
+```
+
+Ctrl-C stops it. That is the whole thing.
+
+**Use `pnpm web`, not `pnpm --filter @tr/web dev`.** Next only auto-loads a
+`.env` sitting in its own directory, and this repo's `.env` is at the root, so
+the plain command starts the server with no `DATABASE_URL` and no
+`WEB_DEV_USER` — every page then 307-redirects to `/signin`, which cannot
+complete locally because Slack requires an https OAuth redirect. `pnpm web`
+exports the root `.env` first.
+
+**Never run a production build while the dev server is up.** `next build` and
+`next dev` share the same `.next/` directory, so a build deletes the chunks
+the running dev server is still serving. The pages keep rendering and every
+stylesheet 404s, which looks exactly like "the CSS is broken" and is not a
+code problem at all. If it happens:
+
+```bash
+# stop the dev server, then
+rm -rf apps/web/.next
+pnpm web
+```
+
+Use `pnpm web:build` for a production build, and stop `pnpm web` first.
+
+Signing in locally is the `WEB_DEV_USER` bypass, not real Slack OAuth — see
+WEB.md. The local UI talks to the same Supabase database as Slack, so a task
+captured in Slack shows up here on the next page load. There is no live
+push: refresh to see changes made elsewhere.
+
 ## Commands
 
 | Command | Effect |

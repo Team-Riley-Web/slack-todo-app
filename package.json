@@ -16,7 +16,9 @@
     "mcp": "tsx packages/mcp/src/index.ts",
     "sync-channels": "tsx scripts/sync-channel-map.ts",
     "prune-interactions": "tsx scripts/prune.ts",
-    "import-tasks": "tsx scripts/import-tasks.ts"
+    "import-tasks": "tsx scripts/import-tasks.ts",
+    "web": "sh -c 'set -a; . ./.env; set +a; pnpm --filter @tr/web dev'",
+    "web:build": "sh -c 'set -a; . ./.env; set +a; pnpm --filter @tr/web build'"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
