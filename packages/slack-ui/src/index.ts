@@ -10,3 +10,8 @@ export {
   CONTROLS_BLOCK_PREFIX, MAX_OPTIONS_PER_ELEMENT, MAX_ENTRIES_PER_MESSAGE,
   type CardEntry, type CardGroup,
 } from './card.js';
+export {
+  editTaskView, parseEditSubmission,
+  EDIT_ACTION_ID, EDIT_CALLBACK_ID, EDIT_BLOCKS, MODAL_TEXT_MAX,
+  type EditMeta, type ParsedEdit,
+} from './edit-view.js';

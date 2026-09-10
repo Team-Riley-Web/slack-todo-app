@@ -23,6 +23,8 @@ export async function handleWaitingAction(
   if (!card) return { outcome: 'unknown_card' as const };
 
   const raw: string = action?.selected_option?.value ?? '';
+  // The overflow also carries `edit:<id>`, handled by the edit modal.
+  if (raw.startsWith('edit:')) return { outcome: 'noop' as const };
   const separator = raw.indexOf(':');
   const verb = separator === -1 ? '' : raw.slice(0, separator);
   const taskId = separator === -1 ? '' : raw.slice(separator + 1);

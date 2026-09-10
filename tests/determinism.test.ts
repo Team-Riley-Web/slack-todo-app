@@ -82,6 +82,19 @@ it('exposes no title-mutating export from any package entry point', async () => 
   }
 });
 
+it('keeps editTask reachable only from human surfaces', async () => {
+  const callers = (await allSources())
+    .filter(({ text }) => /\beditTask\s*\(/.test(text))
+    .map(({ file }) => file)
+    .sort();
+  // task-core defines it; the Slack modal submit handler is its only caller
+  // until the web UI lands in Phase 2B. Nothing on a Hermes surface.
+  expect(callers).toEqual([
+    'apps/slack/src/handlers/edit-modal.ts',
+    'packages/task-core/src/tasks.ts',
+  ]);
+});
+
 it('resolves tasks by uuid only — every mutation guards with assertTaskId', async () => {
   const tasks = (await allSources()).find(({ file }) => file.endsWith('task-core/src/tasks.ts'))!;
   for (const fn of ['completeTask', 'reopenTask', 'moveTask', 'getTask']) {
