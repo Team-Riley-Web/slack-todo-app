@@ -19,11 +19,15 @@ afterEach(async () => { await db.close(); });
 
 const call = (name: string, args: Record<string, unknown> = {}) => tools.get(name)!(args);
 
-it('exposes exactly the twelve contracted tools', () => {
+it('exposes exactly the contracted tools', () => {
   expect([...TOOL_NAMES].sort()).toEqual([
-    'complete_task', 'create_task', 'create_task_for_context', 'get_space_for_channel',
-    'get_task', 'get_task_counts', 'list_spaces', 'list_tasks',
-    'list_tasks_for_context', 'list_waiting', 'move_task', 'set_task_details',
+    'complete_task', 'create_task', 'create_task_for_context',
+    'get_completed_between', 'get_import_batch', 'get_import_conflicts',
+    'get_open_counts_by_space', 'get_space_for_channel', 'get_task',
+    'get_task_counts', 'get_task_health', 'get_this_week',
+    'list_import_batches', 'list_spaces', 'list_tasks',
+    'list_tasks_for_context', 'list_waiting', 'move_task', 'preview_import',
+    'set_task_details',
   ]);
   expect(new Set(buildTools(db).map((t) => t.name))).toEqual(new Set(TOOL_NAMES));
 });
@@ -262,4 +266,107 @@ it('clears details via null through MCP', async () => {
 it('states in its description that it cannot change the title', () => {
   const t = buildTools(db).find((x) => x.name === 'set_task_details')!;
   expect(t.description.toLowerCase()).toContain('cannot change the title');
+});
+
+// --- Phase 2A: import inspection and reporting, all read-only ---
+
+it('exposes the twenty contracted tools', () => {
+  expect(TOOL_NAMES).toHaveLength(20);
+  expect(new Set(buildTools(db).map((t) => t.name))).toEqual(new Set(TOOL_NAMES));
+});
+
+it('exposes no tool that can confirm, import, roll back, or delete', async () => {
+  for (const name of TOOL_NAMES) {
+    expect(name).not.toMatch(/confirm|rollback|roll_back|delete|purge|merge/i);
+  }
+  // And the only write-shaped names are the ones we intend.
+  const writes = TOOL_NAMES.filter((n) => /^(create|complete|move|set)_/.test(n));
+  expect(writes.sort()).toEqual([
+    'complete_task', 'create_task', 'create_task_for_context', 'move_task',
+    'set_task_details',
+  ]);
+});
+
+it('leaves a confirmed batch untouched no matter which import tool runs', async () => {
+  // Seed a CONFIRMED batch, then call every import-facing tool and assert
+  // nothing got written.
+  const { rows: b } = await db.query<{ id: string }>(
+    `INSERT INTO import_batches (source_type, state, row_count)
+     VALUES ('csv', 'CONFIRMED', 1) RETURNING id`
+  );
+  const batchId = b[0]!.id;
+  await db.query(
+    `INSERT INTO import_staging (batch_id, row_number, source_type, title, verdict)
+     VALUES ($1, 1, 'csv', 'Would be imported', 'READY')`, [batchId]
+  );
+
+  await call('list_import_batches', {});
+  await call('get_import_batch', { batch_id: batchId });
+  await call('preview_import', { batch_id: batchId });
+  await call('get_import_conflicts', { batch_id: batchId });
+
+  const { rows } = await db.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM tasks`);
+  expect(rows[0]!.n).toBe(0);
+  const { rows: state } = await db.query<{ state: string }>(
+    `SELECT state FROM import_batches WHERE id = $1`, [batchId]
+  );
+  expect(state[0]!.state).toBe('CONFIRMED'); // never advanced
+});
+
+it('preview_import takes a batch id and cannot be handed a file', () => {
+  const tool = buildTools(db).find((t) => t.name === 'preview_import')!;
+  const props = (tool.inputSchema as any).properties;
+  expect(Object.keys(props).sort()).toEqual(['batch_id', 'verdict']);
+  expect(props.file).toBeUndefined();
+  expect(props.content).toBeUndefined();
+  expect(tool.description).toMatch(/NOT a file/);
+});
+
+it('reports conflicts with their reasons', async () => {
+  const { rows: b } = await db.query<{ id: string }>(
+    `INSERT INTO import_batches (source_type, state) VALUES ('csv','ANALYZED') RETURNING id`
+  );
+  const batchId = b[0]!.id;
+  await db.query(
+    `INSERT INTO import_staging (batch_id, row_number, source_type, title, verdict, reason)
+     VALUES ($1, 1, 'csv', 'Dup', 'NEEDS_REVIEW', 'exact title already exists'),
+            ($1, 2, 'csv', '', 'INVALID', 'title is empty'),
+            ($1, 3, 'csv', 'Fine', 'READY', null)`, [batchId]
+  );
+  const r = await call('get_import_conflicts', { batch_id: batchId });
+  expect(r.conflicts).toHaveLength(2);
+  expect(r.conflicts.map((c: any) => c.reason)).toContain('title is empty');
+});
+
+it('reports open counts, this week, and task health', async () => {
+  const { task } = await call('create_task', { title: 'Open one', space_id: spaceId });
+  const { task: done } = await call('create_task', { title: 'Done one', space_id: spaceId });
+  await call('complete_task', { task_id: done.id });
+
+  expect((await call('get_open_counts_by_space', {})).counts[0].open).toBe(1);
+
+  const week = await call('get_this_week', {});
+  expect(week.created).toHaveLength(2);
+  expect(week.completed.map((t: any) => t.title)).toEqual(['Done one']);
+
+  const health = await call('get_task_health', { stale_after_days: 30 });
+  expect(health.average_age_days).not.toBeNull();
+  expect(health.stale).toHaveLength(0); // created just now
+  expect(task.title).toBe('Open one');
+});
+
+it('uses a half-open range for completed_between', async () => {
+  const { task } = await call('create_task', { title: 'T', space_id: spaceId });
+  await call('complete_task', { task_id: task.id });
+  await db.query(`UPDATE tasks SET completed_at = '2026-06-15T12:00:00Z' WHERE id = $1`, [
+    task.id,
+  ]);
+  const inside = await call('get_completed_between', {
+    from: '2026-06-15T12:00:00Z', to: '2026-06-16T00:00:00Z',
+  });
+  expect(inside.tasks).toHaveLength(1);
+  const outside = await call('get_completed_between', {
+    from: '2026-06-01T00:00:00Z', to: '2026-06-15T12:00:00Z',
+  });
+  expect(outside.tasks).toHaveLength(0);
 });

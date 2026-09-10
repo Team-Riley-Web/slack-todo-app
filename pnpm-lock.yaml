@@ -109,6 +109,9 @@ importers:
       '@tr/db':
         specifier: workspace:*
         version: link:../db
+      '@tr/importer':
+        specifier: workspace:*
+        version: link:../importer
       '@tr/task-core':
         specifier: workspace:*
         version: link:../task-core

@@ -21,3 +21,8 @@ export {
   listTasks, listWaiting, getTaskCounts,
   type ListTasksFilter, type SpaceCount,
 } from './queries.js';
+export {
+  openCountBySpace, completedBetween, createdBetween, createdThisWeek,
+  completedThisWeek, averageTaskAgeDays, staleTasks, startOfWeek,
+  type SpaceOpenCount,
+} from './reports.js';
