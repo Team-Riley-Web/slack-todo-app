@@ -19,8 +19,18 @@ admin approval you would rather not trigger.
 
 ## 1. Create the app
 
-api.slack.com/apps → **Create New App** → From scratch. Name it (e.g. "Team Riley
-Tasks") and pick the Team Riley workspace.
+**Fast route.** api.slack.com/apps → **Create New App** → **From an app
+manifest** → pick the Team Riley workspace → paste
+`config/slack-app-manifest.yaml`. That sets the scopes, Socket Mode,
+interactivity and all three slash commands at once, so **sections 2, 4 and 5
+below are already done** — read them for the reasoning, skip the clicking.
+
+The manifest cannot install itself, so continue at section 3 (Socket Mode
+token) and section 6 (install and collect credentials).
+
+**Manual route.** Create New App → From scratch. Name it (e.g. "Team Riley
+Tasks") and pick the Team Riley workspace, then work through every section
+below.
 
 ## 2. Bot token scopes
 
@@ -59,6 +69,12 @@ Request URL field is not used.
 | `/task` | Capture a task, exactly as typed | `<task title> [due:YYYY-MM-DD]` |
 | `/tasks` | View your tasks | `[space \| waiting]` |
 | `/import` | Import tasks from a CSV or JSON file | (no arguments) |
+
+Leave **Escape channels, users, and links** OFF on `/task`. With it on, Slack
+rewrites references before the text reaches the app — `@joshua` becomes
+`<@U01ABCDEF>`, `#sales` becomes `<#C0123|sales>` — which would silently
+corrupt the byte-exact title this whole system is built to guarantee. The
+manifest sets `should_escape: false` for exactly this reason.
 
 ## 5. Interactivity
 
