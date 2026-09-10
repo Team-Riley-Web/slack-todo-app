@@ -12,6 +12,7 @@ import { saveCard } from '@tr/slack-sync';
 import type { AppConfig } from '../config.js';
 import type { SlashCommandLike } from './task-command.js';
 import { handleMapCommand, isMapCommand } from './map-command.js';
+import { handleNewSpaceCommand, parseNewSpaceCommand } from './space-command.js';
 
 export interface TasksDeps {
   db: Db;
@@ -49,6 +50,14 @@ export async function handleTasksCommand(
   if (isMapCommand(scope)) {
     const result = await handleMapCommand(deps as never, command);
     return { scope: 'map', count: result.outcome === 'opened' ? 1 : 0 };
+  }
+
+  // `/tasks new <name>` creates a Space and nothing else. Checked before any
+  // Space lookup so the words are never read as a Space search.
+  const newSpaceName = parseNewSpaceCommand(command.text);
+  if (newSpaceName) {
+    const result = await handleNewSpaceCommand(deps as never, command, newSpaceName);
+    return { scope: 'new-space', count: result.outcome === 'created' ? 1 : 0 };
   }
 
   const spaces = new Map((await listSpaces(db)).map((s: Space) => [s.id, s]));
@@ -128,7 +137,10 @@ export async function handleTasksCommand(
   if (!space) {
     await client.chat.postEphemeral({
       channel: command.channel_id, user: command.user_id,
-      text: `No space matches "${command.text.trim()}". Try \`/tasks\` to see everything, or \`/tasks map\` to set this channel's Space.`,
+      text:
+      `No space matches "${command.text.trim()}".\n` +
+      '`/tasks` shows everything · `/tasks map` sets this channel\'s Space · ' +
+      '`/tasks new <name>` creates one.',
     });
     return { scope, count: 0 };
   }
