@@ -27,7 +27,8 @@ export default async function SpacePage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireUser();
+  // Called for the gate, not for a value: it redirects when not signed in.
+  await requireUser();
   const { slug } = await params;
   const db = await getDb();
 
@@ -79,7 +80,6 @@ export default async function SpacePage({
   return (
     <Shell
       current="/"
-      who={user.name ?? user.slackUserId}
       spaces={summary.map(({ space: s, open: o, waiting: w }) => ({
         space: s, open: o, waiting: w,
       }))}

@@ -137,10 +137,6 @@ nav.rail .team {
   font-weight: 600; font-size: 16px; letter-spacing: -0.01em;
   font-family: var(--font-display);
 }
-nav.rail .who {
-  color: var(--rail-muted); font-size: 12px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
 
 nav.rail .group-head {
   margin: 18px 14px 4px; font-size: 11px; font-weight: 600;

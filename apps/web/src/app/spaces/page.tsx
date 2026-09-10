@@ -29,7 +29,8 @@ export default async function SpacesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireUser();
+  // Called for the gate, not for a value: it redirects when not signed in.
+  await requireUser();
   const query = await searchParams;
   const one = (v: string | string[] | undefined) =>
     Array.isArray(v) ? v[0] : v;
@@ -46,7 +47,6 @@ export default async function SpacesPage({
   return (
     <Shell
       current="/spaces"
-      who={user.name ?? user.slackUserId}
       spaces={rows.map(({ space, open, waiting }) => ({ space, open, waiting }))}
       railPath="/"
       activeSlug={null}

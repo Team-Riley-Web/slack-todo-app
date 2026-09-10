@@ -16,7 +16,8 @@ export default async function HistoryPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireUser();
+  // Called for the gate, not for a value: it redirects when not signed in.
+  await requireUser();
   const query = await searchParams;
   const filters = parseFilters(query);
   const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
@@ -46,7 +47,6 @@ export default async function HistoryPage({
   return (
     <Shell
       current="/history"
-      who={user.name ?? user.slackUserId}
       spaces={railSpaces}
       railPath="/history"
       activeSlug={filters.space ?? null}

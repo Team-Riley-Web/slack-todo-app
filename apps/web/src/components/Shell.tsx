@@ -10,7 +10,6 @@ import { SearchBox } from './SearchBox';
  */
 export function Shell(props: {
   current: string;
-  who: string | null;
   spaces: SidebarSpace[];
   activeSlug?: string | null;
   railPath?: string;
@@ -30,7 +29,6 @@ export function Shell(props: {
         activeSlug={props.activeSlug ?? null}
         current={props.current}
         path={props.railPath ?? props.current}
-        who={props.who}
       />
       <main className="main">
         <header className="page-head">
