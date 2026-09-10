@@ -9,9 +9,9 @@ describe('migrations', () => {
         WHERE table_schema = 'public' ORDER BY table_name`
     );
     expect(rows.map((r) => r.table_name)).toEqual([
-      'channel_space_map', 'lists', 'processed_interactions',
-      'schema_migrations', 'slack_cards', 'space_aliases', 'spaces',
-      'task_events', 'tasks',
+      'channel_space_map', 'import_audit', 'import_batches', 'import_staging',
+      'lists', 'processed_interactions', 'schema_migrations', 'slack_cards',
+      'space_aliases', 'spaces', 'task_events', 'tasks',
     ]);
     await db.close();
   });
