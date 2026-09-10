@@ -49,3 +49,18 @@ it('seeds the two default lists per space without populating task list_id', asyn
   const { rows } = await db.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM lists`);
   expect(rows[0]!.n).toBe(24); // 12 spaces x 2 lists
 });
+
+// Regression: ISSUE-005 — LIKE metacharacters in a scope were unescaped, so
+// `/tasks %` matched a space and `/tasks m_rketing` matched Marketing.
+// Found by /qa on 2026-09-09
+// Report: .gstack/qa-reports/qa-report-team-riley-tasks-2026-09-09.md
+it('treats LIKE metacharacters in a scope as literal text', async () => {
+  for (const q of ['%', '_', '%%', 'm_rketing', 'Mark%', '\\']) {
+    expect(await findSpaceByQuery(db, q)).toBeNull();
+  }
+});
+
+it('still matches a genuine substring scope', async () => {
+  expect((await findSpaceByQuery(db, 'market'))?.name).toBe('Marketing');
+  expect((await findSpaceByQuery(db, 'yoga'))?.name).toBe('Client - Yoga Farm');
+});

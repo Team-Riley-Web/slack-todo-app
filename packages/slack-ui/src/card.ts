@@ -122,8 +122,13 @@ export function taskListBlocks(groups: CardGroup[], opts: MetaOpts): KnownBlock[
   return blocks;
 }
 
-/** Plain-text fallback used as the message `text` field for notifications. */
+/**
+ * Plain-text fallback used as the message `text` field for notifications.
+ * Never empty: Slack rejects chat.update with no text and no blocks, which is
+ * exactly the state a card reaches once every task on it is gone.
+ */
 export function taskCardFallback(entries: CardEntry[]): string {
+  if (entries.length === 0) return 'No tasks';
   return entries
     .map((e) => (e.task.status === 'completed' ? `[x] ${e.task.title}` : `[ ] ${e.task.title}`))
     .join('\n');

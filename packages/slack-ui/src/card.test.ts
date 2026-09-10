@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { taskCardBlocks, CHECKBOX_ACTION_ID } from './card.js';
+import { taskCardBlocks, taskCardFallback, CHECKBOX_ACTION_ID } from './card.js';
 import type { Task, Space } from '@tr/task-core';
 
 const space: Space = { id: 's', name: 'Client - Nazareth Law', slug: 'nl', is_inbox: false };
@@ -179,5 +179,19 @@ describe('waiting overflow', () => {
       const json = JSON.stringify(taskCardBlocks([{ task: t, space }], opts));
       expect(json.toLowerCase()).not.toContain('reopen');
     }
+  });
+});
+
+// Regression: ISSUE-004 — an empty card produced empty fallback text, and
+// chat.update with no text and no blocks is rejected by Slack.
+// Found by /qa on 2026-09-09
+// Report: .gstack/qa-reports/qa-report-team-riley-tasks-2026-09-09.md
+describe('empty card', () => {
+  it('never produces empty fallback text', () => {
+    expect(taskCardFallback([]).length).toBeGreaterThan(0);
+  });
+
+  it('still lists titles when entries are present', () => {
+    expect(taskCardFallback([{ task: task(), space }])).toContain('Offer Neil');
   });
 });

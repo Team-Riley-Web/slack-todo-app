@@ -30,6 +30,11 @@ export async function resolveSpaceForChannel(db: Db, channelId: string): Promise
   return rows[0] ?? getInboxSpace(db);
 }
 
+/** `%`, `_`, and `\\` are LIKE metacharacters; a raw scope of "%" matched every space. */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 /**
  * Read-path convenience for `/tasks agency`. Exact slug or name first, then a
  * substring match. Never used to resolve a mutation target — mutations take UUIDs.
@@ -46,9 +51,10 @@ export async function findSpaceByQuery(db: Db, q: string): Promise<Space | null>
   if (rows[0]) return rows[0];
   const { rows: fuzzy } = await db.query<Space>(
     `SELECT ${COLS} FROM spaces
-      WHERE lower(name) LIKE '%' || $1 || '%' OR lower(slug) LIKE '%' || $1 || '%'
+      WHERE lower(name) LIKE '%' || $1 || '%' ESCAPE '\\'
+         OR lower(slug) LIKE '%' || $1 || '%' ESCAPE '\\'
       ORDER BY length(name) LIMIT 2`,
-    [needle]
+    [escapeLike(needle)]
   );
   return fuzzy[0] ?? null;
 }
