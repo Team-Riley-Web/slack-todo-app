@@ -18,13 +18,27 @@ function sanitizeLimit(limit: unknown): number {
   return Math.min(Math.floor(limit), MAX_LIMIT);
 }
 
+export type DueBucket = 'overdue' | 'today' | 'week' | 'none';
+
 export interface ListTasksFilter {
   spaceId?: string;
   status?: TaskStatus | TaskStatus[];
   /** open only — excludes both waiting and completed. Daily-priority semantics. */
   actionableOnly?: boolean;
   assigneeId?: string;
+  /**
+   * Case-insensitive substring of the title. LIKE metacharacters are escaped,
+   * so a search for "50%" means literally that.
+   */
+  titleContains?: string;
+  /** Bucketed due date, resolved in SQL against now(). */
+  due?: DueBucket;
   limit?: number;
+}
+
+/** `%`, `_`, and `\` are LIKE metacharacters and must be literal in a search. */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
 export async function listTasks(db: Db, filter: ListTasksFilter = {}): Promise<Task[]> {
@@ -40,6 +54,22 @@ export async function listTasks(db: Db, filter: ListTasksFilter = {}): Promise<T
   }
   if (filter.spaceId) { params.push(filter.spaceId); where.push(`space_id = $${params.length}`); }
   if (filter.assigneeId) { params.push(filter.assigneeId); where.push(`assignee_id = $${params.length}`); }
+
+  const search = filter.titleContains?.trim();
+  if (search) {
+    params.push(escapeLike(search.toLowerCase()));
+    where.push(`lower(title) LIKE '%' || $${params.length} || '%' ESCAPE '\\'`);
+  }
+
+  if (filter.due === 'none') {
+    where.push(`due_at IS NULL`);
+  } else if (filter.due === 'overdue') {
+    where.push(`due_at IS NOT NULL AND due_at < now()`);
+  } else if (filter.due === 'today') {
+    where.push(`due_at IS NOT NULL AND due_at < now() + interval '1 day'`);
+  } else if (filter.due === 'week') {
+    where.push(`due_at IS NOT NULL AND due_at < now() + interval '7 days'`);
+  }
 
   params.push(sanitizeLimit(filter.limit));
   const { rows } = await db.query<Task>(

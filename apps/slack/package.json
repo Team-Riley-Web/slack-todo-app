@@ -9,6 +9,7 @@
     "@tr/db": "workspace:*",
     "@tr/slack-ui": "workspace:*",
     "@tr/task-core": "workspace:*",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "@tr/slack-sync": "workspace:*"
   }
 }

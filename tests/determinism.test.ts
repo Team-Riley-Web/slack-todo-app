@@ -87,10 +87,12 @@ it('keeps editTask reachable only from human surfaces', async () => {
     .filter(({ text }) => /\beditTask\s*\(/.test(text))
     .map(({ file }) => file)
     .sort();
-  // task-core defines it; the Slack modal submit handler is its only caller
-  // until the web UI lands in Phase 2B. Nothing on a Hermes surface.
+  // task-core defines it. Its callers are the two HUMAN surfaces: the Slack
+  // modal submit handler and the web operations layer. Nothing on a Hermes
+  // surface may appear in this list.
   expect(callers).toEqual([
     'apps/slack/src/handlers/edit-modal.ts',
+    'apps/web/src/operations/tasks.ts',
     'packages/task-core/src/tasks.ts',
   ]);
 });

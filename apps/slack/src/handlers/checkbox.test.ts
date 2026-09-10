@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
 import { createTask, getTask, completeTask } from '@tr/task-core';
-import { saveCard } from '../cards.js';
+import { saveCard } from '@tr/slack-sync';
 import { handleCheckboxToggle, readSelectedValues } from './checkbox.js';
 
 let db: Db;
