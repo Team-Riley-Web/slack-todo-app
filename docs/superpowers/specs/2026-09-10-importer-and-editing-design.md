@@ -63,7 +63,7 @@ alongside Move to Waiting / Move to Open. Verified platform facts:
 
 | Fact | Consequence |
 |---|---|
-| `views.open` needs only a `trigger_id` and the bot token | scope list stays `commands` + `chat:write` |
+| `views.open` needs only a `trigger_id` and the bot token | no scope needed for the modal itself |
 | **Only `input` blocks appear in `view_submission` state values** | every editable field must be an `input` block, never a section accessory |
 | `optional: true` on an input block permits an empty submission | this is how due date, assignee, and waiting_on get cleared |
 | `plain_text_input` caps at 3000 chars | a title longer than 3000 cannot be edited from Slack; the web UI has no such cap |
@@ -71,15 +71,26 @@ alongside Move to Waiting / Move to Open. Verified platform facts:
 
 Fields, all in `input` blocks:
 
-| Field | Element | Notes |
+Native elements throughout — nothing hand-rolled that Slack already provides:
+
+| Field | Native element | Notes |
 |---|---|---|
 | Title | `plain_text_input`, `initial_value` = current title | required; outer trim only, byte-exact otherwise |
 | Space | `static_select` over the 12 seeded Spaces | required |
-| Status | `static_select` — open / waiting / completed | required |
-| Assignee | `users_select` | optional; empty clears |
-| Due date | `datepicker` | optional; empty clears; resolved at `DEFAULT_TIMEZONE` midnight, same rule as the `due:` parser |
+| Status | `radio_buttons` (3 options, cap is 10) | required; a 3-way choice reads better than a select |
+| Assignee | `users_select` | optional; empty clears. Slack's own people picker, so it returns a real user ID and needs no name mapping |
+| Due | `datetimepicker` | optional; empty clears. Returns a unix timestamp, so a real time survives — the Workast export carries `09:00:00 America/Chicago`, which a date-only picker would have flattened to midnight |
 | Waiting on | `plain_text_input` | optional; ignored unless status is waiting |
 | Details | `plain_text_input`, `multiline` | optional; empty clears |
+
+Slack's own modal guidance suggests paginating "upwards of six inputs." This has
+seven, all short, and splitting a single task's fields across two views would
+cost more than it saves — so one view, noted as a deliberate departure.
+
+**`trigger_id` expires 3 seconds after it is sent.** The handler therefore opens
+the modal before doing anything slow: the task row and the Space list are fetched
+in one `Promise.all` (two indexed reads) and `views.open` is called immediately
+after. No other work precedes it.
 
 `private_metadata` carries `{ taskId, channelId, messageTs }` as JSON so the
 submission handler knows which task to write and which card to redraw. The
@@ -92,6 +103,35 @@ toggle.
 extra controls — exactly as specified. A completed task is edited from the web UI
 in 2B, or by unchecking it first. The checkbox remains the only task-state
 control *on a card*; the modal is an explicit edit form, not a competing control.
+
+## 3a. The import wizard is Slack-native too
+
+`file_input` is a real Block Kit element, so the whole import flow runs inside
+Slack and does not wait for the web UI. `views.push` gives a native view stack
+(max 3 views, one visible at a time, prior state preserved on close), which maps
+directly onto the brief's approval workflow:
+
+| Brief step | Native mechanism |
+|---|---|
+| 1. Upload / source selection | `file_input` in an `input` block, `filetypes: ['csv','json']`, `max_files: 1` |
+| 2. Parse | server-side on submit; nothing is written to `tasks` |
+| 3. Field mapping preview | `views.push` — a view showing each unmapped source category with a `static_select` of canonical Spaces |
+| 4-5. Duplicate analysis + import preview | `views.push` — counts per verdict and the exact rows |
+| 6. Explicit confirmation | that view's submit button, which is the only thing that flips a batch to `CONFIRMED` |
+
+Three views is exactly the stack limit, so the wizard fits with nothing to spare;
+any further step uses `views.update` on the top view rather than a fourth push.
+`notify_on_close` marks an abandoned batch `ABORTED` instead of leaving it
+`PARSED` forever.
+
+`file_input`'s `filetypes` gates the picker client-side, which is convenience,
+not security — the server re-validates extension, sniffs content, and enforces
+the size and row limits regardless of what the client allowed.
+
+**This adds one OAuth scope.** Reading an uploaded file's bytes requires
+`files:read`, so the app's scopes become `commands`, `chat:write`, `files:read`.
+The web UI in 2B becomes a nicer surface for the same engine rather than a
+prerequisite for importing at all.
 
 ## 4. Importer architecture
 
@@ -247,6 +287,10 @@ provides them, and a historical completed task is never reopened by import.
 - CSV formula-injection sanitizer (`=`, `+`, `-`, `@`, tab, CR prefixes) lives in
   the importer package for any future export path. Nothing exports today; the
   helper exists so an export added later cannot forget it.
+- A file arriving through Slack's `file_input` is fetched from
+  `url_private_download` with the bot token and subjected to the same
+  server-side validation as any other input. `filetypes` on the element is a
+  picker convenience and is never trusted.
 - No credential is read, logged, or returned by any importer code path.
 
 ## 12. Hermes surface — read-only
