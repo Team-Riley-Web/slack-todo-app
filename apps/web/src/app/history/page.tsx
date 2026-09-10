@@ -9,6 +9,7 @@ import { TaskList } from '@/components/TaskRow';
 import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
+import { spaceBySlug, shortSpaceName } from '@/lib/display';
 
 export default async function HistoryPage({
   searchParams,
@@ -27,6 +28,15 @@ export default async function HistoryPage({
     knownAssignees(db),
   ]);
 
+  /*
+   * Filtered to a single Space, that Space names the page and drops out of
+   * the rows entirely -- both the column and the sub-line. Standing in
+   * "CFC Skincare", printing "CFC Skincare" on every row is not information,
+   * which is the same reason a card posted in its own channel does not repeat
+   * the Space. The section heading below still says which view this is.
+   */
+  const only = spaceBySlug(spaces, filters.space);
+
   // The rail comes from the same summary the /spaces page uses, so a count
   // there and a count here can never disagree.
   const railSpaces = (await spaceSummary(db)).map(({ space, open, waiting }) => ({
@@ -42,7 +52,7 @@ export default async function HistoryPage({
       activeSlug={filters.space ?? null}
       searchPath="/history"
       searchParams={query}
-      title="Completed"
+      title={only ? shortSpaceName(only) : "Completed"}
       subtitle="Nothing is ever deleted; untick one to reopen it."
       toolbar={
         <FilterBar
@@ -54,9 +64,10 @@ export default async function HistoryPage({
         />
       }
     >
-      <SectionCard label="Completed" count={rows.length}>
+      <SectionCard label="Completed" count={rows.length} showSpace={!only}>
         <TaskList
           rows={rows}
+          showSpace={!only}
           empty="Nothing completed in this range."
           showProvenance
           assigneeLabels={assigneeLabels()}

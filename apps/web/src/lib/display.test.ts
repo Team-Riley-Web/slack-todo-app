@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   dueLabel, ageInDays, ageLabel, taskEditHref, closeEditHref, isClientSpace,
-  spaceHref, filterHref, shortSpaceName,
+  spaceHref, filterHref, shortSpaceName, spaceBySlug,
 } from './display.js';
 import type { Task, Space } from '@tr/task-core';
 
@@ -141,5 +141,34 @@ describe('shortSpaceName', () => {
     expect(shortSpaceName(space)).toBe('Nazareth Law');
     expect(shortSpaceName({ ...space, name: 'Agency / Internal' }))
       .toBe('Agency / Internal');
+  });
+});
+
+describe('spaceBySlug', () => {
+  const spaces: Space[] = [
+    { id: 'S1', name: 'Marketing', slug: 'marketing', is_inbox: false },
+    { id: 'S2', name: 'Client - CFC Skincare', slug: 'cfc-skincare', is_inbox: false },
+  ];
+
+  it('finds the Space a ?space= filter names', () => {
+    expect(spaceBySlug(spaces, 'cfc-skincare')?.name).toBe('Client - CFC Skincare');
+  });
+
+  it('returns null for no filter, so the view keeps its own title', () => {
+    expect(spaceBySlug(spaces, undefined)).toBeNull();
+    expect(spaceBySlug(spaces, null)).toBeNull();
+    expect(spaceBySlug(spaces, '')).toBeNull();
+  });
+
+  it('returns null for a slug that no longer exists', () => {
+    // A stale bookmark, or a link kept after a rename regenerated the slug.
+    // Falling back to the unfiltered heading beats titling the page after a
+    // Space that is not there.
+    expect(spaceBySlug(spaces, 'yoga-farm')).toBeNull();
+  });
+
+  it('matches the slug exactly, not by prefix or case', () => {
+    expect(spaceBySlug(spaces, 'cfc')).toBeNull();
+    expect(spaceBySlug(spaces, 'CFC-Skincare')).toBeNull();
   });
 });
