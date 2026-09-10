@@ -2,7 +2,7 @@ import type { Db } from '@tr/db';
 import {
   createTask, parseCapture, resolveSpaceForChannel, type Task,
 } from '@tr/task-core';
-import { taskCardBlocks, taskCardFallback } from '@tr/slack-ui';
+import { taskCardBlocks, taskCardFallback, slackDate } from '@tr/slack-ui';
 import { authorize } from '../auth.js';
 import { saveCard } from '@tr/slack-sync';
 import type { AppConfig } from '../config.js';
@@ -39,7 +39,7 @@ export async function handleTaskCommand(
   }
 
   // The single permitted normalization: one outer trim of the raw command text.
-  const { title, dueAt } = parseCapture(command.text ?? '', {
+  const { title, dueAt, dueFromTitleTime } = parseCapture(command.text ?? '', {
     now: new Date(), timeZone: config.timeZone,
   });
   if (!title) {
@@ -64,14 +64,21 @@ export async function handleTaskCommand(
   const entries = [{ task, space }];
   const opts = { timeZone: config.timeZone, assigneeLabels: config.assigneeLabels };
   const blocks = taskCardBlocks(entries, opts);
+  const notes: string[] = [];
   if (space.is_inbox) {
+    notes.push('This channel is not mapped to a Space, so the task went to Inbox.');
+  }
+  // A due date inferred from the title is stated outright. The system read
+  // something into what you typed, so it says so rather than quietly setting a
+  // date you never asked for.
+  if (dueFromTitleTime && dueAt) {
+    notes.push(`Due set to ${slackDate(dueAt, '{date_short} {time}', config.timeZone)} from the time in the title.`);
+  }
+  if (notes.length > 0) {
     blocks.push({
       type: 'context',
-      elements: [{
-        type: 'plain_text',
-        text: 'This channel is not mapped to a Space, so the task went to Inbox.',
-        emoji: true,
-      }],
+      // mrkdwn, so the date token renders in each reader's own timezone.
+      elements: notes.map((text) => ({ type: 'mrkdwn', text, verbatim: false })),
     } as never);
   }
 

@@ -83,6 +83,33 @@ Bare `/tasks` is channel-aware because someone standing in
 `#client-secure-logic` asking for "tasks" means that client's tasks. An unmapped
 channel or a DM carries no such context, so it falls back to the summary.
 
+### Times written in a title
+
+`/task Call Andre at 3:30` sets a due date of today at 15:30 and stores the
+title as **`Call Andre at 3:30`** — every byte, the time included.
+
+That is the difference from `due:`. A `due:` token is a *directive*, so it is
+stripped. "at 3:30" is prose you typed, so it stays. The card says outright
+that the due date was inferred, rather than quietly setting a date you never
+asked for.
+
+Deterministic, no LLM. A time is recognised only with one of two signals:
+
+| Written | Read as |
+|---|---|
+| `at 3:30`, `by 5`, `@ 9:15` | a preposition marks it as a time |
+| `3:30pm`, `9am`, `3:30 p.m.` | am/pm marks it, no preposition needed |
+| `at 15:30` | 24-hour, already unambiguous |
+| `Fix ratio 2:1`, `Read chapter 3` | **not** a time — no due date set |
+
+A bare `3:30` with no am/pm resolves to the **next future occurrence**: at
+14:10 that is 15:30 today, because 03:30 has gone. At 22:00 it becomes 03:30
+tomorrow — predictable rather than clairvoyant. Write `3:30pm`, or add
+`due:fri`, to say which you meant.
+
+A `due:` token and a time combine: `Call Andre at 3:30 due:tomorrow` is
+tomorrow at 03:30. The token picks the day, the title picks the clock.
+
 ### Due-date grammar
 
 Strict and deterministic. Only these forms are recognised, and only as the very

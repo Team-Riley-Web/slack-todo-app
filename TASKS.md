@@ -37,3 +37,5 @@ unchecked task unless you are starting it.
     and staging cannot finish in that budget (update also frees the 3-view stack ceiling); and the
     handler does not re-check declared type against content, because assertWithinLimits already
     owns that rule. Adds the files:read scope, so the Slack app needs a reinstall.
+- [x] Recognize a bare time in a captured title (e.g. "Call Andre at 3:30") and set the due date from it, instead of leaving the task with no due — while keeping the title byte-exact
+  - Done 2026-09-10: packages/task-core/src/capture-time.ts. Title is never touched -- `due:` is a directive and gets stripped, an in-title time is prose and stays. Needs a preposition (at/by/@) or an am/pm, so "Fix ratio 2:1" sets nothing. Bare times resolve to the next future occurrence. A `due:` token and a time combine: token picks the day, title picks the clock. The card states the inference rather than setting a date silently. Renamed off `findTimeInTitle` because Required test 18 forbids any task-core export matching /title|rename/i.
