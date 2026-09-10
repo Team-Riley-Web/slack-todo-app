@@ -3,7 +3,9 @@ import {
   findSpaceByQuery, getSpaceForChannel, getTaskCounts, listSpaces, listTasks,
   listWaiting, type Space, type Task,
 } from '@tr/task-core';
-import { taskListBlocks, taskCardFallback, type CardEntry } from '@tr/slack-ui';
+import {
+  taskListBlocks, taskCardFallback, summaryBlocks, type CardEntry,
+} from '@tr/slack-ui';
 import { authorize } from '../auth.js';
 import { saveCard } from '../cards.js';
 import type { AppConfig } from '../config.js';
@@ -64,18 +66,17 @@ export async function handleTasksCommand(
   // Summary view — no interactive controls, so it stays ephemeral.
   if (!scope || scope === 'all' || scope === 'summary') {
     const counts = await getTaskCounts(db);
-    const lines = counts.map((c) => {
-      const label = c.space_name.replace(/^Client - /, '');
-      const waiting = c.waiting > 0 ? `  (${c.waiting} waiting)` : '';
-      return `${label} — ${c.open}${waiting}`;
-    });
-    const text = lines.length
-      ? `*MY TASKS*\n\n${lines.join('\n')}`
-      : '*MY TASKS*\n\nNothing open.';
+    // Native header + section.fields; Slack lays the two columns out itself.
+    const blocks = summaryBlocks(counts);
+    const fallback = counts.length
+      ? `MY TASKS\n${counts
+          .map((c) => `${c.space_name.replace(/^Client - /, '')} - ${c.open} open`)
+          .join('\n')}`
+      : 'MY TASKS\nNothing open.';
     await client.chat.postEphemeral({
       channel: command.channel_id, user: command.user_id,
-      text,
-      blocks: [{ type: 'section', text: { type: 'mrkdwn', text } }],
+      text: fallback,
+      blocks,
     });
     return { scope: 'summary', count: counts.reduce((n, c) => n + c.open, 0) };
   }

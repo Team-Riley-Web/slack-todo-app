@@ -216,3 +216,35 @@ it('never infers a Space from channel-name text when the channel is unmapped', a
   );
   expect(r.scope).toBe('summary');
 });
+
+// --- native Slack elements ---
+
+it('renders the summary with a native header and section fields', async () => {
+  await add('Agency / Internal', 'A');
+  await add('Marketing', 'B');
+  await handleTasksCommand(deps(), cmd('') as never);
+
+  const arg = client.chat.postEphemeral.mock.calls[0]![0] as any;
+  const blocks = arg.blocks as any[];
+  expect(blocks[0].type).toBe('header');
+  expect(blocks[0].text.type).toBe('plain_text');
+  expect(blocks[0].text.text).toBe('MY TASKS');
+
+  const section = blocks.find((b) => b.type === 'section' && Array.isArray(b.fields));
+  expect(section).toBeDefined();
+  expect(section.fields).toHaveLength(2);
+
+  // the old hand-rolled form must be gone
+  expect(JSON.stringify(blocks)).not.toContain('*MY TASKS*');
+  // and a plain-text fallback still accompanies it for notifications
+  expect(arg.text).toContain('MY TASKS');
+});
+
+it('renders a scoped list heading as a native header block', async () => {
+  await add('Marketing', 'Mkt task');
+  await handleTasksCommand(deps(), cmd('marketing') as never);
+  const blocks = (client.chat.postMessage.mock.calls[0]![0] as any).blocks as any[];
+  expect(blocks[0].type).toBe('header');
+  expect(blocks[0].text.text).toBe('MARKETING');
+  expect(JSON.stringify(blocks)).not.toContain('*MARKETING*');
+});
