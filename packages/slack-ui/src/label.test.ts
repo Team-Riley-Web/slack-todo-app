@@ -56,12 +56,30 @@ describe('truncateLabel', () => {
 });
 
 describe('metaLine', () => {
-  it('renders space, assignee, and due date for an open task', () => {
+  it('renders space and due date, but not the assignee', () => {
+    // The assignee was dropped deliberately: in a workspace where nearly
+    // every task is yours, "Joshua" on every row is noise. Who did what is
+    // still in the event history and on the web UI.
     const line = metaLine(
       task({ assignee_id: 'U_JOSH', due_at: new Date('2026-09-15T05:00:00Z') }),
       space('Client - Nazareth Law'), opts
     );
-    expect(line).toBe('Nazareth Law · Joshua · due Sep 15');
+    expect(line).toBe('Nazareth Law · due Sep 15');
+  });
+
+  it('omits the space when a heading already names it', () => {
+    const line = metaLine(
+      task({ due_at: new Date('2026-09-15T05:00:00Z') }),
+      space('Client - Nazareth Law'), { ...opts, showSpace: false }
+    );
+    expect(line).toBe('due Sep 15');
+  });
+
+  it('produces an empty meta line when there is nothing worth saying', () => {
+    // An open task with no due date under its own Space heading needs no
+    // second line at all, and taskOption drops the description entirely.
+    const line = metaLine(task(), space('Marketing'), { ...opts, showSpace: false });
+    expect(line).toBe('');
   });
 
   it('renders completion for a completed task and drops due/assignee', () => {

@@ -232,8 +232,11 @@ export function taskListBlocks(groups: CardGroup[], opts: MetaOpts): KnownBlock[
     if (group.entries.length === 0) continue;
 
     const groupBlocks: KnownBlock[] = [];
+    // Under a heading the Space name is redundant on every row, so it is
+    // dropped from the meta line rather than repeated a dozen times.
+    const groupOpts = group.heading ? { ...opts, showSpace: false } : opts;
     if (group.heading) groupBlocks.push(headerBlock(group.heading));
-    groupBlocks.push(...taskCardBlocks(group.entries, opts, chunkOffset));
+    groupBlocks.push(...taskCardBlocks(group.entries, groupOpts, chunkOffset));
 
     // Leave one block spare for the note explaining what was left out.
     if (blocks.length + groupBlocks.length > MAX_BLOCKS_PER_MESSAGE - 1) {

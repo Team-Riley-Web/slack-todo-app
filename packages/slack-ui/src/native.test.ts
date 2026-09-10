@@ -59,7 +59,7 @@ describe('the plain_text constraint on the checkbox description', () => {
     );
     expect(line).not.toContain('<!date^');
     expect(line).not.toContain('<@');
-    expect(line).toBe('Nazareth Law · Joshua · due Sep 15');
+    expect(line).toBe('Nazareth Law · due Sep 15');
   });
 
   it('keeps the card free of native tokens for the same reason', () => {
