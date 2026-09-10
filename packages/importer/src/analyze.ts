@@ -44,11 +44,20 @@ async function decide(db: Db, row: StagedRow): Promise<Decision> {
 
   const key = row.idempotency_key;
 
-  // --- Rule 1: this exact source record has already been imported.
+  // --- Rule 1: this exact source record was already imported AND its task
+  // still exists.
+  //
+  // The join to `tasks` is load-bearing. Audit rows deliberately survive
+  // rollback, so without it a rolled-back batch would permanently block
+  // re-importing the same file — defeating the point of rolling back to fix a
+  // mapping — and would hand analysis a task id that no longer exists.
   if (key) {
-    const { rows } = await db.query<{ canonical_task_id: string | null }>(
-      `SELECT canonical_task_id FROM import_audit
-        WHERE source_type = $1 AND source_record_id = $2 AND action = 'IMPORTED'
+    const { rows } = await db.query<{ canonical_task_id: string }>(
+      `SELECT a.canonical_task_id
+         FROM import_audit a
+         JOIN tasks t ON t.id = a.canonical_task_id
+        WHERE a.source_type = $1 AND a.source_record_id = $2
+          AND a.action = 'IMPORTED'
         LIMIT 1`,
       [row.source_type, key]
     );
@@ -56,7 +65,7 @@ async function decide(db: Db, row: StagedRow): Promise<Decision> {
       return {
         verdict: 'SKIP_DUPLICATE',
         reason: 'already imported in an earlier batch',
-        duplicateTaskId: rows[0].canonical_task_id ?? null,
+        duplicateTaskId: rows[0].canonical_task_id,
       };
     }
   }
