@@ -153,3 +153,23 @@ is the point: `editTask` in `task-core` is the single write path to
 modal and this edit page. No MCP tool and no REST route can reach it, and
 three tests in `tests/determinism.test.ts` assert that. AI can read tasks; it
 cannot rewrite what you wrote.
+
+## Verified against Supabase, 2026-09-10
+
+The first time these pages rendered against real Postgres, this is what was
+checked — recorded because "it builds" and "it works" are different claims:
+
+- All five routes return 200 and render live data: 12 Spaces, correct empty
+  states, no credential anywhere in the HTML.
+- A task created through `task-core` reads back byte-exact, appears on `/`,
+  `/spaces/marketing`, and its edit page, and is matched by `?q=neil` and
+  `?due=none`.
+- The same task is **absent** from `?space=sales`, `?q=zzzznomatch`,
+  `/waiting`, and `/history` — filters exclude as well as include.
+- Completing it moves it off `/` and onto `/history`, and the Spaces counts go
+  from "1 open" to "1 done".
+- A second `completeTask` leaves `completed_at` unchanged, so the idempotency
+  that PGlite tests assert also holds on the pooler.
+
+Test data was deleted afterwards; the database is back to 0 tasks and 12
+Spaces.

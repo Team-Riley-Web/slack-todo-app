@@ -16,5 +16,5 @@ unchecked task unless you are starting it.
   `Blocked YYYY-MM-DD:` note explaining what is needed to unblock it.
 
 ## Queue
-- [ ] Set up everything in Supabase via MCP — org https://supabase.com/dashboard/org/erzjknefhtmrscfudncn: new project for the task app, apply all 8 migrations, then verify the web UI renders
-  - Blocked 2026-09-10: `plugin:supabase:supabase` reports `! Needs authentication`. Needs `/mcp` auth + a session restart before its tools load. Everything not needing the MCP is done: migrations verified extension-free, migration 009 locks down the PostgREST/anon exposure, `.env` staged with one blank, WEB.md written.
+- [x] Set up everything in Supabase via MCP — org https://supabase.com/dashboard/org/erzjknefhtmrscfudncn: new project for the task app, apply all 8 migrations, then verify the web UI renders
+  - Done 2026-09-10: project Team Riley Tasks (ref albtfpjmxpksydbnmzay, us-east-1, PG 17), all 9 migrations applied, `pnpm migrate` confirmed a no-op. All 5 web routes render 200 against Supabase for the first time; create/complete verified end-to-end through task-core, title byte-exact, completion idempotent, filters include and exclude correctly. Test data removed; database back to 0 tasks, 12 Spaces.
