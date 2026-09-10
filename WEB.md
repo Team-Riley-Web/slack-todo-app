@@ -102,8 +102,23 @@ half-deleted.
 pnpm install
 cp .env.example .env      # then fill in DATABASE_URL, see below
 pnpm migrate
-pnpm --filter @tr/web dev # http://localhost:3040
+pnpm web                  # http://localhost:3040
 ```
+
+`pnpm web` rather than `pnpm --filter @tr/web dev`: Next auto-loads only a
+`.env` in its own directory, and this repo keeps one at the root, so the plain
+command starts with no `DATABASE_URL` and no `WEB_DEV_USER` and redirects
+every page to `/signin`.
+
+Two dev-server traps, both of which look like application bugs:
+
+- **A production build clobbers the dev server.** `next build` and `next dev`
+  share `.next/`, so building while the dev server runs deletes the chunks it
+  is serving. Pages still render and every stylesheet 404s — indistinguishable
+  from broken CSS. Fix: stop the server, `rm -rf apps/web/.next`, start again.
+  Use `pnpm web:build` and stop the dev server first.
+- **Nothing pushes changes to an open page.** A task captured in Slack appears
+  here on the next load, not live. Refresh.
 
 ### DATABASE_URL is required, and must be Postgres
 
