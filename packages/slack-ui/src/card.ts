@@ -129,10 +129,14 @@ function chunk<T>(items: T[], size: number): T[][] {
  */
 export function taskControlBlocks(entry: CardEntry, index = 0): KnownBlock[] {
   if (entry.task.status === 'completed') return [];
-  const options =
+  const stateOption =
     entry.task.status === 'waiting'
-      ? [{ text: { type: 'plain_text' as const, text: 'Move to Open' }, value: `open:${entry.task.id}` }]
-      : [{ text: { type: 'plain_text' as const, text: 'Move to Waiting' }, value: `waiting:${entry.task.id}` }];
+      ? { text: { type: 'plain_text' as const, text: 'Move to Open' }, value: `open:${entry.task.id}` }
+      : { text: { type: 'plain_text' as const, text: 'Move to Waiting' }, value: `waiting:${entry.task.id}` };
+  const options = [
+    stateOption,
+    { text: { type: 'plain_text' as const, text: 'Edit task…' }, value: `edit:${entry.task.id}` },
+  ];
   return [{
     type: 'actions',
     block_id: `${CONTROLS_BLOCK_PREFIX}:${index}`,
