@@ -12,6 +12,10 @@ import { handleTaskCommand } from './handlers/task-command.js';
 import { handleTasksCommand } from './handlers/tasks-command.js';
 import { handleEditOpen, handleEditSubmission } from './handlers/edit-modal.js';
 import {
+  handleTaskShortcut, handlePickerSubmission,
+  SHORTCUT_IDS, PICKER_CALLBACK_ID, type ShortcutDeps,
+} from './handlers/shortcuts.js';
+import {
   handleImportCommand, handleUploadSubmit, handleMappingSubmit,
   handlePreviewSubmit, handleWizardClosed, type ImportDeps,
 } from './handlers/import-wizard.js';
@@ -47,6 +51,10 @@ app.action(CHECKBOX_ACTION_ID, async ({ ack, body, client }) => {
 });
 
 /**
+ * Kept for cards posted before the controls moved into Slack's "More actions"
+ * menu. Those messages still carry an overflow, and it should keep working
+ * rather than silently doing nothing.
+ *
  * One overflow carries two kinds of value, so dispatch on the prefix rather
  * than calling both handlers and letting one no-op. `edit:` must reach
  * handleEditOpen promptly: the trigger_id it needs expires in 3 seconds.
@@ -61,6 +69,46 @@ app.action(WAITING_ACTION_ID, async ({ ack, body, client }) => {
     return;
   }
   await handleWaitingAction(deps, body as never);
+});
+
+/**
+ * Task actions in Slack's own message ⋮ menu, as message shortcuts.
+ *
+ * A shortcut targets a message, not a task, so a card holding several tasks
+ * gets a picker first. Both must reach views.open quickly: the trigger_id
+ * expires 3 seconds after Slack sends it.
+ */
+const shortcutDeps = (client: unknown): ShortcutDeps =>
+  ({ db, client: client as never, config });
+
+app.shortcut(
+  { callback_id: SHORTCUT_IDS.edit, type: 'message_action' } as never,
+  (async ({ ack, body, client }: Record<string, any>) => {
+    await ack();
+    await handleTaskShortcut(shortcutDeps(client), 'edit', body);
+  }) as never
+);
+
+app.shortcut(
+  { callback_id: SHORTCUT_IDS.waiting, type: 'message_action' } as never,
+  (async ({ ack, body, client }: Record<string, any>) => {
+    await ack();
+    await handleTaskShortcut(shortcutDeps(client), 'waiting', body);
+  }) as never
+);
+
+// The picker's submit. Choosing a task to edit pushes the edit modal on top,
+// so Back returns to the list instead of dropping out of the flow.
+app.view(PICKER_CALLBACK_ID, async ({ ack, body, client, view }) => {
+  const result = await handlePickerSubmission(
+    shortcutDeps(client),
+    { ...(body as unknown as Record<string, unknown>), view } as never
+  );
+  if (result.view) {
+    await ack({ response_action: 'push', view: result.view } as never);
+    return;
+  }
+  await ack();
 });
 
 // Modal submit. Validation errors are returned to the modal natively via

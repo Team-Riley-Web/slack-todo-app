@@ -76,17 +76,37 @@ rewrites references before the text reaches the app — `@joshua` becomes
 corrupt the byte-exact title this whole system is built to guarantee. The
 manifest sets `should_escape: false` for exactly this reason.
 
-## 5. Interactivity
+## 5. Interactivity and shortcuts
 
-**Interactivity & Shortcuts → toggle on.** Required for the checkbox and overflow
-to send `block_actions`. Under Socket Mode no Request URL is needed.
+**Interactivity & Shortcuts → toggle on.** Required for the checkbox to send
+`block_actions` and for the modals to send `view_submission`. Under Socket Mode
+no Request URL is needed.
 
-The app listens for exactly two action IDs:
+The card itself carries nothing but the checkbox. Task actions live in Slack's
+own **More actions** (⋮) menu on the message, alongside Reply in thread,
+Forward and Save for later — they are **message shortcuts**, which the manifest
+already declares:
+
+| Shortcut | `callback_id` | What it does |
+|---|---|---|
+| Edit task | `task_edit_shortcut` | Opens the full edit form |
+| Toggle Waiting | `task_waiting_shortcut` | Waiting ⇄ open |
+
+A message shortcut targets the **message**, not a task. A card posted by
+`/tasks` holds many tasks, so when there is more than one the app opens a
+picker first and asks which. It never acts on the first one by default.
+
+"Toggle Waiting" is named for what it does. One static menu label has to serve
+a task in either state, and a label that lies is worse than a slightly
+technical one. A completed task is not moved at all — unticking the checkbox is
+the reopen gesture, and this must not become a second way to change completion.
+
+The app listens for these action IDs:
 
 | `action_id` | Element | Meaning |
 |---|---|---|
 | `task_checkbox` | `checkboxes` | checked = complete, unchecked = reopen |
-| `task_waiting` | `overflow` | Move to Waiting / Move to Open |
+| `task_waiting` | `overflow` | kept only for cards posted before the shortcuts landed |
 
 No events subscriptions are required. The app does not listen to messages.
 

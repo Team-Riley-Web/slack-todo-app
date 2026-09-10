@@ -4,7 +4,7 @@ export {
 } from './label.js';
 export {
   taskOption, taskCardBlocks, taskListBlocks, taskControlBlocks,
-  taskControlElement, taskCardFallback,
+  taskCardFallback,
   headerBlock, confirmObject, summaryBlocks, type SpaceCountLike,
   CHECKBOX_ACTION_ID, CHECKBOX_BLOCK_PREFIX, WAITING_ACTION_ID,
   checkboxBlockId, parseBlockVersion,
@@ -24,3 +24,8 @@ export {
   NO_CATEGORY, PREVIEW_ROW_LIMIT,
   type UploadMeta, type WizardMeta, type ParsedUpload, type ParsedMapping,
 } from './import-view.js';
+export {
+  taskPickerView, parsePickerSubmission,
+  PICKER_CALLBACK_ID, PICKER_BLOCK, PICKER_ACTION,
+  type PickerAction, type PickerMeta, type PickerEntry, type ParsedPick,
+} from './picker-view.js';

@@ -25,6 +25,25 @@ features:
     display_name: Team Riley Tasks
     always_online: false
 
+  # Task actions live in Slack's own "More actions" menu on a message, next to
+  # Reply in thread / Forward / Save for later, rather than as buttons on the
+  # card. A message shortcut targets the message, so when a card holds several
+  # tasks the app asks which one -- it never acts on the first by default.
+  #
+  # "Toggle Waiting" is named for what it does. One static menu label has to
+  # serve a task in either state, and a label that lies is worse than a
+  # slightly technical one.
+  shortcuts:
+    - name: Edit task
+      type: message
+      callback_id: task_edit_shortcut
+      description: Open the full edit form for a task on this card
+
+    - name: Toggle Waiting
+      type: message
+      callback_id: task_waiting_shortcut
+      description: Move a task to waiting, or back to open
+
   slash_commands:
     # should_escape MUST stay false on /task.
     #

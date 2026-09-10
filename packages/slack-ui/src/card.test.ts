@@ -153,15 +153,18 @@ describe('waiting overflow', () => {
       .flatMap((b: any) => b.elements)
       .filter((e: any) => e.type === 'overflow');
 
-  it('offers Move to Waiting on a single open task card', () => {
-    const o = overflows(taskCardBlocks([{ task: task(), space }], opts));
+  it('offers Move to Waiting for an open task', () => {
+    // taskControlBlocks is retained for cards posted before the controls moved
+    // into Slack's "More actions" menu; those messages still carry an overflow
+    // and it must keep working.
+    const o = overflows(taskControlBlocks({ task: task(), space }) as any[]);
     expect(o).toHaveLength(1);
     expect(o[0].options[0].text.text).toBe('Move to Waiting');
     expect(o[0].options[0].value).toBe(`waiting:${task().id}`);
   });
 
   it('offers Move to Open on a waiting task', () => {
-    const o = overflows(taskCardBlocks([{ task: task({ status: 'waiting' }), space }], opts));
+    const o = overflows(taskControlBlocks({ task: task({ status: 'waiting' }), space }) as any[]);
     expect(o[0].options[0].text.text).toBe('Move to Open');
   });
 
@@ -244,15 +247,13 @@ describe('Slack 50-block message limit', () => {
 describe('where the overflow menu sits', () => {
   const actionsOf = (blocks: any[]) => blocks.filter((b: any) => b.type === 'actions');
 
-  it('puts the overflow in the same actions block as the checkbox', () => {
-    // It used to be its own actions block underneath, which Slack rendered as
-    // a stray button separated by a large vertical gap. An actions block lays
-    // its elements out in a row, so sharing the block puts the menu to the
-    // right of the task.
+  it('carries no control of its own: the checkbox is the whole card', () => {
+    // Move to Waiting and Edit task live in Slack's own "More actions" menu as
+    // message shortcuts now. An overflow beside the task or below it was
+    // clutter either way.
     const actions = actionsOf(taskCardBlocks([{ task: task(), space }], opts));
     expect(actions).toHaveLength(1);
-    expect(actions[0].elements.map((e: any) => e.type))
-      .toEqual(['checkboxes', 'overflow']);
+    expect(actions[0].elements.map((e: any) => e.type)).toEqual(['checkboxes']);
   });
 
   it('keeps the checkbox first, so it stays on the left', () => {
