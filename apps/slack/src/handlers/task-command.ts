@@ -4,7 +4,7 @@ import {
 } from '@tr/task-core';
 import { taskCardBlocks, taskCardFallback } from '@tr/slack-ui';
 import { authorize } from '../auth.js';
-import { saveCard } from '../cards.js';
+import { saveCard } from '@tr/slack-sync';
 import type { AppConfig } from '../config.js';
 
 export interface CommandDeps {

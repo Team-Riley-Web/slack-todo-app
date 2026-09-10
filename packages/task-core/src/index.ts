@@ -19,7 +19,7 @@ export {
 } from './context.js';
 export {
   listTasks, listWaiting, getTaskCounts,
-  type ListTasksFilter, type SpaceCount,
+  type ListTasksFilter, type SpaceCount, type DueBucket,
 } from './queries.js';
 export {
   openCountBySpace, completedBetween, createdBetween, createdThisWeek,

@@ -4,7 +4,7 @@ import type { Db } from '@tr/db';
 import {
   pruneProcessedInteractions, retentionDays, startRetentionSweep, DEFAULT_RETENTION_DAYS,
 } from './retention.js';
-import { claimInteraction } from './cards.js';
+import { claimInteraction } from '@tr/slack-sync';
 
 let db: Db;
 beforeEach(async () => { db = await createTestDb(); });

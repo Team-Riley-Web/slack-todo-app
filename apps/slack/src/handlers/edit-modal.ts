@@ -7,9 +7,9 @@ import {
   editTaskView, parseEditSubmission, EDIT_BLOCKS, type EditMeta,
 } from '@tr/slack-ui';
 import { authorize } from '../auth.js';
-import { loadCard } from '../cards.js';
+import { loadCard, redrawCard, withCardLock } from '@tr/slack-sync';
 import type { AppConfig } from '../config.js';
-import { redrawCard, withCardLock, type CheckboxDeps } from './checkbox.js';
+import type { CheckboxDeps } from './checkbox.js';
 
 export { EDIT_ACTION_ID, EDIT_CALLBACK_ID } from '@tr/slack-ui';
 

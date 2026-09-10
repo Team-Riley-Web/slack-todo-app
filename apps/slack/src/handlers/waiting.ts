@@ -1,7 +1,8 @@
 import { moveTask, InvalidTaskIdError, TaskNotFoundError } from '@tr/task-core';
 import { authorize } from '../auth.js';
-import { claimInteraction, loadCard } from '../cards.js';
-import { redrawCard, withCardLock, type CheckboxDeps } from './checkbox.js';
+import { claimInteraction, loadCard } from '@tr/slack-sync';
+import { redrawCard, withCardLock } from '@tr/slack-sync';
+import type { CheckboxDeps } from './checkbox.js';
 
 export { WAITING_ACTION_ID } from '@tr/slack-ui';
 

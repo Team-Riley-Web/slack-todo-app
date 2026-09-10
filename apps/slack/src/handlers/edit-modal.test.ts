@@ -3,7 +3,7 @@ import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
 import { createTask, getTask } from '@tr/task-core';
 import { EDIT_BLOCKS } from '@tr/slack-ui';
-import { saveCard } from '../cards.js';
+import { saveCard } from '@tr/slack-sync';
 import { handleEditOpen, handleEditSubmission } from './edit-modal.js';
 import { handleWaitingAction } from './waiting.js';
 

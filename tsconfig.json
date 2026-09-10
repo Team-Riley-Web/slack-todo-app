@@ -9,6 +9,11 @@
     "packages/*/src/**/*.ts",
     "apps/*/src/**/*.ts",
     "tests/**/*.ts",
+    "scripts/**/*.ts",
     "vitest.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "apps/web"
   ]
 }

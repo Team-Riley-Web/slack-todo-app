@@ -106,3 +106,80 @@ it('honours a valid limit and caps it at 500', async () => {
   expect(await listTasks(db, { limit: 1.9 })).toHaveLength(1); // floored
   expect(await listTasks(db, { limit: 100_000 })).toHaveLength(2);
 });
+
+// --- text search and due buckets, added for the web UI ---
+
+it('matches a case-insensitive substring of the title', async () => {
+  await add('Marketing', 'Offer Neil Instagram and Facebook package');
+  await add('Marketing', 'Call Rachael');
+  expect((await listTasks(db, { titleContains: 'neil' })).map((t) => t.title))
+    .toEqual(['Offer Neil Instagram and Facebook package']);
+  expect((await listTasks(db, { titleContains: 'INSTAGRAM' }))).toHaveLength(1);
+});
+
+it('searches titles only, never space names', async () => {
+  await add('Marketing', 'Nothing relevant');
+  expect(await listTasks(db, { titleContains: 'marketing' })).toHaveLength(0);
+});
+
+it('treats LIKE metacharacters in a search as literal text', async () => {
+  await add('Marketing', 'Bring Neil to 50% off');
+  await add('Marketing', 'Unrelated');
+  expect((await listTasks(db, { titleContains: '50%' })).map((t) => t.title))
+    .toEqual(['Bring Neil to 50% off']);
+
+  // A bare % is a literal percent sign, so it finds the one title that has
+  // one - it does NOT match every row the way an unescaped wildcard would.
+  expect((await listTasks(db, { titleContains: '%' })).map((t) => t.title))
+    .toEqual(['Bring Neil to 50% off']);
+
+  // A bare _ is a literal underscore, which no title here contains. Unescaped
+  // it would match any single character and return everything.
+  expect(await listTasks(db, { titleContains: '_' })).toHaveLength(0);
+});
+
+it('finds a title containing a curly apostrophe', async () => {
+  await add('Marketing', 'Waiting on Milltown’s reply');
+  expect(await listTasks(db, { titleContains: 'milltown’s' })).toHaveLength(1);
+});
+
+it('buckets due dates', async () => {
+  const overdue = await createTask(db, {
+    title: 'Overdue', spaceId: spaceIds['Marketing']!,
+    dueAt: new Date(Date.now() - 86_400_000),
+  });
+  await createTask(db, {
+    title: 'Soon', spaceId: spaceIds['Marketing']!,
+    dueAt: new Date(Date.now() + 3 * 86_400_000),
+  });
+  await createTask(db, {
+    title: 'Far off', spaceId: spaceIds['Marketing']!,
+    dueAt: new Date(Date.now() + 60 * 86_400_000),
+  });
+  await add('Marketing', 'No due date');
+
+  expect((await listTasks(db, { due: 'overdue' })).map((t) => t.title)).toEqual(['Overdue']);
+  expect((await listTasks(db, { due: 'week' })).map((t) => t.title).sort())
+    .toEqual(['Overdue', 'Soon']);
+  expect((await listTasks(db, { due: 'none' })).map((t) => t.title)).toEqual(['No due date']);
+  expect(overdue.due_at).toBeInstanceOf(Date);
+});
+
+it('combines a search with a space and a status filter', async () => {
+  const w = await add('Marketing', 'Call Neil about pricing');
+  await add('Sales', 'Call Neil about pricing');
+  await moveTask(db, w.id, { status: 'waiting' }, actor);
+
+  const rows = await listTasks(db, {
+    titleContains: 'neil', spaceId: spaceIds['Marketing']!, status: 'waiting',
+  });
+  expect(rows).toHaveLength(1);
+  expect(rows[0]!.space_id).toBe(spaceIds['Marketing']);
+});
+
+it('ignores an empty or whitespace-only search', async () => {
+  await add('Marketing', 'A');
+  await add('Sales', 'B');
+  expect(await listTasks(db, { titleContains: '' })).toHaveLength(2);
+  expect(await listTasks(db, { titleContains: '   ' })).toHaveLength(2);
+});

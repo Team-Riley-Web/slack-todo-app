@@ -62,19 +62,45 @@ be able to fix their own typo.
 What was given up, and what was kept:
 
 - **One** function writes `tasks.title`: `editTask` in `task-core`.
-- It is reachable from human surfaces only — the Slack edit modal, and the web
-  UI when that lands.
+- It is reachable from human surfaces only — the Slack edit modal and the web
+  UI's edit page.
 - It is **not** an MCP tool and **not** a REST route.
 
 So the threat the guarantee existed to stop — AI silently rewriting what you
 said — is still structurally prevented, rather than merely discouraged.
 `tests/determinism.test.ts` asserts three things instead of trusting this text:
 exactly one file contains a title write, neither the MCP tool list nor the
-Fastify routes mention `editTask`, and its only callers are `task-core` and the
-Slack modal handler.
+Fastify routes mention `editTask`, and its only callers are `task-core`, the
+Slack modal handler, and the web app's operations layer.
 
 `editTask` takes an explicit typed patch and reads nothing outside it, so a
 `title` key smuggled into any other call is not rejected — it is never looked at.
+
+## The web app
+
+`apps/web` is a second surface over the same backend, not a second backend.
+Every mutation goes through `task-core`; every read goes through
+`task-core/queries`. Nothing in it re-implements a rule.
+
+Two layers exist so the rules stay testable without a Next runtime:
+
+- `src/operations/` — the actual behaviour, taking an explicit deps object
+  (`db`, `actorId`, an optional Slack client, config). Pure Node, unit-tested.
+- `src/actions/` — `'use server'` wrappers that add only the Next-specific
+  parts: resolving the signed-in user, building the deps, revalidating paths.
+
+A web mutation redraws the Slack card through `packages/slack-sync`, which was
+extracted from `apps/slack` for exactly this reason: card storage, per-card
+locking, render versioning, and redrawing are now shared rather than
+duplicated. `syncCardsForTask` finds every card showing the task and redraws
+each under its own lock, counting Slack failures rather than throwing — a
+Slack API error must not fail a write that already committed.
+
+The web app cannot use PGlite. Next bundles the server code; the bundled PGlite
+module then reads its WASM file with a `URL` where Node's `fs.readFile` wants a
+path, and every route 500s with `ERR_INVALID_ARG_TYPE`. `serverExternalPackages`
+does not prevent it. So `src/db.ts` requires a `postgres://` URL and says so
+plainly, rather than letting the failure surface from inside a dependency.
 
 ## Transactions
 
@@ -246,3 +272,38 @@ signatures.
 check runs before any database write, so a rejection performs zero mutation and
 sends no `chat.update`. Malformed task IDs are rejected by UUID parse before any
 query is issued.
+
+The web app's own allowlist fails closed the same way, and harder: the Slack
+app can fall back to a workspace check because its payloads carry a team id,
+but Auth.js does not document the Slack profile's shape, so an empty
+`AUTHORIZED_SLACK_USER_IDS` denies **everyone** rather than admitting everyone.
+
+## The Supabase API surface, which we do not use
+
+Supabase publishes every table in the `public` schema through PostgREST,
+reachable with the anon key. That key is public by design — it is meant to ship
+in browser bundles. So the default posture of a fresh Supabase project is: your
+tables are on the internet, and only row level security stands in front of
+them. With RLS off, which is also the default, nothing does.
+
+Nothing in this system uses PostgREST. Every client — the Slack app, the REST
+API, the MCP server, the web app — connects as the database owner over the
+Postgres wire protocol. So migration `009_lock_down_api_roles.sql` takes the
+API roles out of the picture entirely, in two layers that each cover the
+other's gap:
+
+- **REVOKE** on the `anon` and `authenticated` roles removes the grants
+  PostgREST needs, and `ALTER DEFAULT PRIVILEGES` makes that the default for
+  tables created later — so a future migration cannot re-expose the schema by
+  forgetting about this one.
+- **RLS enabled with zero policies** denies every row. Table owners bypass RLS,
+  so our own connections are untouched.
+
+Those roles exist only in a Supabase database, so the revokes are guarded by a
+`pg_roles` check and PGlite runs the RLS half alone.
+
+`packages/db/src/api-lockdown.test.ts` asserts RLS is on for every table, that
+no policy exists anywhere, that the owner can still read and write — the
+failure that would otherwise be silent, since RLS denies rows rather than
+erroring — and that any migration added after 009 which creates a table
+enables RLS itself.
