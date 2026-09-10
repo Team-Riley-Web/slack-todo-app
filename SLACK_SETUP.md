@@ -70,6 +70,10 @@ Request URL field is not used.
 | `/tasks` | View your tasks | `[space \| waiting]` |
 | `/import` | Import tasks from a CSV or JSON file | (no arguments) |
 
+Spaces are created with `/tasks new <name>`, or from the "…or a new Space"
+field in the `/task` modal, or on `/spaces` in the web UI. All three call the
+same `createSpace` in `task-core`.
+
 Leave **Escape channels, users, and links** OFF on `/task`. With it on, Slack
 rewrites references before the text reaches the app — `@joshua` becomes
 `<@U01ABCDEF>`, `#sales` becomes `<#C0123|sales>` — which would silently
