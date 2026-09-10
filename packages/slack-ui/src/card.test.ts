@@ -48,7 +48,7 @@ describe('open task card', () => {
   it('sets a plain_text description with the meta line', () => {
     const el = checkbox(taskCardBlocks([{ task: task(), space }], opts));
     expect(el.options[0].description.type).toBe('plain_text');
-    expect(el.options[0].description.text).toBe('Nazareth Law · Joshua');
+    expect(el.options[0].description.text).toBe('Nazareth Law');
   });
 
   it('keeps every option label within Slack 75-char cap', () => {
@@ -359,3 +359,57 @@ describe('a list covering several Spaces', () => {
 function blocks(groups: any[]) {
   return taskListBlocks(groups, { timeZone: 'America/Chicago', assigneeLabels: {} });
 }
+
+// --- noise under a Space heading ---
+
+describe('a grouped list', () => {
+  const grp = (heading: string, titles: string[]) => ({
+    heading,
+    entries: titles.map((title, i) => ({
+      task: task({ id: `${heading}${i}`.padEnd(36, '0'), title, assignee_id: 'U_JOSH' }),
+      space: { id: 's', name: heading, slug: heading, is_inbox: false } as any,
+    })),
+  });
+
+  const descriptions = (blocks: any[]) =>
+    blocks.filter((b) => b.type === 'actions')
+      .flatMap((b: any) => b.elements[0].options)
+      .map((o: any) => o.description?.text);
+
+  it('does not repeat the Space on every row beneath its heading', () => {
+    const blocks = taskListBlocks([grp('MARKETING', ['a', 'b', 'c'])], opts) as any[];
+    for (const d of descriptions(blocks)) {
+      expect(d ?? '').not.toContain('MARKETING');
+    }
+  });
+
+  it('never shows the assignee, grouped or not', () => {
+    const grouped = taskListBlocks([grp('MARKETING', ['a'])], opts) as any[];
+    const flat = taskCardBlocks(
+      [{ task: task({ assignee_id: 'U_JOSH' }), space }], opts
+    ) as any[];
+    expect(JSON.stringify(grouped)).not.toContain('Joshua');
+    expect(JSON.stringify(flat)).not.toContain('Joshua');
+  });
+
+  it('drops the description entirely when nothing is left to say', () => {
+    // Open, no due date, Space named by the heading above: no second line.
+    const blocks = taskListBlocks([grp('MUSIC', ['Get and make new merch'])], opts) as any[];
+    const option = blocks.find((b) => b.type === 'actions').elements[0].options[0];
+    expect(option.description).toBeUndefined();
+  });
+
+  it('still shows a due date under a heading, because that is not noise', () => {
+    const group = grp('SECURE LOGIC', ['check-in']);
+    group.entries[0]!.task.due_at = new Date('2026-11-13T06:00:00Z');
+    const blocks = taskListBlocks([group], opts) as any[];
+    const option = blocks.find((b) => b.type === 'actions').elements[0].options[0];
+    expect(option.description.text).toContain('due Nov 13');
+  });
+
+  it('keeps the Space on a flat card, where no heading names it', () => {
+    const blocks = taskCardBlocks([{ task: task(), space }], opts) as any[];
+    const option = blocks.find((b) => b.type === 'actions').elements[0].options[0];
+    expect(option.description.text).toBe('Nazareth Law');
+  });
+});

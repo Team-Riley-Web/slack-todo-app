@@ -8,7 +8,18 @@ export const DESCRIPTION_BUDGET = 75;
 
 export interface MetaOpts {
   timeZone: string;
+  /**
+   * Kept for callers that still pass it. The meta line no longer renders an
+   * assignee: in a workspace where nearly every task is yours, repeating
+   * "Joshua" on every row is noise, not information. Who did what is still in
+   * the task's event history and on the web UI.
+   */
   assigneeLabels?: Record<string, string>;
+  /**
+   * False when a Space heading already sits above this task, so the Space is
+   * not repeated on every row beneath it.
+   */
+  showSpace?: boolean;
   /**
    * Render version, stamped into each checkbox block_id so an interaction can
    * be matched to the render the clicking client saw. Defaults to 1.
@@ -73,28 +84,21 @@ function clip(text: string, budget: number): string {
  * surface uses slackDate and slackUser instead.
  */
 export function metaLine(task: Task, space: Space, opts: MetaOpts): string {
-  const assignee = task.assignee_id
-    ? opts.assigneeLabels?.[task.assignee_id]
-    : undefined;
+  const parts: string[] = [];
 
-  const build = (withAssignee: boolean): string => {
-    const parts: string[] = [];
-    if (task.status === 'completed' && task.completed_at) {
-      parts.push(`Completed ${fmtDate(task.completed_at, opts.timeZone)}`);
-    }
-    parts.push(shortSpace(space.name));
-    if (task.status !== 'completed') {
-      if (withAssignee && assignee) parts.push(assignee);
-      if (task.due_at) parts.push(`due ${fmtDate(task.due_at, opts.timeZone)}`);
-      if (task.status === 'waiting') {
-        parts.push(task.waiting_on ? `waiting on ${task.waiting_on}` : 'waiting');
-      }
-    }
-    return parts.join(' · ');
-  };
-
-  for (const candidate of [build(true), build(false)]) {
-    if ([...candidate].length <= DESCRIPTION_BUDGET) return candidate;
+  if (task.status === 'completed' && task.completed_at) {
+    parts.push(`Completed ${fmtDate(task.completed_at, opts.timeZone)}`);
   }
-  return clip(build(false), DESCRIPTION_BUDGET);
+  // Skipped when a Space heading is already above the row.
+  if (opts.showSpace !== false) parts.push(shortSpace(space.name));
+
+  if (task.status !== 'completed') {
+    if (task.due_at) parts.push(`due ${fmtDate(task.due_at, opts.timeZone)}`);
+    if (task.status === 'waiting') {
+      parts.push(task.waiting_on ? `waiting on ${task.waiting_on}` : 'waiting');
+    }
+  }
+
+  const line = parts.join(' · ');
+  return [...line].length <= DESCRIPTION_BUDGET ? line : clip(line, DESCRIPTION_BUDGET);
 }

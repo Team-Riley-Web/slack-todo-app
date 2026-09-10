@@ -4,6 +4,7 @@ import type { Db } from '@tr/db';
 import { createTask, completeTask, getTask, listSpaces, type Space } from '@tr/task-core';
 import { saveCard } from './cards.js';
 import { syncCardsForTask } from './sync.js';
+import { redrawCard } from './redraw.js';
 
 let db: Db;
 let space: Space;
@@ -165,5 +166,77 @@ describe('locking', () => {
 
     // Each start is immediately followed by its own end: no interleaving.
     expect(events).toEqual(['start', 'end', 'start', 'end']);
+  });
+});
+
+// --- a redraw must keep the shape the message was posted in ---
+
+describe('redraw layout', () => {
+  const spaceNamed = async (name: string): Promise<Space> =>
+    (await listSpaces(db)).find((s) => s.name === name)!;
+
+  it('keeps the Space grouping when a multi-Space card is redrawn', async () => {
+    // The bug: redrawCard called taskCardBlocks directly -- one flat group,
+    // no headings -- so ticking one checkbox on a /tasks all list collapsed
+    // the whole thing into an ungrouped run with the Space repeated on every
+    // row. The layout has to survive a redraw, not just the first post.
+    const marketing = await spaceNamed('Marketing');
+    const music = await spaceNamed('Music');
+    const a = await createTask(db, { title: 'Marketing one', spaceId: marketing.id });
+    const b = await createTask(db, { title: 'Music one', spaceId: music.id });
+
+    await saveCard(db, {
+      channelId: 'C1', messageTs: '111.1', viewScope: 'all', version: 1,
+      entries: [{ task: a, space: marketing }, { task: b, space: music }],
+    });
+    await redrawCard(deps(), 'C1', '111.1', [a.id, b.id], 'all');
+
+    const blocks = (client.chat.update.mock.calls[0]![0] as any).blocks as any[];
+    expect(blocks.filter((x) => x.type === 'header').map((x) => x.text.text))
+      .toEqual(['MARKETING', 'MUSIC']);
+
+    const ids = blocks.map((x) => x.block_id).filter(Boolean);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('does not repeat the Space on rows under a heading', async () => {
+    const marketing = await spaceNamed('Marketing');
+    const music = await spaceNamed('Music');
+    const a = await createTask(db, { title: 'Marketing one', spaceId: marketing.id });
+    const b = await createTask(db, { title: 'Music one', spaceId: music.id });
+    await saveCard(db, {
+      channelId: 'C1', messageTs: '111.2', viewScope: 'all', version: 1,
+      entries: [{ task: a, space: marketing }, { task: b, space: music }],
+    });
+
+    await redrawCard(deps(), 'C1', '111.2', [a.id, b.id], 'all');
+    const blocks = (client.chat.update.mock.calls[0]![0] as any).blocks as any[];
+    const descriptions = blocks
+      .filter((x) => x.type === 'actions')
+      .flatMap((x: any) => x.elements[0].options)
+      .map((o: any) => o.description?.text ?? '');
+    for (const d of descriptions) {
+      expect(d).not.toContain('Marketing');
+      expect(d).not.toContain('Music');
+    }
+  });
+
+  it('leaves a single-Space card flat, with no heading naming its only Space', async () => {
+    const a = await createTask(db, { title: 'One', spaceId: space.id });
+    const b = await createTask(db, { title: 'Two', spaceId: space.id });
+    await card('C1', '222.2', [a, b]);
+
+    await redrawCard(deps(), 'C1', '222.2', [a.id, b.id], 'marketing');
+    const blocks = (client.chat.update.mock.calls[0]![0] as any).blocks as any[];
+    expect(blocks.filter((x) => x.type === 'header')).toHaveLength(0);
+  });
+
+  it('never shows the assignee on a redraw either', async () => {
+    const a = await createTask(db, {
+      title: 'One', spaceId: space.id, assigneeId: 'U_JOSH',
+    });
+    await card('C1', '333.3', [a]);
+    await redrawCard(deps(), 'C1', '333.3', [a.id], 'marketing');
+    expect(JSON.stringify(client.chat.update.mock.calls[0]![0])).not.toContain('Joshua');
   });
 });
