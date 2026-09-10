@@ -8,9 +8,18 @@ importers:
 
   .:
     devDependencies:
+      '@tr/db':
+        specifier: workspace:*
+        version: link:packages/db
+      '@tr/task-core':
+        specifier: workspace:*
+        version: link:packages/task-core
       '@types/node':
         specifier: ^22.7.0
         version: 22.20.2
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
       tsx:
         specifier: ^4.19.0
         version: 4.23.13
