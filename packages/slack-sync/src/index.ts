@@ -4,3 +4,4 @@ export {
 } from './cards.js';
 export { withCardLock } from './lock.js';
 export { redrawCard, type CardDeps } from './redraw.js';
+export { syncCardsForTask, type SyncResult } from './sync.js';
