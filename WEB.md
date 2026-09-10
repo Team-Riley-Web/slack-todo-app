@@ -1,0 +1,124 @@
+# Web UI
+
+Slack remains the primary task interface. This web app exists for the things a
+chat window is bad at: scanning everything at once, filtering, reviewing
+history, and editing the fields that do not fit on a card.
+
+It is the same backend. Same database, same task IDs, same `task-core`
+functions. There is no second copy of any rule.
+
+## Views
+
+| Route | What it is |
+| --- | --- |
+| `/` | My Tasks. Open and waiting tasks, filterable by space, status, assignee, due bucket, and title search. |
+| `/spaces` | Every Space with its open / waiting / completed counts. Empty Spaces are listed too. |
+| `/spaces/<slug>` | One Space, plus the form for adding a task to it. |
+| `/waiting` | Waiting and blocked tasks, oldest first, with an age in days. |
+| `/history` | Completed tasks, filterable by date range. |
+| `/settings` | Channel → Space mappings, the authorized user list, the timezone, and import history. |
+| `/tasks/<id>/edit` | The only place a title changes from the web. Every field the Slack modal offers, prefilled, plus the task's event history. |
+
+## Running it locally
+
+```bash
+pnpm install
+cp .env.example .env      # then fill in DATABASE_URL, see below
+pnpm migrate
+pnpm --filter @tr/web dev # http://localhost:3040
+```
+
+### DATABASE_URL is required, and must be Postgres
+
+The Slack app, the REST API and the MCP server all accept an empty
+`DATABASE_URL` and fall back to in-memory PGlite. **The web app cannot.**
+
+PGlite loads its Postgres build as a WASM file at runtime. Next bundles the
+server code, the bundled module then reads that file with a `URL` where
+Node's `fs.readFile` wants a path, and every route returns a 500 with
+`ERR_INVALID_ARG_TYPE`. `serverExternalPackages` does not prevent it.
+
+So `apps/web/src/db.ts` checks the URL up front and throws a readable error
+rather than letting a request fail deep inside a bundled dependency.
+
+Use the Supabase **transaction-mode pooler** (port 6543). Prepared statements
+are disabled automatically on that port, which is what the pooler requires.
+
+```
+DATABASE_URL=postgres://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+```
+
+### Signing in
+
+Sign-in is Slack OAuth through Auth.js. Slack requires the OAuth redirect to
+use `https`, even on localhost, so plain local sign-in is impossible without a
+tunnel. For development, set `WEB_DEV_USER` to your Slack user ID instead.
+
+That bypass needs **both** a non-production `NODE_ENV` **and** the variable.
+It returns nothing under `NODE_ENV=production`, so it cannot survive a
+deploy — which means `next start` will correctly refuse it. Use `next dev`.
+
+It supplies an identity, not authority. The result still goes through
+`authorizeSlackUser`, which reads `AUTHORIZED_SLACK_USER_IDS` and **denies
+everyone when that list is empty**. An unconfigured allowlist is a closed
+door, not an open one.
+
+For real OAuth:
+
+- `AUTH_SLACK_ID` / `AUTH_SLACK_SECRET` — from the Slack app's OAuth settings
+- `AUTH_SECRET` — `openssl rand -base64 32`
+- Redirect URL to register with Slack: `https://<host>/api/auth/callback/slack`
+
+## Changes here redraw the Slack card
+
+Completing, reopening, moving or editing a task from the web calls
+`syncCardsForTask`, which finds every Slack card showing that task and
+redraws it in place. So a checkbox ticked in the browser appears ticked in
+Slack.
+
+That redraw needs `SLACK_BOT_TOKEN`. Without it the task still changes and
+only the redraw is skipped, which is the right behaviour for a deployment
+that was never given Slack credentials. A Slack API failure is swallowed for
+the same reason: it must not fail the write that already succeeded.
+
+## No credential reaches a page
+
+`/settings` shows configuration, and configuration is where secrets leak. The
+readable values are a narrow allowlist in `src/lib/env.ts`. Three files read a
+credential at all, each for a stated reason:
+
+- `actions/tasks.ts` — the bot token, to redraw a Slack card
+- `session.ts` — `WEB_DEV_USER`, for the local bypass
+- `db.ts` — `DATABASE_URL`, to check it is Postgres before connecting
+
+`src/no-secrets.test.ts` enforces that: it puts real-shaped tokens in the
+environment, renders the settings view, and asserts nothing token-shaped comes
+out; then greps `src/app` and `src/components` for the forbidden names; then
+asserts the reader list is exactly those three files. Add a fourth and the
+test fails.
+
+## Deploying to Vercel
+
+Root directory `apps/web`. Build command `pnpm --filter @tr/web build`.
+
+Environment variables: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_SLACK_ID`,
+`AUTH_SLACK_SECRET`, `AUTHORIZED_SLACK_USER_IDS`, `DEFAULT_TIMEZONE`, and
+`SLACK_BOT_TOKEN` if you want the Slack redraw. Do not set `WEB_DEV_USER`;
+it is inert in production anyway.
+
+Run `pnpm migrate` against the database before the first deploy. Migrations
+are deliberately **not** on the request path.
+
+## Notes on the shape of it
+
+Server-rendered, no client JavaScript. Filters are links carrying query
+parameters, so every filtered view has its own URL that is shareable and
+bookmarkable, and the back button behaves. The narrowing happens in SQL, not
+by hiding rows already sent to the browser.
+
+Titles are editable here, on a page of their own, reached deliberately. That
+is the point: `editTask` in `task-core` is the single write path to
+`tasks.title`, and it is reachable from exactly two human surfaces — the Slack
+modal and this edit page. No MCP tool and no REST route can reach it, and
+three tests in `tests/determinism.test.ts` assert that. AI can read tasks; it
+cannot rewrite what you wrote.

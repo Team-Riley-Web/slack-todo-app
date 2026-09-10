@@ -19,22 +19,30 @@ stores the title `Offer Neil Instagram and Facebook package for $100` — byte f
 byte. Nothing rewrites, summarizes, normalizes, or improves it. The only
 normalization anywhere is a single outer `.trim()` of the raw slash-command text.
 
-This is enforced structurally rather than by validation: `packages/task-core` is
-the only code that may mutate a task, and it exposes no title-writing function.
-Hermes cannot rename a task because the capability does not exist to call.
+This is enforced structurally rather than by validation. A title can be changed
+— you can edit one in the Slack modal or on the web edit page — but there is
+exactly **one** function that writes `tasks.title`, `editTask` in
+`packages/task-core`, and it is reachable from those two human surfaces and
+nowhere else. No MCP tool and no REST route can reach it, so Hermes cannot
+rename a task: the capability does not exist to call. Three tests in
+`tests/determinism.test.ts` assert all of that. See ARCHITECTURE.md.
 
 ## Local setup
 
 ```bash
 pnpm install
 cp .env.example .env      # fill in Slack credentials — see SLACK_SETUP.md
-pnpm test                 # 158 tests, no credentials or database needed
+pnpm test                 # 652 tests, no credentials or database needed
 pnpm typecheck
 ```
 
-With no `DATABASE_URL`, the app runs on embedded PGlite (real Postgres compiled
-to WASM) — no Postgres install, no Docker. Set `DATABASE_URL=file://./.pglite`
-to persist locally, or a `postgres://` URL to use Supabase.
+With no `DATABASE_URL`, the Slack app, API and MCP server run on embedded
+PGlite (real Postgres compiled to WASM) — no Postgres install, no Docker. Set
+`DATABASE_URL=file://./.pglite` to persist locally, or a `postgres://` URL to
+use Supabase.
+
+The web app is the exception: it **requires** a `postgres://` URL, because
+PGlite's WASM cannot load inside the bundled Next server. See WEB.md.
 
 ```bash
 pnpm migrate              # apply migrations and seed Spaces
@@ -44,6 +52,7 @@ pnpm api                  # REST API on :3030
 pnpm mcp                  # MCP server on stdio, for Hermes
 pnpm prune-interactions   # prune dedupe rows past the retention window
 pnpm import-tasks -- --help  # import legacy tasks; see IMPORT.md
+pnpm --filter @tr/web dev # web UI on :3040; see WEB.md
 ```
 
 Note `prune-interactions`, not `prune` — `pnpm prune` is a pnpm built-in that
@@ -136,19 +145,23 @@ Waiting* — for the state the checkbox cannot express.
 ## Layout
 
 ```
-apps/slack        Bolt app: slash commands and block actions
+apps/slack        Bolt app: slash commands, block actions, the edit modal
 apps/api          Fastify REST API for Hermes
-packages/db       query/exec interface, PGlite + node-postgres drivers, migrations
+apps/web          Next.js web UI: lists, filters, history, settings, editing
+packages/db       query/exec/transaction interface, PGlite + node-postgres, migrations
 packages/task-core  the ONLY task mutation path
 packages/slack-ui   Block Kit rendering
+packages/slack-sync  card storage, locking, and redrawing — shared by Slack and web
+packages/importer   parsing, analysis, staged import, rollback
 packages/mcp        MCP stdio server for Hermes
 tests             repository-wide determinism guards
-docs              spec, plan, and the Workast export used for design
+docs              specs, plans, and the Workast export used for design
 ```
 
 ## Documents
 
 - `ARCHITECTURE.md` — why the boundaries are where they are
+- `WEB.md` — the web UI: views, the Postgres requirement, auth, deploying
 - `SLACK_SETUP.md` — creating the app, scopes, and the one runtime check
 - `MCP_CONTRACT.md` — the eight Hermes tools and their limits
 - `IMPORT.md` — importing legacy tasks: the flow, formats, duplicates, rollback
