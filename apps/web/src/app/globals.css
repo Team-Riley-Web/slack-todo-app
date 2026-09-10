@@ -63,6 +63,32 @@ li.task {
   padding: 10px 4px; border-bottom: 1px solid var(--line);
 }
 li.task form.tick { margin: 0; display: flex; align-items: center; }
+
+/*
+ * The circle check. A real submit button, so completing a task needs no
+ * JavaScript -- see the comment in TaskRow.
+ */
+button.circle {
+  appearance: none; background: none; border: 0; padding: 2px;
+  cursor: pointer; line-height: 0; border-radius: 999px;
+  color: var(--muted);
+}
+button.circle:hover { color: var(--done); }
+button.circle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.circle svg { width: 22px; height: 22px; display: block; }
+button.circle svg circle {
+  fill: none; stroke: currentColor; stroke-width: 1.5;
+}
+/* The tick is invisible until hover on an open task: a hint, not a state. */
+button.circle svg path {
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0;
+}
+button.circle:hover svg path { opacity: .45; }
+button.circle.done { color: var(--done); }
+button.circle.done svg circle { fill: var(--done); stroke: var(--done); }
+button.circle.done svg path { stroke: #fff; opacity: 1; }
 li.task .body { flex: 1; min-width: 0; }
 li.task .title { display: block; word-break: break-word; }
 li.task.done .title { text-decoration: line-through; color: var(--muted); }

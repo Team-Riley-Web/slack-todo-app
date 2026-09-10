@@ -56,3 +56,9 @@ unchecked task unless you are starting it.
   - Done 2026-09-10: title, Space picker, new-Space text field, status, assignee, due, details. The one-line `/task <title>` fast path is untouched. Replaces a usage message that told you the syntax and made you type it again.
 - [x] Create a Space
   - Done 2026-09-10: createSpace in task-core, reachable from the /task modal's "…or a new Space" field and from a form on /spaces. Idempotent on the name, slug derived and de-duplicated, seeds the standard two lists. Does not prepend 'Client - '.
+- [ ] BUG: the check mark in the web UI does not mark a task complete — it should
+- [ ] Web UI: rework the top nav to match the Workast layout — clean, with My tasks / Due today, and Spaces in the left sidebar
+- [ ] Web UI: make Edit a modal in the centre or a pane that slides in from the right, instead of its own page
+- [ ] Web UI: inside a Space, show Open, then Waiting/Backlog, then Completed as toggleable (collapsible) sections
+- [ ] Web UI: drop the Spaces filter chips from My tasks, since the Spaces are all in the left sidebar
+- [ ] Web UI: use a circle check mark like Workast, green when complete, and strike through a completed task

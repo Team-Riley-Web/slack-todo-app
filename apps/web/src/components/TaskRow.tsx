@@ -34,6 +34,14 @@ export function TaskRow({
   task, space, showAge, showProvenance, assigneeLabels,
 }: TaskRowProps) {
   const done = task.status === 'completed';
+  const completeHere = async () => {
+    'use server';
+    await completeTaskAction(task.id);
+  };
+  const reopenHere = async () => {
+    'use server';
+    await reopenTaskAction(task.id);
+  };
   const due = dueLabel(task);
   const who = assigneeName(task, assigneeLabels);
 
@@ -67,24 +75,24 @@ export function TaskRow({
 
   return (
     <li className={done ? 'task done' : 'task'}>
-      <form
-        className="tick"
-        action={async () => {
-          'use server';
-          if (done) await reopenTaskAction(task.id);
-          else await completeTaskAction(task.id);
-        }}
-      >
-        <input
-          type="checkbox"
-          className="tick"
-          checked={done}
+      {/*
+        A submit BUTTON, not a checkbox.
+        An <input type="checkbox"> does not submit a form when clicked, and
+        this app ships no JavaScript to submit one for it -- so the previous
+        version, a readOnly checkbox beside a hidden submit button, could not
+        complete anything at all. The circle is drawn in the button.
+      */}
+      <form className="tick" action={done ? reopenHere : completeHere}>
+        <button
+          type="submit"
+          className={done ? 'circle done' : 'circle'}
           aria-label={done ? `Reopen ${task.title}` : `Complete ${task.title}`}
-          onChange={undefined}
-          readOnly
-        />
-        <button type="submit" hidden>
-          {done ? 'Reopen' : 'Complete'}
+          title={done ? 'Reopen' : 'Complete'}
+        >
+          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <circle cx="10" cy="10" r="8.5" />
+            <path d="M6 10.4l2.6 2.6L14.2 7.4" />
+          </svg>
         </button>
       </form>
 

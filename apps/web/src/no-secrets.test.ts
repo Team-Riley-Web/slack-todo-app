@@ -224,3 +224,30 @@ describe('Space ordering in the web data layer', () => {
     expect(rest).toEqual([...rest].sort((a, b) => a.localeCompare(b)));
   });
 });
+
+describe('the completion control is actually operable', () => {
+  /**
+   * The bug this guards: the row rendered a readOnly <input type="checkbox">
+   * beside a hidden submit button. A checkbox does not submit a form, and this
+   * app ships no client JavaScript to submit one for it, so completing a task
+   * from the web was impossible. Verified in a real browser before the fix and
+   * after.
+   */
+  const rowSource = async (): Promise<string> =>
+    readFile('apps/web/src/components/TaskRow.tsx', 'utf8');
+
+  it('uses a submit button, not a checkbox input', async () => {
+    const src = await rowSource();
+    expect(src).not.toMatch(/type="checkbox"/);
+    expect(src).toMatch(/type="submit"/);
+  });
+
+  it('has no hidden submit button, which nothing could click', async () => {
+    const src = await rowSource();
+    expect(src).not.toMatch(/<button[^>]*\bhidden\b/);
+  });
+
+  it('never marks the control readOnly', async () => {
+    expect(await rowSource()).not.toMatch(/\breadOnly\b/);
+  });
+});
