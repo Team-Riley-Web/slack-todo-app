@@ -112,11 +112,11 @@ describe('native section fields for the summary', () => {
 
   it('strips the client prefix and reports waiting only when present', () => {
     const fields = (summaryBlocks(counts) as any[])[1].fields as Array<{ text: string }>;
-    expect(fields[0].text).toContain('Agency / Internal');
-    expect(fields[0].text).not.toContain('waiting');
-    expect(fields[1].text).toContain('Secure Logic');
-    expect(fields[1].text).not.toContain('Client - Secure Logic');
-    expect(fields[1].text).toContain('1 waiting');
+    expect(fields[0]!.text).toContain('Agency / Internal');
+    expect(fields[0]!.text).not.toContain('waiting');
+    expect(fields[1]!.text).toContain('Secure Logic');
+    expect(fields[1]!.text).not.toContain('Client - Secure Logic');
+    expect(fields[1]!.text).toContain('1 waiting');
   });
 
   it('chunks past Slack 10-field cap instead of overflowing one section', () => {
