@@ -11,6 +11,9 @@ importers:
       '@tr/db':
         specifier: workspace:*
         version: link:packages/db
+      '@tr/slack-ui':
+        specifier: workspace:*
+        version: link:packages/slack-ui
       '@tr/task-core':
         specifier: workspace:*
         version: link:packages/task-core
