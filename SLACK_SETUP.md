@@ -28,12 +28,19 @@ Tasks") and pick the Team Riley workspace.
 
 | Scope | Used for |
 |---|---|
-| `commands` | `/task` and `/tasks` |
+| `commands` | `/task`, `/tasks`, `/import` |
 | `chat:write` | posting task cards, `chat.update` in place, ephemeral replies |
+| `files:read` | reading the file uploaded to the import wizard |
 
 That is the complete list. The app reads no messages, so it needs no
 `channels:history`, no `channels:read`, and no user scopes. Channel → Space
 mapping is configuration, not discovery.
+
+`files:read` exists solely so the import wizard can fetch the bytes behind an
+uploaded file: `url_private` is not a public URL and requires an Authorization
+header carrying a token with that scope. It is the one scope the wizard adds,
+and it is why adding the wizard forces a reinstall (see the warning at the top
+of this document).
 
 ## 3. Socket Mode
 
@@ -44,13 +51,14 @@ Socket Mode needs no public URL, which is why it is the local default.
 
 ## 4. Slash commands
 
-**Slash Commands → Create New Command**, twice. Under Socket Mode the Request URL
-field is not used.
+**Slash Commands → Create New Command**, three times. Under Socket Mode the
+Request URL field is not used.
 
 | Command | Short description | Usage hint |
 |---|---|---|
 | `/task` | Capture a task, exactly as typed | `<task title> [due:YYYY-MM-DD]` |
 | `/tasks` | View your tasks | `[space \| waiting]` |
+| `/import` | Import tasks from a CSV or JSON file | (no arguments) |
 
 ## 5. Interactivity
 

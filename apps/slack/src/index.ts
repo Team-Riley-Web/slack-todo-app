@@ -3,6 +3,7 @@ import Bolt from '@slack/bolt';
 import { createDb, migrate } from '@tr/db';
 import {
   CHECKBOX_ACTION_ID, WAITING_ACTION_ID, EDIT_CALLBACK_ID,
+  IMPORT_CALLBACK_IDS,
 } from '@tr/slack-ui';
 import { loadConfig } from './config.js';
 import { handleCheckboxToggle } from './handlers/checkbox.js';
@@ -10,6 +11,11 @@ import { handleWaitingAction } from './handlers/waiting.js';
 import { handleTaskCommand } from './handlers/task-command.js';
 import { handleTasksCommand } from './handlers/tasks-command.js';
 import { handleEditOpen, handleEditSubmission } from './handlers/edit-modal.js';
+import {
+  handleImportCommand, handleUploadSubmit, handleMappingSubmit,
+  handlePreviewSubmit, handleWizardClosed, type ImportDeps,
+} from './handlers/import-wizard.js';
+import { makeFetchFile } from './slack-file.js';
 import { retentionDays, startRetentionSweep } from './retention.js';
 
 const config = loadConfig();
@@ -73,6 +79,59 @@ app.view(EDIT_CALLBACK_ID, async ({ ack, body, client, view }) => {
   }
   await ack();
 });
+
+/**
+ * The import wizard.
+ *
+ * Each step acks immediately and then finishes its work, because Slack drops a
+ * view_submission that is not acknowledged within 3 seconds and staging a
+ * large file does not fit in that budget. The continuation runs after ack and
+ * updates the view when it is done.
+ */
+const importDeps = (client: unknown): ImportDeps => ({
+  db,
+  client: client as never,
+  config,
+  fetchFile: makeFetchFile(
+    client as never, process.env.SLACK_BOT_TOKEN ?? ''
+  ),
+});
+
+app.command('/import', async ({ command, ack, client }) => {
+  await ack();
+  await handleImportCommand(importDeps(client), command as never);
+});
+
+const wizardStep = (
+  handler: (deps: ImportDeps, body: Record<string, any>) => {
+    ack: Record<string, unknown> | undefined;
+    after?: () => Promise<void>;
+  }
+) => async ({ ack, body, client, view }: Record<string, any>) => {
+  const deps = importDeps(client);
+  const result = handler(deps, { ...body, view });
+  await ack(result.ack as never);
+  // After the ack, so a slow import cannot cost us the 3-second window.
+  if (result.after) {
+    try {
+      await result.after();
+    } catch (error) {
+      console.error('[slack] import wizard step failed after ack', error);
+    }
+  }
+};
+
+app.view(IMPORT_CALLBACK_IDS.upload, wizardStep(handleUploadSubmit) as never);
+app.view(IMPORT_CALLBACK_IDS.mapping, wizardStep(handleMappingSubmit) as never);
+app.view(IMPORT_CALLBACK_IDS.preview, wizardStep(handlePreviewSubmit) as never);
+
+// An abandoned wizard marks its batch ABORTED instead of leaving it staged.
+for (const id of [
+  IMPORT_CALLBACK_IDS.upload, IMPORT_CALLBACK_IDS.mapping,
+  IMPORT_CALLBACK_IDS.preview, IMPORT_CALLBACK_IDS.working,
+]) {
+  app.view({ callback_id: id, type: 'view_closed' }, wizardStep(handleWizardClosed) as never);
+}
 
 app.error(async (error) => {
   console.error('[slack] unhandled error', error);

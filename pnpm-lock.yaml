@@ -176,6 +176,9 @@ importers:
       '@slack/types':
         specifier: ^2.14.0
         version: 2.22.0
+      '@tr/importer':
+        specifier: workspace:*
+        version: link:../importer
       '@tr/task-core':
         specifier: workspace:*
         version: link:../task-core
