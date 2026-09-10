@@ -64,8 +64,9 @@ prunes `node_modules`, and pnpm's own commands take precedence over scripts.
 |---|---|
 | `/task <title>` | Capture a task. Space comes from the channel mapping. |
 | `/task <title> due:2026-09-15` | Same, with a due date. |
-| `/tasks` | **From a mapped channel:** that Space's list. **From an unmapped channel or DM:** per-Space counts. |
-| `/tasks all` | Force the cross-Space summary from anywhere. |
+| `/tasks` | **From a mapped channel:** that Space's list. **Otherwise:** every open task, grouped by Space. |
+| `/tasks all` | Every open task grouped by Space, from anywhere. |
+| `/tasks summary` | Per-Space counts only, no checkboxes. |
 | `/import` | Import tasks from a CSV or JSON file, entirely in Slack. See IMPORT.md. |
 | `/tasks agency` | Full interactive list for a Space, matched by partial name. |
 | `/tasks joy within` | Multi-word Space scopes work. |
