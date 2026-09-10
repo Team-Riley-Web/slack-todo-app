@@ -23,4 +23,8 @@ export interface Task {
   source_channel_id: string | null;
   source_message_ts: string | null;
   created_by: string | null;
+  /** Set only on imported tasks. The idempotency key for its source record. */
+  source_external_id: string | null;
+  /** Set only on imported tasks. Which import batch created it. */
+  import_batch_id: string | null;
 }
