@@ -272,3 +272,38 @@ signatures.
 check runs before any database write, so a rejection performs zero mutation and
 sends no `chat.update`. Malformed task IDs are rejected by UUID parse before any
 query is issued.
+
+The web app's own allowlist fails closed the same way, and harder: the Slack
+app can fall back to a workspace check because its payloads carry a team id,
+but Auth.js does not document the Slack profile's shape, so an empty
+`AUTHORIZED_SLACK_USER_IDS` denies **everyone** rather than admitting everyone.
+
+## The Supabase API surface, which we do not use
+
+Supabase publishes every table in the `public` schema through PostgREST,
+reachable with the anon key. That key is public by design — it is meant to ship
+in browser bundles. So the default posture of a fresh Supabase project is: your
+tables are on the internet, and only row level security stands in front of
+them. With RLS off, which is also the default, nothing does.
+
+Nothing in this system uses PostgREST. Every client — the Slack app, the REST
+API, the MCP server, the web app — connects as the database owner over the
+Postgres wire protocol. So migration `009_lock_down_api_roles.sql` takes the
+API roles out of the picture entirely, in two layers that each cover the
+other's gap:
+
+- **REVOKE** on the `anon` and `authenticated` roles removes the grants
+  PostgREST needs, and `ALTER DEFAULT PRIVILEGES` makes that the default for
+  tables created later — so a future migration cannot re-expose the schema by
+  forgetting about this one.
+- **RLS enabled with zero policies** denies every row. Table owners bypass RLS,
+  so our own connections are untouched.
+
+Those roles exist only in a Supabase database, so the revokes are guarded by a
+`pg_roles` check and PGlite runs the RLS half alone.
+
+`packages/db/src/api-lockdown.test.ts` asserts RLS is on for every table, that
+no policy exists anywhere, that the owner can still read and write — the
+failure that would otherwise be silent, since RLS denies rows rather than
+erroring — and that any migration added after 009 which creates a table
+enables RLS itself.
