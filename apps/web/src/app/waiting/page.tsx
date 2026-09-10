@@ -2,7 +2,7 @@ import { listSpaces } from '@tr/task-core';
 import { getDb } from '@/db';
 import { requireUser } from '@/user';
 import { parseFilters } from '@/data/filters';
-import { waitingTasks } from '@/data/tasks';
+import { waitingTasks, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
@@ -22,8 +22,20 @@ export default async function WaitingPage({
     listSpaces(db),
   ]);
 
+  // The rail comes from the same summary the /spaces page uses, so a count
+  // there and a count here can never disagree.
+  const railSpaces = (await spaceSummary(db)).map(({ space, open, waiting }) => ({
+    space, open, waiting,
+  }));
+
   return (
-    <Shell current="/waiting" who={user.name ?? user.slackUserId}>
+    <Shell
+      current="/waiting"
+      who={user.name ?? user.slackUserId}
+      spaces={railSpaces}
+      railPath="/waiting"
+      activeSlug={filters.space ?? null}
+    >
       <h1>Waiting / blocked</h1>
       <p className="muted small">
         Across every Space. These are parked on purpose, so they stay out of the

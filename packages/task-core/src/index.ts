@@ -1,5 +1,6 @@
 export * from './types.js';
 export * from './errors.js';
+export { deleteSpace, type DeleteSpaceResult } from './spaces.js';
 export { parseCapture, type Capture, type CaptureOptions } from './capture.js';
 export {
   findTimeInText, resolveCaptureTime,

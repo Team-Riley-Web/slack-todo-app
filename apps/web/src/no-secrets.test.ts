@@ -3,8 +3,10 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
-import { settingsView, setChannelMapping, removeChannelMapping } from './operations/settings.js';
-import { getSpaceForChannel } from '@tr/task-core';
+import {
+  settingsView, setChannelMapping, removeChannelMapping, removeSpace,
+} from './operations/settings.js';
+import { getSpaceForChannel, listSpaces, createTask } from '@tr/task-core';
 
 let db: Db;
 const ORIGINAL = { ...process.env };
@@ -177,5 +179,48 @@ describe('settings mutations', () => {
     const view = await settingsView(db);
     expect(view.channels.map((c) => c.channelId)).toEqual(['C_B']);
     expect((await getSpaceForChannel(db, 'C_A')).mapped).toBe(false);
+  });
+});
+
+describe('deleting a Space from the web', () => {
+  const spaceNamed = async (name: string) =>
+    (await listSpaces(db)).find((s) => s.name === name)!;
+
+  it('deletes an empty Space', async () => {
+    const yoga = await spaceNamed('Client - Yoga Farm');
+    expect((await removeSpace(db, yoga.id)).ok).toBe(true);
+    expect((await listSpaces(db)).some((s) => s.id === yoga.id)).toBe(false);
+  });
+
+  it('refuses a Space holding tasks, with a message that says why', async () => {
+    const marketing = await spaceNamed('Marketing');
+    await createTask(db, { title: 'Still here', spaceId: marketing.id });
+    const result = await removeSpace(db, marketing.id);
+    expect(result.ok).toBe(false);
+    // OperationResult is a discriminated union; narrow before reading `error`.
+    if (!result.ok) expect(result.error).toContain('task');
+    expect((await listSpaces(db)).some((s) => s.id === marketing.id)).toBe(true);
+  });
+
+  it('refuses Inbox', async () => {
+    const inbox = (await listSpaces(db)).find((s) => s.is_inbox)!;
+    expect((await removeSpace(db, inbox.id)).ok).toBe(false);
+  });
+
+  it('drops the deleted Space out of the settings view', async () => {
+    const before = (await settingsView(db)).spaces.length;
+    const yoga = await spaceNamed('Client - Yoga Farm');
+    await removeSpace(db, yoga.id);
+    expect((await settingsView(db)).spaces).toHaveLength(before - 1);
+  });
+});
+
+describe('Space ordering in the web data layer', () => {
+  it('puts Inbox first, then alphabetical by displayed name', async () => {
+    const shown = (await settingsView(db)).spaces
+      .map((s) => s.name.replace(/^Client - /, ''));
+    expect(shown[0]).toBe('Inbox');
+    const rest = shown.slice(1);
+    expect(rest).toEqual([...rest].sort((a, b) => a.localeCompare(b)));
   });
 });
