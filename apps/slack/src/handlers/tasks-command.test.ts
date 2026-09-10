@@ -33,14 +33,15 @@ const posted = () =>
     client.chat.postEphemeral.mock.calls[0]?.[0] ?? client.chat.postMessage.mock.calls[0]![0]!
   );
 
-// Required tests 9, 12
+// Required tests 9, 12. Counts now live behind `/tasks summary`; bare `/tasks`
+// lists the tasks themselves.
 it('summarizes counts per space, excluding completed tasks', async () => {
   const done = await add('Agency / Internal', 'Done');
   await add('Agency / Internal', 'A');
   await add('Marketing', 'B');
   await completeTask(db, done.id, actor);
 
-  await handleTasksCommand(deps(), cmd('') as never);
+  await handleTasksCommand(deps(), cmd('summary') as never);
   const out = posted();
   expect(out).toContain('Agency / Internal');
   expect(out).toContain('Marketing');
@@ -52,7 +53,7 @@ it('reports waiting counts alongside open counts', async () => {
   const w = await add('Sales', 'Waiting one');
   await add('Sales', 'Open one');
   await moveTask(db, w.id, { status: 'waiting' }, actor);
-  await handleTasksCommand(deps(), cmd('') as never);
+  await handleTasksCommand(deps(), cmd('summary') as never);
   expect(posted()).toContain('1 waiting');
 });
 
@@ -154,22 +155,70 @@ it('returns interactive checkboxes in the channel-defaulted view', async () => {
   expect(posted()).toContain('checkboxes');
 });
 
-it('shows the cross-Space summary from an unmapped channel', async () => {
+it('lists every task from an unmapped channel, rather than counts', async () => {
+  // This used to answer with "Marketing: 1 open", which told you a task
+  // existed without letting you tick it off.
   await add('Marketing', 'Mkt task');
+  await add('Sales', 'Sales task');
   const r = await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
-  expect(r.scope).toBe('summary');
-  expect(posted()).toContain('MY TASKS');
+  expect(r.scope).toBe('all');
+  expect(r.count).toBe(2);
+  const out = posted();
+  expect(out).toContain('Mkt task');
+  expect(out).toContain('Sales task');
+  expect(out).toContain('checkboxes');
 });
 
-it('forces the summary with /tasks all even from a mapped channel', async () => {
+it('groups the everything view by Space, each Space once', async () => {
+  await add('Marketing', 'Mkt one');
+  await add('Marketing', 'Mkt two');
+  await add('Sales', 'Sales one');
+  await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+
+  const blocks = (client.chat.postMessage.mock.calls[0]![0] as any).blocks as any[];
+  const headings = blocks.filter((b) => b.type === 'header').map((b) => b.text.text);
+  expect(headings).toEqual(['MARKETING', 'SALES']);
+});
+
+it('says nothing open, ephemerally, when there are no tasks at all', async () => {
+  const r = await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+  expect(r.count).toBe(0);
+  expect(client.chat.postMessage).not.toHaveBeenCalled();
+  expect(posted()).toContain('Nothing open');
+});
+
+it('excludes completed and waiting from the everything view', async () => {
+  const done = await add('Marketing', 'Done task');
+  const wait = await add('Sales', 'Waiting task');
+  await add('Music', 'Open task');
+  await completeTask(db, done.id, actor);
+  await moveTask(db, wait.id, { status: 'waiting' }, actor);
+
+  const r = await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+  expect(r.count).toBe(1);
+  const out = posted();
+  expect(out).toContain('Open task');
+  expect(out).not.toContain('Done task');
+  expect(out).not.toContain('Waiting task');
+});
+
+it('shows every Space with /tasks all, even from a mapped channel', async () => {
   await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
   await add('Client - Secure Logic', 'Secure task');
   await add('Marketing', 'Mkt task');
   const r = await handleTasksCommand(deps(), cmd('all', { channel_id: 'C_SECURE' }) as never);
-  expect(r.scope).toBe('summary');
+  expect(r.scope).toBe('all');
   const out = posted();
-  expect(out).toContain('MY TASKS');
-  expect(out).toContain('Marketing');
+  expect(out).toContain('Secure task');
+  expect(out).toContain('Mkt task');
+});
+
+it('still offers counts on request, from anywhere', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  await add('Marketing', 'Mkt task');
+  const r = await handleTasksCommand(deps(), cmd('summary', { channel_id: 'C_SECURE' }) as never);
+  expect(r.scope).toBe('summary');
+  expect(posted()).toContain('MY TASKS');
 });
 
 it('lets an explicit scope override the channel mapping', async () => {
@@ -214,7 +263,9 @@ it('never infers a Space from channel-name text when the channel is unmapped', a
   const r = await handleTasksCommand(
     deps(), cmd('', { channel_id: 'C_client_secure_logic' }) as never
   );
-  expect(r.scope).toBe('summary');
+  // Every Space, not the one the channel id happens to spell.
+  expect(r.scope).toBe('all');
+  expect(posted()).toContain('Secure task');
 });
 
 // --- native Slack elements ---
@@ -222,7 +273,7 @@ it('never infers a Space from channel-name text when the channel is unmapped', a
 it('renders the summary with a native header and section fields', async () => {
   await add('Agency / Internal', 'A');
   await add('Marketing', 'B');
-  await handleTasksCommand(deps(), cmd('') as never);
+  await handleTasksCommand(deps(), cmd('summary') as never);
 
   const arg = client.chat.postEphemeral.mock.calls[0]![0] as any;
   const blocks = arg.blocks as any[];

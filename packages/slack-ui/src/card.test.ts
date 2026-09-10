@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  taskCardBlocks, taskCardFallback, taskListBlocks, CHECKBOX_ACTION_ID,
+  taskCardBlocks, taskCardFallback, taskListBlocks, taskControlBlocks,
+  CHECKBOX_ACTION_ID,
 } from './card.js';
 import type { Task, Space } from '@tr/task-core';
 
@@ -234,5 +235,59 @@ describe('Slack 50-block message limit', () => {
   it('adds no overflow note when everything fits', () => {
     const blocks = taskCardBlocks(many(12), opts);
     expect(JSON.stringify(blocks)).not.toContain('not shown');
+  });
+});
+
+
+// --- control placement ---
+
+describe('where the overflow menu sits', () => {
+  const actionsOf = (blocks: any[]) => blocks.filter((b: any) => b.type === 'actions');
+
+  it('puts the overflow in the same actions block as the checkbox', () => {
+    // It used to be its own actions block underneath, which Slack rendered as
+    // a stray button separated by a large vertical gap. An actions block lays
+    // its elements out in a row, so sharing the block puts the menu to the
+    // right of the task.
+    const actions = actionsOf(taskCardBlocks([{ task: task(), space }], opts));
+    expect(actions).toHaveLength(1);
+    expect(actions[0].elements.map((e: any) => e.type))
+      .toEqual(['checkboxes', 'overflow']);
+  });
+
+  it('keeps the checkbox first, so it stays on the left', () => {
+    const actions = actionsOf(taskCardBlocks([{ task: task(), space }], opts));
+    expect(actions[0].elements[0].type).toBe('checkboxes');
+  });
+
+  it('keeps the versioned block_id on the shared block', () => {
+    // The checkbox handler matches a payload to the render it came from
+    // through this id, so merging the blocks must not disturb it.
+    const actions = actionsOf(
+      taskCardBlocks([{ task: task(), space }], { ...opts, version: 4 })
+    );
+    expect(actions[0].block_id).toBe('task_toggle:0:v4');
+  });
+
+  it('gives a completed single task a checkbox and no overflow', () => {
+    const actions = actionsOf(taskCardBlocks(
+      [{ task: task({ status: 'completed', completed_at: new Date() }), space }], opts
+    ));
+    expect(actions[0].elements.map((e: any) => e.type)).toEqual(['checkboxes']);
+  });
+
+  it('adds no overflow to a multi-task card, since one menu cannot target one task', () => {
+    const actions = actionsOf(taskCardBlocks(
+      [{ task: task(), space }, { task: task({ id: '22222222-2222-4222-8222-222222222222' }), space }],
+      opts
+    ));
+    expect(actions.flatMap((b: any) => b.elements.map((e: any) => e.type)))
+      .toEqual(['checkboxes']);
+  });
+
+  it('still exposes the overflow as a standalone block for other callers', () => {
+    const blocks = taskControlBlocks({ task: task(), space }) as any[];
+    expect(blocks[0].type).toBe('actions');
+    expect(blocks[0].elements[0].type).toBe('overflow');
   });
 });

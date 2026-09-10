@@ -3,7 +3,8 @@ export {
   LABEL_BUDGET, DESCRIPTION_BUDGET, type MetaOpts,
 } from './label.js';
 export {
-  taskOption, taskCardBlocks, taskListBlocks, taskControlBlocks, taskCardFallback,
+  taskOption, taskCardBlocks, taskListBlocks, taskControlBlocks,
+  taskControlElement, taskCardFallback,
   headerBlock, confirmObject, summaryBlocks, type SpaceCountLike,
   CHECKBOX_ACTION_ID, CHECKBOX_BLOCK_PREFIX, WAITING_ACTION_ID,
   checkboxBlockId, parseBlockVersion,
