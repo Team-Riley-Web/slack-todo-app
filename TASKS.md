@@ -26,5 +26,8 @@ unchecked task unless you are starting it.
     git@github-riley:TheRileyBird/slack-todo-app.git and dropped the repo-local https helper.
     Verified a write-auth dry-run succeeds while gh is active as Joshua-Riley-ZD, so this repo no
     longer depends on the active gh account.
-- [ ] Merge phase2b-web-ui to master
+- [x] Merge phase2b-web-ui to master
+  - Done 2026-09-10: merged with --no-ff (612dc7d) so the Phase 2B boundary stays visible, then
+    re-ran install, 656 tests and typecheck on master before pushing over the new SSH remote.
+    phase2b-web-ui is fully merged and can be deleted whenever you want.
 - [ ] Build the Slack import wizard (file_input + views.push)
