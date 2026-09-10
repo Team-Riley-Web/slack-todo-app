@@ -4,7 +4,7 @@ import { requireUser } from '@/user';
 import { spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { spaceHref, shortSpaceName } from '@/lib/display';
-import { removeSpaceFormVoid } from '@/actions/settings';
+import { removeSpaceFormVoid, addSpaceFormVoid } from '@/actions/settings';
 
 export default async function SpacesPage({
   searchParams,
@@ -29,6 +29,22 @@ export default async function SpacesPage({
       </p>
 
       {error ? <p className="error">{String(error)}</p> : null}
+
+      <form className="filters" action={addSpaceFormVoid}>
+        <input
+          type="text"
+          name="name"
+          required
+          maxLength={80}
+          placeholder="New Space, e.g. Client - Rosario Landscaping"
+          aria-label="New Space name"
+        />
+        <button type="submit" className="primary">Add Space</button>
+      </form>
+      <p className="muted small">
+        Stored exactly as typed. Naming a Space that already exists selects it
+        rather than creating a second one.
+      </p>
 
       <div className="spaces">
         {rows.map(({ space, open, waiting, completed }) => {

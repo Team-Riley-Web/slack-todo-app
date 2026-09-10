@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { getDb } from '@/db';
 import { currentUser } from '@/user';
 import {
-  setChannelMapping, removeChannelMapping, removeSpace,
+  setChannelMapping, removeChannelMapping, removeSpace, addSpace,
 } from '@/operations/settings';
 
 async function guard() {
@@ -55,6 +55,22 @@ export async function removeSpaceFormVoid(formData: FormData): Promise<void> {
   }
   const spaceId = String(formData.get('spaceId') ?? '');
   const result = await removeSpace(db, spaceId);
+  revalidatePath('/spaces');
+  revalidatePath('/settings');
+  revalidatePath('/');
+  if (!result.ok) {
+    redirect(`/spaces?error=${encodeURIComponent(result.error)}`);
+  }
+  redirect('/spaces');
+}
+
+export async function addSpaceFormVoid(formData: FormData): Promise<void> {
+  const db = await guard();
+  if (!db) {
+    redirect('/spaces?error=' + encodeURIComponent('You are not signed in.'));
+  }
+  const name = String(formData.get('name') ?? '');
+  const result = await addSpace(db, name);
   revalidatePath('/spaces');
   revalidatePath('/settings');
   revalidatePath('/');

@@ -51,3 +51,8 @@ unchecked task unless you are starting it.
   - Done 2026-09-10: listSpaces now orders by the DISPLAYED name (regexp_replace strips 'Client - '). It was already alphabetical by the stored name, which is why it looked random: the client block sorted under C. Inbox stays pinned first.
 - [x] Show Spaces as a vertical sidebar in the web UI, closer to the Workast setup, with things toggleable
   - Done 2026-09-10: components/Sidebar.tsx, a rail on My tasks / Waiting / History / Spaces. One CSS grid, stacks above the content below 820px. Counts only where non-zero. Reads the same spaceSummary the /spaces page uses so counts cannot disagree.
+
+- [x] Bare `/task` opens the full capture modal
+  - Done 2026-09-10: title, Space picker, new-Space text field, status, assignee, due, details. The one-line `/task <title>` fast path is untouched. Replaces a usage message that told you the syntax and made you type it again.
+- [x] Create a Space
+  - Done 2026-09-10: createSpace in task-core, reachable from the /task modal's "…or a new Space" field and from a form on /spaces. Idempotent on the name, slug derived and de-duplicated, seeds the standard two lists. Does not prepend 'Client - '.

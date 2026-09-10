@@ -4,12 +4,15 @@ import {
 } from '@tr/task-core';
 import { taskCardBlocks, taskCardFallback, slackDate } from '@tr/slack-ui';
 import { authorize } from '../auth.js';
+import { handleCaptureOpen } from './capture-modal.js';
 import { saveCard } from '@tr/slack-sync';
 import type { AppConfig } from '../config.js';
 
 export interface CommandDeps {
   db: Db;
   client: {
+    /** Only the bare-`/task` modal needs this, so it stays optional. */
+    views?: { open: (args: Record<string, unknown>) => Promise<unknown> };
     chat: {
       postMessage: (args: Record<string, unknown>) => Promise<{ ts?: string }>;
       postEphemeral: (args: Record<string, unknown>) => Promise<unknown>;
@@ -46,7 +49,15 @@ export async function handleTaskCommand(
   const { title, dueAt, dueFromTitleTime } = parseCapture(command.text ?? '', {
     now: new Date(), timeZone: config.timeZone,
   });
+  /**
+   * A bare `/task` opens the full capture modal rather than printing the
+   * syntax and making you type it again. `/task <title>` is untouched.
+   */
   if (!title) {
+    if (deps.client.views && command.trigger_id) {
+      await handleCaptureOpen(deps as never, command);
+      return { created: null, reason: 'opened_modal' };
+    }
     await client.chat.postEphemeral({
       channel: command.channel_id, user: command.user_id,
       text: 'Usage: `/task <task title>` — optionally ending with `due:YYYY-MM-DD`.',

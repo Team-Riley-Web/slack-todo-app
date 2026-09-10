@@ -1,7 +1,7 @@
 import { it, expect, beforeEach, afterEach } from 'vitest';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
-import { listSpaces, deleteSpace } from './spaces.js';
+import { listSpaces, deleteSpace, createSpace } from './spaces.js';
 import { createTask, completeTask } from './tasks.js';
 import { mapChannelToSpace } from './channel-map.js';
 import { getSpaceForChannel } from './context.js';
@@ -131,4 +131,79 @@ it('reports a Space that no longer exists rather than throwing', async () => {
 
 it('rejects a blank id', async () => {
   expect((await deleteSpace(db, '   ')).ok).toBe(false);
+});
+
+// --- creating a Space ---
+
+it('creates a Space with a slug and the standard two lists', async () => {
+  const result = await createSpace(db, 'Client - Rosario Landscaping');
+  expect(result.ok).toBe(true);
+  expect(result.existed).toBe(false);
+  expect(result.space!.name).toBe('Client - Rosario Landscaping');
+  expect(result.space!.slug).toBe('rosario-landscaping');
+  expect(result.space!.is_inbox).toBe(false);
+
+  const { rows } = await db.query<{ name: string }>(
+    `SELECT name FROM lists WHERE space_id = $1 ORDER BY name`, [result.space!.id]
+  );
+  expect(rows.map((r) => r.name)).toEqual(['Open', 'Waiting / Blocked']);
+});
+
+it('stores the name as typed, apart from an outer trim', async () => {
+  const result = await createSpace(db, '  Rosario  Landscaping  ');
+  // Interior runs of whitespace collapse to one space; nothing else changes.
+  expect(result.space!.name).toBe('Rosario Landscaping');
+});
+
+it('returns the existing Space rather than failing on a duplicate name', async () => {
+  const first = await createSpace(db, 'Rosario');
+  const second = await createSpace(db, 'rosario');
+  expect(second.ok).toBe(true);
+  expect(second.existed).toBe(true);
+  expect(second.space!.id).toBe(first.space!.id);
+});
+
+it('does not add Client - for you', async () => {
+  // Whether a Space is a client is the operator's call, not a naming rule.
+  const result = await createSpace(db, 'Rosario Landscaping');
+  expect(result.space!.name).toBe('Rosario Landscaping');
+});
+
+it('makes the slug unique when two names slug the same', async () => {
+  const a = await createSpace(db, 'Rosario Landscaping');
+  const b = await createSpace(db, 'Rosario  Landscaping!');
+  expect(a.space!.slug).toBe('rosario-landscaping');
+  expect(b.space!.slug).toBe('rosario-landscaping-2');
+  expect(b.space!.id).not.toBe(a.space!.id);
+});
+
+it('does not collide with a seeded slug', async () => {
+  // "Client - Marketing" strips to "marketing", which Marketing already has.
+  const result = await createSpace(db, 'Client - Marketing');
+  expect(result.ok).toBe(true);
+  expect(result.space!.slug).toBe('marketing-2');
+});
+
+it('rejects a blank name and a name with no letters or digits', async () => {
+  expect((await createSpace(db, '   ')).ok).toBe(false);
+  expect((await createSpace(db, '!!!')).ok).toBe(false);
+});
+
+it('rejects a name beyond 80 characters rather than truncating it', async () => {
+  const result = await createSpace(db, 'x'.repeat(81));
+  expect(result.ok).toBe(false);
+  expect(result.error).toContain('too long');
+});
+
+it('sorts a new Space into place, not onto the end', async () => {
+  await createSpace(db, 'Client - Bravo');
+  const shown = (await listSpaces(db)).map((s) => s.name.replace(/^Client - /, ''));
+  const rest = shown.slice(1);
+  expect(rest).toEqual([...rest].sort((a, b) => a.localeCompare(b)));
+  expect(rest.indexOf('Bravo')).toBeLessThan(rest.indexOf('Marketing'));
+});
+
+it('creates a Space that can then be deleted while empty', async () => {
+  const made = await createSpace(db, 'Temporary');
+  expect((await deleteSpace(db, made.space!.id)).ok).toBe(true);
 });

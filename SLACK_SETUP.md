@@ -66,7 +66,7 @@ Request URL field is not used.
 
 | Command | Short description | Usage hint |
 |---|---|---|
-| `/task` | Capture a task, exactly as typed | `<task title> [due:YYYY-MM-DD]` |
+| `/task` | Capture a task, exactly as typed. No text opens a form. | `<task title> [due:YYYY-MM-DD]` |
 | `/tasks` | View your tasks | `[space \| waiting]` |
 | `/import` | Import tasks from a CSV or JSON file | (no arguments) |
 

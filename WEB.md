@@ -31,6 +31,19 @@ the stored name looked broken: every client Space is stored as
 under C and landed between `Agency / Internal` and `Marketing`. The sort key has
 to match the text on screen.
 
+## Creating a Space
+
+On `/spaces`, or in Slack from the bare `/task` modal's "…or a new Space"
+field. Both call `createSpace` in `task-core`.
+
+The name is stored as typed apart from an outer trim, and `Client - ` is not
+added for you — whether a Space is a client is your call, not a naming rule
+the code invents. Creation is idempotent on the name: asking for a Space that
+already exists returns it rather than failing, because a client arriving twice
+is not worth blocking on. The slug is derived (`Client - Rosario Landscaping`
+becomes `rosario-landscaping`) and made unique if it would collide. A new Space
+gets the same two lists every seeded Space has.
+
 ## Deleting a Space
 
 On `/spaces`, an empty Space has a Delete disclosure — two deliberate clicks,

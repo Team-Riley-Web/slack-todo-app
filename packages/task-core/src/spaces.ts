@@ -159,3 +159,94 @@ export async function findSpaceByQuery(db: Db, q: string): Promise<Space | null>
   );
   return fuzzy[0] ?? null;
 }
+
+/**
+ * The slug for a Space name, matching the convention the seeds established:
+ * the "Client - " prefix is dropped, then lowercase and hyphenate.
+ *
+ *   "Client - Joy Within Birth" -> "joy-within-birth"
+ *   "Agency / Internal"         -> "agency-internal"
+ */
+export function slugForSpace(name: string): string {
+  return name
+    .replace(/^Client\s*-\s*/i, '')
+    .normalize('NFKD')
+    // Combining marks, written as an explicit escape range so the class
+    // cannot be mangled by an editor or a patch.
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
+
+export interface CreateSpaceResult {
+  ok: boolean;
+  space?: Space;
+  error?: string;
+  /** True when a Space with that name already existed and was returned as-is. */
+  existed?: boolean;
+}
+
+/**
+ * Creates a Space, with the same two lists every seeded Space has.
+ *
+ * Idempotent on the name: asking for a Space that already exists returns it
+ * rather than failing. A new client arriving twice is not an error worth
+ * blocking on, and the alternative is a duplicate-key message for something
+ * the caller plainly wants to exist.
+ *
+ * The name is stored as typed, apart from an outer trim -- the same restraint
+ * the task title gets. "Client - " is not added for you: whether a Space is a
+ * client is your call, not a naming rule this function invents.
+ */
+export async function createSpace(
+  db: Db, name: string
+): Promise<CreateSpaceResult> {
+  const clean = (name ?? '').trim().replace(/\s+/g, ' ');
+  if (!clean) return { ok: false, error: 'A Space needs a name.' };
+  if ([...clean].length > 80) {
+    return { ok: false, error: 'That name is too long (80 characters max).' };
+  }
+
+  return db.transaction(async (tx) => {
+    const { rows: already } = await tx.query<Space>(
+      `SELECT ${COLS} FROM spaces WHERE lower(name) = lower($1)`, [clean]
+    );
+    if (already[0]) return { ok: true, space: already[0], existed: true };
+
+    const base = slugForSpace(clean);
+    if (!base) {
+      return { ok: false, error: 'That name has no letters or digits in it.' };
+    }
+
+    // A distinct name can still slug to a taken value ("Sales" vs "sales"),
+    // so the slug is made unique rather than allowed to collide.
+    let slug = base;
+    for (let n = 2; n < 100; n += 1) {
+      const { rows } = await tx.query<{ slug: string }>(
+        `SELECT slug FROM spaces WHERE slug = $1`, [slug]
+      );
+      if (rows.length === 0) break;
+      slug = `${base}-${n}`;
+    }
+
+    const { rows: created } = await tx.query<Space>(
+      `INSERT INTO spaces (name, slug, is_inbox) VALUES ($1, $2, false)
+       RETURNING ${COLS}`,
+      [clean, slug]
+    );
+    const space = created[0]!;
+
+    // The same two lists every seeded Space has, so a new Space is not
+    // structurally different from the ones that came with the system.
+    await tx.query(
+      `INSERT INTO lists (space_id, name)
+       SELECT $1, l.name FROM (VALUES ('Open'), ('Waiting / Blocked')) AS l(name)
+       ON CONFLICT (space_id, name) DO NOTHING`,
+      [space.id]
+    );
+
+    return { ok: true, space, existed: false };
+  });
+}

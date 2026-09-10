@@ -35,3 +35,8 @@ export {
   MAP_CALLBACK_ID, MAP_BLOCK, MAP_ACTION, MAP_NONE,
   type MapMeta, type ParsedMap,
 } from './map-view.js';
+export {
+  captureTaskView, parseCaptureSubmission,
+  CAPTURE_CALLBACK_ID, CAPTURE_BLOCKS, CAPTURE_TEXT_MAX,
+  type CaptureMeta, type ParsedCapture,
+} from './capture-view.js';
