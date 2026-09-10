@@ -10,6 +10,11 @@ export interface TaskRowProps {
   showAge?: boolean;
   /** History shows where a task came from and when it finished. */
   showProvenance?: boolean;
+  /**
+   * False on a Space page, where the heading already names the Space and
+   * repeating it on every row is the same noise the Slack card had.
+   */
+  showSpace?: boolean;
   assigneeLabels?: Record<string, string>;
 }
 
@@ -31,7 +36,7 @@ function assigneeName(
  * page cannot be triggered by a stray click in a list.
  */
 export function TaskRow({
-  task, space, showAge, showProvenance, assigneeLabels,
+  task, space, showAge, showProvenance, showSpace = true, assigneeLabels,
 }: TaskRowProps) {
   const done = task.status === 'completed';
   const completeHere = async () => {
@@ -45,9 +50,9 @@ export function TaskRow({
   const due = dueLabel(task);
   const who = assigneeName(task, assigneeLabels);
 
-  const meta: React.ReactNode[] = [
-    <span key="space">{shortSpaceName(space)}</span>,
-  ];
+  const meta: React.ReactNode[] = showSpace
+    ? [<span key="space">{shortSpaceName(space)}</span>]
+    : [];
   if (who) meta.push(<span key="who">{who}</span>);
   if (due && !done) {
     meta.push(<span key="due" className={due.tone}>{due.text}</span>);
@@ -138,6 +143,7 @@ export function TaskList(props: {
   empty: string;
   showAge?: boolean;
   showProvenance?: boolean;
+  showSpace?: boolean;
   assigneeLabels?: Record<string, string>;
 }) {
   if (props.rows.length === 0) {
@@ -152,6 +158,7 @@ export function TaskList(props: {
           space={space}
           showAge={props.showAge}
           showProvenance={props.showProvenance}
+          showSpace={props.showSpace}
           assigneeLabels={props.assigneeLabels}
         />
       ))}

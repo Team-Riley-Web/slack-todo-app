@@ -58,9 +58,13 @@ unchecked task unless you are starting it.
   - Done 2026-09-10: createSpace in task-core, reachable from the /task modal's "…or a new Space" field and from a form on /spaces. Idempotent on the name, slug derived and de-duplicated, seeds the standard two lists. Does not prepend 'Client - '.
 - [x] BUG: the check mark in the web UI does not mark a task complete — it should
   - Done 2026-09-10: it was a readOnly checkbox next to a `hidden` submit button. A checkbox does not submit a form and this app ships no client JS, so nothing could reach the submit. Now a real submit button. Verified in a real browser: task_events shows completed/source=web at 21:09:00. curl cannot replay a React server action (the $ACTION_REF is unreconstructable), so it 500s and proves nothing.
-- [ ] Web UI: rework the top nav to match the Workast layout — clean, with My tasks / Due today, and Spaces in the left sidebar
-- [ ] Web UI: make Edit a modal in the centre or a pane that slides in from the right, instead of its own page
-- [ ] Web UI: inside a Space, show Open, then Waiting/Backlog, then Completed as toggleable (collapsible) sections
-- [ ] Web UI: drop the Spaces filter chips from My tasks, since the Spaces are all in the left sidebar
+- [x] Web UI: rework the top nav to match the Workast layout — clean, with My tasks / Due today, and Spaces in the left sidebar
+  - Done 2026-09-10: brand + My tasks / Due today / Waiting / Completed, with Settings and the signed-in user pushed right. Active item is an underline rather than a filled pill (five filled pills read as buttons). Spaces left the top nav entirely — they are the rail. New /today route pins the due bucket.
+- [x] Web UI: make Edit a modal in the centre or a pane that slides in from the right, instead of its own page
+  - Done 2026-09-10: a right-side pane over a dimmed backdrop. Still a real route, not a dialog: the backdrop is a link back to the list, so closing needs no client JS and the URL stays linkable. Full width below 620px.
+- [x] Web UI: inside a Space, show Open, then Waiting/Backlog, then Completed as toggleable (collapsible) sections
+  - Done 2026-09-10: three `details`/`summary` sections with a CSS-only chevron and a count. Open and Waiting start expanded, Completed starts closed because it only grows. Three separate queries so each count matches its section exactly.
+- [x] Web UI: drop the Spaces filter chips from My tasks, since the Spaces are all in the left sidebar
+  - Done 2026-09-10: FilterBar now gets show={['search','status','due','assignee']} on My tasks. Also dropped the Space from each row's meta line on a Space page, where the heading already names it.
 - [x] Web UI: use a circle check mark like Workast, green when complete, and strike through a completed task
   - Done 2026-09-10: same change. Hollow circle when open, faint tick on hover, filled green with a white tick when complete. Strike-through was already in the CSS.

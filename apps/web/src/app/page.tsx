@@ -48,6 +48,7 @@ export default async function MyTasksPage({
         spaces={spaces}
         assignees={assignees}
         assigneeLabels={assigneeLabels()}
+        show={['search', 'status', 'due', 'assignee']}
       />
       <TaskList
         rows={rows}
