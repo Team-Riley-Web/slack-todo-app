@@ -1,0 +1,74 @@
+# Slack app manifest for Team Riley Tasks.
+#
+# Paste this at api.slack.com/apps -> Create New App -> From an app manifest.
+# It sets the scopes, Socket Mode, interactivity and all three slash commands
+# in one step, so steps 2, 4 and 5 of SLACK_SETUP.md are already done.
+#
+# You still have to install the app and collect the tokens by hand -- a
+# manifest cannot grant itself an installation.
+#
+# `long_description` is deliberately omitted: App Settings rejects a manifest
+# whose long_description is shorter than 174 characters, and a wrong-length
+# string is a worse failure than an absent optional field.
+
+_metadata:
+  major_version: 1
+  minor_version: 1
+
+display_information:
+  name: Team Riley Tasks
+  description: Capture and complete tasks without leaving Slack.
+  background_color: "#1f2933"
+
+features:
+  bot_user:
+    display_name: Team Riley Tasks
+    always_online: false
+
+  slash_commands:
+    # should_escape MUST stay false on /task.
+    #
+    # With it true, Slack rewrites user and channel references in the text --
+    # `@joshua` arrives as `<@U01ABCDEF>` and `#sales` as `<#C0123|sales>`.
+    # The whole point of this app is that a title is stored byte for byte as
+    # typed, so escaping would silently corrupt exactly the thing the system
+    # guarantees.
+    - command: /task
+      description: Capture a task, exactly as typed
+      usage_hint: "<task title> [due:YYYY-MM-DD]"
+      should_escape: false
+
+    - command: /tasks
+      description: View your tasks
+      usage_hint: "[space | waiting | all]"
+      should_escape: false
+
+    - command: /import
+      description: Import tasks from a CSV or JSON file
+      should_escape: false
+
+oauth_config:
+  scopes:
+    bot:
+      # /task, /tasks, /import
+      - commands
+      # posting task cards, chat.update in place, ephemeral replies
+      - chat:write
+      # reading the file uploaded to the import wizard. url_private is not a
+      # public URL and needs a token carrying this scope.
+      - files:read
+
+settings:
+  # Interactivity is required for the checkbox and the overflow menu to send
+  # block_actions, and for the modals to send view_submission. Under Socket
+  # Mode no request_url is needed.
+  interactivity:
+    is_enabled: true
+
+  # No event subscriptions. This app never reads messages: channel -> Space
+  # mapping is configuration, not discovery.
+
+  socket_mode_enabled: true
+  org_deploy_enabled: false
+  token_rotation_enabled: false
+  is_hosted: false
