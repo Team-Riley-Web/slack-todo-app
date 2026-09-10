@@ -163,6 +163,98 @@ export async function updateTaskDetails(
   return requireTask(db, safe);
 }
 
+export interface EditableFields {
+  title?: string;
+  spaceId?: string;
+  status?: TaskStatus;
+  waitingOn?: string | null;
+  assigneeId?: string | null;
+  dueAt?: Date | null;
+  details?: string | null;
+}
+
+/**
+ * The ONLY function in this system that writes `tasks.title`.
+ *
+ * Reachable from human surfaces only: the Slack edit modal and, in Phase 2B,
+ * the web UI. It is deliberately absent from the MCP tool list and the REST
+ * routes, so Hermes stays structurally unable to rename, combine, or split a
+ * task. `tests/determinism.test.ts` asserts that rather than trusting this
+ * comment.
+ *
+ * Reads only the keys of EditableFields off `patch`; any other key is ignored
+ * because it is never looked at. An unchanged submit writes nothing and logs
+ * nothing.
+ */
+export async function editTask(
+  db: Db, id: string, patch: EditableFields, actor: Actor
+): Promise<Task> {
+  const safe = assertTaskId(id);
+  const before = await requireTask(db, safe);
+
+  if (patch.title !== undefined) {
+    if (typeof patch.title !== 'string' || patch.title.trim().length === 0) {
+      throw new Error('title must be a non-empty string');
+    }
+  }
+  if (patch.dueAt != null && Number.isNaN(patch.dueAt.getTime())) {
+    throw new InvalidDueDateError(patch.dueAt);
+  }
+  if (patch.status !== undefined &&
+      !['open', 'waiting', 'completed'].includes(patch.status)) {
+    throw new Error(`invalid status: ${String(patch.status)}`);
+  }
+
+  // Outer trim is the single permitted normalization, exactly as at capture.
+  const nextTitle = patch.title !== undefined ? patch.title.trim() : before.title;
+  const nextSpace = patch.spaceId ?? before.space_id;
+  const nextStatus = patch.status ?? before.status;
+  const nextAssignee =
+    patch.assigneeId !== undefined ? patch.assigneeId : before.assignee_id;
+  const nextDue = patch.dueAt !== undefined ? patch.dueAt : before.due_at;
+  const nextDetails =
+    patch.details !== undefined
+      ? (patch.details === null || patch.details.length === 0 ? null : patch.details)
+      : before.details;
+  const nextWaitingOn =
+    nextStatus === 'waiting'
+      ? (patch.waitingOn !== undefined ? patch.waitingOn : before.waiting_on)
+      : null;
+
+  const changed: Record<string, { from: unknown; to: unknown }> = {};
+  const note = (key: string, from: unknown, to: unknown): void => {
+    const same =
+      from instanceof Date && to instanceof Date
+        ? from.getTime() === to.getTime()
+        : from === to;
+    if (!same) changed[key] = { from, to };
+  };
+  note('title', before.title, nextTitle);
+  note('space_id', before.space_id, nextSpace);
+  note('status', before.status, nextStatus);
+  note('assignee_id', before.assignee_id ?? null, nextAssignee ?? null);
+  note('due_at', before.due_at ?? null, nextDue ?? null);
+  note('waiting_on', before.waiting_on ?? null, nextWaitingOn);
+  note('details', before.details ?? null, nextDetails);
+
+  // Nothing changed: no write, no audit event.
+  if (Object.keys(changed).length === 0) return before;
+
+  await db.query(
+    `UPDATE tasks
+        SET title = $2, space_id = $3, status = $4, assignee_id = $5,
+            due_at = $6, waiting_on = $7, details = $8,
+            completed_at = CASE WHEN $4 = 'completed'
+                                THEN COALESCE(completed_at, now()) ELSE NULL END
+      WHERE id = $1`,
+    [safe, nextTitle, nextSpace, nextStatus, nextAssignee ?? null,
+     nextDue ?? null, nextWaitingOn, nextDetails]
+  );
+
+  await logEvent(db, safe, 'edited', actor, { changed });
+  return requireTask(db, safe);
+}
+
 async function logEvent(
   db: Db, taskId: string, event: string, actor: Actor, detail?: unknown
 ): Promise<void> {

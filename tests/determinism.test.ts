@@ -28,12 +28,30 @@ async function allSources(): Promise<Array<{ file: string; text: string }>> {
   return out;
 }
 
-// Required test 18, enforced repository-wide
-it('contains no title-mutating SQL anywhere', async () => {
+/**
+ * The title guarantee changed shape in Phase 2A, deliberately.
+ *
+ * Before: no code path could write `tasks.title` at all. Now exactly one can,
+ * because a human needs to fix their own typo. The threat this guarantee exists
+ * to stop was never that - it was AI silently rewriting what the user said. So
+ * the assertion moves from "no title write exists" to "exactly one exists, at a
+ * known path, and it is unreachable from the surfaces Hermes speaks through".
+ */
+it('has exactly one title write path, and it is in task-core', async () => {
   const offenders = (await allSources())
-    .filter(({ text }) => /UPDATE\s+tasks\s+SET[^;`]*\btitle\b/is.test(text))
+    .filter(({ text }) => /UPDATE\s+tasks[\s\S]{0,400}?\btitle\b\s*=/i.test(text))
     .map(({ file }) => file);
-  expect(offenders).toEqual([]);
+  expect(offenders).toEqual(['packages/task-core/src/tasks.ts']);
+});
+
+it('never exposes editTask through the Hermes surfaces', async () => {
+  const mcp = await readFile('packages/mcp/src/tools.ts', 'utf8');
+  const rest = await readFile('apps/api/src/server.ts', 'utf8');
+  expect(mcp.includes('editTask'), 'MCP must not reference editTask').toBe(false);
+  expect(rest.includes('editTask'), 'REST must not reference editTask').toBe(false);
+
+  const { TOOL_NAMES } = await import('../packages/mcp/src/tools.js');
+  expect((TOOL_NAMES as string[]).some((n) => /title|rename/i.test(n))).toBe(false);
 });
 
 it('contains no fuzzy title matching in any mutation path', async () => {

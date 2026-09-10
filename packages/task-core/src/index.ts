@@ -6,6 +6,7 @@ export {
 } from './spaces.js';
 export {
   createTask, getTask, completeTask, reopenTask, moveTask, updateTaskDetails,
+  editTask, type EditableFields,
   type Actor, type CreateTaskInput, type MovePatch,
 } from './tasks.js';
 export {
