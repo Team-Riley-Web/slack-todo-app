@@ -32,7 +32,10 @@ export function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <details className="card" open={startOpen}>
+    <details
+      className={columns === 'spaces' ? 'card cols-spaces' : 'card'}
+      open={startOpen}
+    >
       <summary>
         <span className="chevron" aria-hidden="true" />
         <span className="name">{label}</span>
