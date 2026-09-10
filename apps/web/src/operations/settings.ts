@@ -2,6 +2,7 @@ import type { Db } from '@tr/db';
 import {
   listChannelMap, listSpaces, getInboxSpace,
   mapChannelToSpace, unmapChannel, deleteSpace as deleteSpaceCore,
+  createSpace as createSpaceCore,
   type Space, UnknownSpaceError,
 } from '@tr/task-core';
 import { listBatches, type ImportBatch } from '@tr/importer';
@@ -93,4 +94,13 @@ export async function removeSpace(
   const result = await deleteSpaceCore(db, spaceId);
   if (!result.ok) return { ok: false, error: result.error ?? 'Could not delete that Space.' };
   return { ok: true, taskId: spaceId };
+}
+
+/** Creates a Space. The rule, including idempotency on the name, is in task-core. */
+export async function addSpace(db: Db, name: string): Promise<OperationResult> {
+  const result = await createSpaceCore(db, name);
+  if (!result.ok || !result.space) {
+    return { ok: false, error: result.error ?? 'Could not create that Space.' };
+  }
+  return { ok: true, taskId: result.space.id };
 }

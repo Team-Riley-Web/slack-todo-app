@@ -21,6 +21,9 @@ import {
 } from './handlers/import-wizard.js';
 import { makeFetchFile } from './slack-file.js';
 import { handleMapSubmission, MAP_CALLBACK_ID } from './handlers/map-command.js';
+import {
+  handleCaptureSubmission, CAPTURE_CALLBACK_ID,
+} from './handlers/capture-modal.js';
 import { retentionDays, startRetentionSweep } from './retention.js';
 import { acquireLock } from './single-instance.js';
 
@@ -215,6 +218,25 @@ app.view(MAP_CALLBACK_ID, async ({ ack, body, client, view }) => {
     { ...(body as unknown as Record<string, unknown>), view } as never
   );
   if (result.outcome === 'invalid' && result.error) {
+    await ack({
+      response_action: 'errors',
+      errors: { [result.error.blockId]: result.error.message },
+    } as never);
+    return;
+  }
+  await ack();
+});
+
+/**
+ * The bare-`/task` capture modal's submit. A field problem comes back as a
+ * native error so the modal stays open with everything typed still in it.
+ */
+app.view(CAPTURE_CALLBACK_ID, async ({ ack, body, client, view }) => {
+  const result = await handleCaptureSubmission(
+    { db, client: client as never, config },
+    { ...(body as unknown as Record<string, unknown>), view } as never
+  );
+  if (result.error) {
     await ack({
       response_action: 'errors',
       errors: { [result.error.blockId]: result.error.message },
