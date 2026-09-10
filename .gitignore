@@ -8,3 +8,4 @@ dist/
 coverage/
 .next/
 next-env.d.ts
+.slack.pid

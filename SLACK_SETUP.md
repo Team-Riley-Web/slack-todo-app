@@ -173,6 +173,16 @@ pnpm migrate
 pnpm slack
 ```
 
+**One instance only.** Socket Mode lets several processes connect to the same
+app, and Slack delivers each event to exactly one of them — so a forgotten
+instance does not fail, it quietly serves a share of the traffic with whatever
+code it started with. The app takes a pidfile lock (`.slack.pid`) and refuses
+to start when another instance holds it, naming the pid to kill.
+
+Note that `pkill -f "tsx apps/slack/src/index.ts"` kills the tsx child but
+leaves the `pnpm slack` parent, which is how three instances once ended up
+running at once. Use `pkill -f "pnpm slack"` as well, or just Ctrl-C.
+
 Expect `[slack] running in socket mode`. An `invalid_auth` error means the bot
 token is wrong or the app is not installed.
 

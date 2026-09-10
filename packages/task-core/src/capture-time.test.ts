@@ -84,12 +84,38 @@ describe('resolving a time to an instant', () => {
       .toBe('2026-09-10 09:00');
   });
 
-  it('rolls to tomorrow when both halves of today have passed', () => {
+  it('rolls to the same reading tomorrow when today has passed', () => {
     const evening = DateTime.fromISO('2026-09-10T22:00:00', { zone: ZONE }).toJSDate();
     const found = findTimeInText('Call at 3:30')!;
-    // Predictable rather than clairvoyant: type 3:30pm to say which you meant.
+    // The reading never changes: 3:30 stays the afternoon, it just moves a day.
     expect(local(resolveCaptureTime(found, { now: evening, timeZone: ZONE })))
-      .toBe('2026-09-11 03:30');
+      .toBe('2026-09-11 15:30');
+  });
+
+  it('reads an early-afternoon hour as the afternoon, not the small hours', () => {
+    // The real case: at 14:45, "at 1:00" must not become 01:00 tomorrow.
+    const afternoon = DateTime.fromISO('2026-09-10T14:45:00', { zone: ZONE }).toJSDate();
+    const found = findTimeInText('call rach at 1:00')!;
+    expect(local(resolveCaptureTime(found, { now: afternoon, timeZone: ZONE })))
+      .toBe('2026-09-11 13:00');
+  });
+
+  it('applies the daytime table across its whole range', () => {
+    const dawn = DateTime.fromISO('2026-09-10T05:00:00', { zone: ZONE }).toJSDate();
+    const readAt = (title: string) =>
+      local(resolveCaptureTime(findTimeInText(title)!, { now: dawn, timeZone: ZONE }));
+    expect(readAt('at 1')).toBe('2026-09-10 13:00');   // 1-6 -> afternoon
+    expect(readAt('at 6')).toBe('2026-09-10 18:00');
+    expect(readAt('at 7')).toBe('2026-09-10 07:00');   // 7-11 -> morning
+    expect(readAt('at 11')).toBe('2026-09-10 11:00');
+    expect(readAt('at 12')).toBe('2026-09-10 12:00');  // noon
+  });
+
+  it('still honours an explicit am for the small hours', () => {
+    const afternoon = DateTime.fromISO('2026-09-10T14:45:00', { zone: ZONE }).toJSDate();
+    const found = findTimeInText('call rach at 1am')!;
+    expect(local(resolveCaptureTime(found, { now: afternoon, timeZone: ZONE })))
+      .toBe('2026-09-11 01:00');
   });
 
   it('respects an explicit pm even when it is past', () => {
@@ -99,11 +125,17 @@ describe('resolving a time to an instant', () => {
       .toBe('2026-09-11 15:30');
   });
 
+  it('refuses the letter-o typo rather than guessing at it', () => {
+    // "1:oo" instead of "1:00". Setting a date from a misspelling would be a
+    // guess; leaving it unset is visible and fixable in the edit modal.
+    expect(findTimeInText('call rach at 1:oo')).toBeNull();
+  });
+
   it('puts the time on the day a due token already chose', () => {
     const tomorrow = DateTime.fromISO('2026-09-11T00:00:00', { zone: ZONE }).toJSDate();
     const found = findTimeInText('Call at 3:30')!;
     expect(local(resolveCaptureTime(found, { now: NOW, timeZone: ZONE, onDay: tomorrow })))
-      .toBe('2026-09-11 03:30');
+      .toBe('2026-09-11 15:30');
   });
 
   it('honours a named day even when the instant is already past', () => {
@@ -111,6 +143,17 @@ describe('resolving a time to an instant', () => {
     const found = findTimeInText('Call at 9am')!;
     expect(local(resolveCaptureTime(found, { now: NOW, timeZone: ZONE, onDay: yesterday })))
       .toBe('2026-09-09 09:00');
+  });
+
+  it('reads the hour the same way with or without a named day', () => {
+    // These disagreed once: the named-day branch used the raw hour, so
+    // "at 3:30 due:tomorrow" meant 03:30 while "at 3:30" meant 15:30.
+    const found = findTimeInText('Call at 3:30')!;
+    const day = DateTime.fromISO('2026-09-11T00:00:00', { zone: ZONE }).toJSDate();
+    const withDay = local(resolveCaptureTime(found, { now: NOW, timeZone: ZONE, onDay: day }));
+    const withoutDay = local(resolveCaptureTime(found, { now: NOW, timeZone: ZONE }));
+    expect(withDay!.slice(-5)).toBe(withoutDay!.slice(-5));
+    expect(withDay).toBe('2026-09-11 15:30');
   });
 });
 
@@ -135,7 +178,8 @@ describe('capture, end to end', () => {
   it('combines a due token day with a time in the title', () => {
     const result = capture('Call Andre at 3:30 due:tomorrow');
     expect(result.title).toBe('Call Andre at 3:30');
-    expect(local(result.dueAt)).toBe('2026-09-11 03:30');
+    // The token picks the day, the daytime table picks the clock.
+    expect(local(result.dueAt)).toBe('2026-09-11 15:30');
     expect(result.dueFromTitleTime).toBe(true);
   });
 

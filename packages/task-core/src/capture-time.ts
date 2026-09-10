@@ -28,13 +28,22 @@ import { DateTime } from 'luxon';
  *
  * ## The ambiguous case
  *
- * "3:30" with no am/pm could be either half of the day. The rule is the next
- * future occurrence: at 14:10, "3:30" resolves to 15:30 today, because 03:30
- * has already passed. At 16:00 it resolves to 03:30 tomorrow -- which is
- * probably not what a person meant, but it is predictable, and the fix is to
- * type "3:30pm" or add `due:tomorrow`. Guessing an intention would put this
- * code in the business of interpretation, which is the one thing the system
- * refuses to do.
+ * "3:30" with no am/pm could be either half of the day. The rule is a fixed
+ * daytime table, then roll forward if that instant has passed:
+ *
+ *   1-6   -> afternoon (13:00-18:00)
+ *   7-11  -> morning   (07:00-11:00)
+ *   12    -> noon
+ *
+ * So at 14:45, "at 1:00" is 13:00 -- already gone, so 13:00 tomorrow. And at
+ * 14:10, "at 3:30" is 15:30 today.
+ *
+ * The first version of this used "the next future occurrence" instead, which
+ * is equally deterministic and reliably wrong: at 14:45 it read "1:00" as
+ * 01:00 tomorrow, when nobody scheduling a call means one in the morning.
+ * A fixed table is still a constant, not an interpretation -- it makes no
+ * attempt to read intent from the rest of the title. It is just a better
+ * constant. Write "1am" when you do mean the small hours.
  */
 
 /**
@@ -111,41 +120,37 @@ export function resolveCaptureTime(
   const current = DateTime.fromJSDate(now, { zone: timeZone });
   if (!current.isValid) return null;
 
+  // The same reading in both branches, so `at 3:30` and `at 3:30 due:tomorrow`
+  // never disagree about which 3:30 they mean. A test caught them disagreeing.
+  const hour = found.explicit ? found.hour : daytimeHour(found.hour);
+
   if (onDay) {
     const day = DateTime.fromJSDate(onDay, { zone: timeZone });
     if (!day.isValid) return null;
-    const at = day.set({
-      hour: found.hour, minute: found.minute, second: 0, millisecond: 0,
-    });
+    const at = day.set({ hour, minute: found.minute, second: 0, millisecond: 0 });
     // An explicit day is respected even if the resulting instant is past: the
     // user named the day, and silently moving it would be a guess.
     return at.isValid ? at.toJSDate() : null;
   }
 
-  const candidates: DateTime[] = [];
-  const push = (hour: number, dayOffset: number) => {
-    const dt = current
-      .plus({ days: dayOffset })
-      .set({ hour, minute: found.minute, second: 0, millisecond: 0 });
-    if (dt.isValid) candidates.push(dt);
-  };
+  const today = current.set({
+    hour, minute: found.minute, second: 0, millisecond: 0,
+  });
+  if (!today.isValid) return null;
 
-  if (found.explicit) {
-    push(found.hour, 0);
-    push(found.hour, 1);
-  } else {
-    // Both halves of today, then both halves of tomorrow, in chronological
-    // order, so "the next future occurrence" is just the first one left.
-    const am = found.hour % 12;
-    const pm = am + 12;
-    push(am, 0);
-    push(pm, 0);
-    push(am, 1);
-    push(pm, 1);
-  }
+  // Same clock reading tomorrow if today's has gone. The reading itself never
+  // changes, so "at 1:00" is never silently turned into 01:00.
+  const chosen = today > current ? today : today.plus({ days: 1 });
+  return chosen.isValid ? chosen.toJSDate() : null;
+}
 
-  const next = candidates
-    .filter((c) => c > current)
-    .sort((a, b) => a.toMillis() - b.toMillis())[0];
-  return next ? next.toJSDate() : null;
+/**
+ * The fixed daytime table for an hour written without am/pm. See the note at
+ * the top of this file for why this is a table rather than a search for the
+ * next occurrence.
+ */
+function daytimeHour(hour: number): number {
+  if (hour === 12) return 12;
+  if (hour >= 1 && hour <= 6) return hour + 12;
+  return hour;
 }
