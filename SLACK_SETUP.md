@@ -139,8 +139,8 @@ To find your own user ID: Slack profile → **⋮** → Copy member ID.
 
 ## 7. Channel → Space mapping
 
-**In Slack:** run `/space` in the channel. A modal lists every Space with the
-current one preselected, plus a field for creating a new one and pointing this
+**In Slack:** run `/space` in the channel. A modal lists every Space in two
+native option groups — Spaces and Clients — with the current one preselected, plus a field for creating a new one and pointing this
 channel at it in a single submit. Picking "none" unmaps the channel and sends
 its tasks to Inbox.
 

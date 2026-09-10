@@ -41,3 +41,6 @@ export {
   CAPTURE_CALLBACK_ID, CAPTURE_BLOCKS, CAPTURE_TEXT_MAX,
   type CaptureMeta, type ParsedCapture,
 } from './capture-view.js';
+export {
+  spaceOptionGroups, type SpaceOption, type SpaceOptionGroups,
+} from './space-options.js';

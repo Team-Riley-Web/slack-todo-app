@@ -96,9 +96,21 @@ it('preselects the Space the channel maps to', async () => {
 });
 
 it('reuses the same option object for initial_option', async () => {
+  await mapChannelToSpace(db, {
+    channelId: 'C_AGENCY', spaceName: 'Agency / Internal',
+  });
   await handleCaptureOpen(deps(), cmd() as never);
   const el = blockOf(view(), CAPTURE_BLOCKS.space).element;
-  expect(el.options).toContain(el.initial_option);
+  // option_groups, so the options are one level deeper.
+  const options = (el.option_groups as any[]).flatMap((g) => g.options);
+  expect(options).toContain(el.initial_option);
+});
+
+it('groups clients separately in the Space picker', async () => {
+  await handleCaptureOpen(deps(), cmd() as never);
+  const el = blockOf(view(), CAPTURE_BLOCKS.space).element;
+  expect((el.option_groups as any[]).map((g) => g.label.text))
+    .toEqual(['Spaces', 'Clients']);
 });
 
 it('offers a new-Space field that is optional', async () => {

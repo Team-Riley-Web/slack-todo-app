@@ -1,4 +1,5 @@
 import type { Space, TaskStatus } from '@tr/task-core';
+import { spaceOptionGroups } from './space-options.js';
 
 /**
  * The full capture modal, opened by a bare `/task`.
@@ -45,13 +46,13 @@ const plain = (text: string) => ({ type: 'plain_text' as const, text, emoji: tru
 export function captureTaskView(
   meta: CaptureMeta, spaces: Space[]
 ): Record<string, unknown> {
-  // Built once and reused in initial_option: Slack matches an initial option
-  // by exact equality, not structural equality.
-  const spaceOptions = spaces.map((s) => ({
-    text: plain(s.name.slice(0, 75)),
-    value: s.id,
-  }));
-  const initialSpace = spaceOptions.find((o) => o.value === meta.defaultSpaceId);
+  // Grouped into Spaces and Clients, so a correctly sorted list also reads
+  // that way. Built once and reused in initial_option: Slack matches an
+  // initial option by exact equality, not structural equality.
+  const { groups: spaceGroups, byValue } = spaceOptionGroups(spaces, (s) => s.id);
+  const initialSpace = meta.defaultSpaceId
+    ? byValue.get(meta.defaultSpaceId)
+    : undefined;
 
   const statusOptions = STATUSES.map((s) => ({
     text: plain(STATUS_LABELS[s]!),
@@ -84,7 +85,7 @@ export function captureTaskView(
         element: {
           type: 'static_select',
           action_id: 'space',
-          options: spaceOptions,
+          option_groups: spaceGroups,
           ...(initialSpace ? { initial_option: initialSpace } : {}),
         },
       },
