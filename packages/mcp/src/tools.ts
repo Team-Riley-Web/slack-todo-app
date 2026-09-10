@@ -3,7 +3,12 @@ import {
   completeTask, createTask, getSpaceForChannel, getTask, getTaskCounts,
   listSpaces, listTasks, listWaiting, moveTask, resolveDestinationSpace,
   updateTaskDetails, TaskNotFoundError, type TaskStatus,
+  openCountBySpace, completedBetween, createdThisWeek, completedThisWeek,
+  averageTaskAgeDays, staleTasks,
 } from '@tr/task-core';
+import {
+  listBatches, getBatch, getStagedRows, getConflicts, getAudit, verdictCounts,
+} from '@tr/importer';
 
 export interface McpTool {
   name: string;
@@ -247,6 +252,138 @@ export function buildTools(db: Db): McpTool[] {
         return { task, space: dest.space, resolved_from: dest.source };
       },
     },
+    // --- Import inspection. All four are READS. Hermes may look and explain;
+    // it may not confirm, import, roll back, or merge anything.
+    {
+      name: 'list_import_batches',
+      description:
+        'List import batches, newest first, with their state and row counts. ' +
+        'Read-only.',
+      inputSchema: { type: 'object', properties: { limit: { type: 'number' } } },
+      handler: async (a) => ({
+        batches: await listBatches(db, typeof a.limit === 'number' ? a.limit : 20),
+      }),
+    },
+    {
+      name: 'get_import_batch',
+      description:
+        'Get one import batch with its mapping, counts, and audit summary. ' +
+        'Read-only.',
+      inputSchema: {
+        type: 'object', properties: { batch_id: { type: 'string' } },
+        required: ['batch_id'],
+      },
+      handler: async (a) => {
+        const batch = await getBatch(db, String(a.batch_id));
+        if (!batch) throw new Error(`no import batch ${String(a.batch_id)}`);
+        return {
+          batch,
+          counts: await verdictCounts(db, batch.id),
+          audit: await getAudit(db, batch.id),
+        };
+      },
+    },
+    {
+      name: 'preview_import',
+      description:
+        'Show the staged rows of an existing import batch and the verdict each ' +
+        'was given. Takes a batch_id, NOT a file: parsing and staging happen ' +
+        'through the CLI or the Slack wizard, never here. Read-only, and it ' +
+        'cannot cause an import.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          batch_id: { type: 'string' },
+          verdict: {
+            type: 'string',
+            enum: ['READY', 'SKIP_DUPLICATE', 'NEEDS_REVIEW', 'INVALID'],
+          },
+        },
+        required: ['batch_id'],
+      },
+      handler: async (a) => ({
+        rows: await getStagedRows(
+          db, String(a.batch_id),
+          (str(a.verdict) as 'READY' | undefined) ?? undefined
+        ),
+        counts: await verdictCounts(db, String(a.batch_id)),
+      }),
+    },
+    {
+      name: 'get_import_conflicts',
+      description:
+        'The rows of an import batch that need a human decision: NEEDS_REVIEW ' +
+        'and INVALID, each with its reason and any conflicting task. Explain ' +
+        'these to the user and suggest mappings; do not resolve them yourself.',
+      inputSchema: {
+        type: 'object', properties: { batch_id: { type: 'string' } },
+        required: ['batch_id'],
+      },
+      handler: async (a) => ({
+        conflicts: await getConflicts(db, String(a.batch_id)),
+      }),
+    },
+    // --- Reporting. All reads.
+    {
+      name: 'get_open_counts_by_space',
+      description: 'Open task count per Space. Excludes waiting and completed.',
+      inputSchema: { type: 'object', properties: {} },
+      handler: async () => ({ counts: await openCountBySpace(db) }),
+    },
+    {
+      name: 'get_completed_between',
+      description:
+        'Tasks completed in a date range. `from` is inclusive, `to` exclusive, ' +
+        'so abutting ranges never double-count.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', description: 'ISO 8601' },
+          to: { type: 'string', description: 'ISO 8601' },
+          space_id: { type: 'string' },
+        },
+        required: ['from', 'to'],
+      },
+      handler: async (a) => ({
+        tasks: await completedBetween(
+          db, new Date(String(a.from)), new Date(String(a.to)),
+          { spaceId: str(a.space_id) }
+        ),
+      }),
+    },
+    {
+      name: 'get_this_week',
+      description:
+        'Tasks created and completed so far this week. The week starts Monday ' +
+        '00:00 UTC.',
+      inputSchema: { type: 'object', properties: {} },
+      handler: async () => ({
+        created: await createdThisWeek(db),
+        completed: await completedThisWeek(db),
+      }),
+    },
+    {
+      name: 'get_task_health',
+      description:
+        'Mean age in days of open tasks, and the open tasks older than a ' +
+        'threshold. Waiting tasks are excluded from both: they are parked on ' +
+        'purpose, so counting them as stale would bury genuine neglect.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          stale_after_days: { type: 'number' },
+          space_id: { type: 'string' },
+        },
+      },
+      handler: async (a) => ({
+        average_age_days: await averageTaskAgeDays(db, { spaceId: str(a.space_id) }),
+        stale: await staleTasks(
+          db,
+          typeof a.stale_after_days === 'number' ? a.stale_after_days : 30,
+          { spaceId: str(a.space_id) }
+        ),
+      }),
+    },
     {
       name: 'get_task_counts',
       description: 'Per-space open and waiting counts. Completed tasks are excluded.',
@@ -261,4 +398,10 @@ export const TOOL_NAMES: string[] = [
   'list_spaces', 'list_waiting', 'set_task_details',
   'get_space_for_channel', 'list_tasks_for_context', 'create_task_for_context',
   'get_task_counts',
+  // Import inspection, all reads.
+  'list_import_batches', 'get_import_batch', 'preview_import',
+  'get_import_conflicts',
+  // Reporting, all reads.
+  'get_open_counts_by_space', 'get_completed_between', 'get_this_week',
+  'get_task_health',
 ];
