@@ -138,9 +138,31 @@ nav.rail .team {
   font-family: var(--font-display);
 }
 
-nav.rail .group-head {
+/*
+ * A rail group heading, which is also its collapse control. Same small
+ * uppercase label the static headings had; the chevron and the pointer are
+ * what is new. The first group sits closer to the workspace header, since it
+ * has no group above it to be separated from.
+ */
+details.rail-group > summary {
+  display: flex; align-items: center; cursor: pointer; list-style: none;
   margin: 18px 14px 4px; font-size: 11px; font-weight: 600;
   letter-spacing: .06em; text-transform: uppercase; color: var(--rail-muted);
+}
+details.rail-group:first-of-type > summary { margin-top: 12px; }
+details.rail-group > summary::-webkit-details-marker { display: none; }
+details.rail-group > summary::marker { content: ''; }
+details.rail-group > summary:hover { color: var(--rail-fg); }
+details.rail-group > summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px;
+}
+/* The shared chevron is drawn in --muted for the light side; on the rail it
+   follows the heading's own colour, so it brightens on hover with the text. */
+details.rail-group > summary .chevron {
+  border-right-color: currentColor; border-bottom-color: currentColor;
+  /* The shared chevron's own margins are tuned for a 15px card title; beside
+     an 11px uppercase label it needs more air to stop reading as one glyph. */
+  width: 6px; height: 6px; margin-left: 0; margin-right: 8px;
 }
 nav.rail ul.group { list-style: none; margin: 8px 0 0; padding: 0 6px; }
 nav.rail ul.group.foot { margin-top: 8px; border-top: 1px solid var(--rail-line); padding-top: 8px; }

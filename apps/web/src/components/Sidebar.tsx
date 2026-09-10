@@ -53,6 +53,26 @@ export function Sidebar({
     </li>
   );
 
+  /**
+   * A collapsible rail group.
+   *
+   * `details`/`summary`, the same mechanism the task cards and the settings
+   * panels use, because this app ships no client JavaScript. That has one
+   * consequence worth knowing: a collapsed group re-opens on the next
+   * navigation, since every page is a fresh server render and there is
+   * nowhere to keep the state. Open by default, so nothing is ever hidden
+   * from someone who has not touched it.
+   */
+  const railGroup = (label: string, body: React.ReactNode) => (
+    <details className="rail-group" open>
+      <summary>
+        <span className="chevron" aria-hidden="true" />
+        {label}
+      </summary>
+      {body}
+    </details>
+  );
+
   const clients = spaces.filter((s) => isClientSpace(s.space));
   const internal = spaces.filter((s) => !isClientSpace(s.space));
   const total = spaces.reduce((n, s) => n + s.open, 0);
@@ -72,33 +92,39 @@ export function Sidebar({
         </span>
       </Link>
 
-      <ul className="group">
-        {navItem('/', 'My tasks', 'inbox')}
-        {navItem('/today', 'Due today', 'calendar')}
-        {navItem('/waiting', 'Waiting', 'paused')}
-        {navItem('/history', 'Completed', 'done')}
-      </ul>
+      {/*
+        These four are the reports: the cross-Space views, as against the
+        Spaces below them, which each scope to one. They were an unlabelled
+        list at the top of the rail; naming the group is what lets it collapse
+        like the other two.
+      */}
+      {railGroup('Reports', (
+        <ul className="group">
+          {navItem('/', 'My tasks', 'inbox')}
+          {navItem('/today', 'Due today', 'calendar')}
+          {navItem('/waiting', 'Waiting', 'paused')}
+          {navItem('/history', 'Completed', 'done')}
+        </ul>
+      ))}
 
-      <p className="group-head">Spaces</p>
-      <ul className="group space-list">
-        <li>
-          <Link href={spaceHref(null)} aria-current={activeSlug === null ? 'page' : undefined}>
-            <Icon name="space" />
-            <span className="label">All spaces</span>
-            {total > 0 ? <span className="count">{total}</span> : null}
-          </Link>
-        </li>
-        {internal.map((s) => spaceItem(s, 'space'))}
-      </ul>
+      {railGroup('Spaces', (
+        <ul className="group space-list">
+          <li>
+            <Link href={spaceHref(null)} aria-current={activeSlug === null ? 'page' : undefined}>
+              <Icon name="space" />
+              <span className="label">All spaces</span>
+              {total > 0 ? <span className="count">{total}</span> : null}
+            </Link>
+          </li>
+          {internal.map((s) => spaceItem(s, 'space'))}
+        </ul>
+      ))}
 
-      {clients.length > 0 ? (
-        <>
-          <p className="group-head">Clients</p>
-          <ul className="group space-list">
-            {clients.map((s) => spaceItem(s, 'client'))}
-          </ul>
-        </>
-      ) : null}
+      {clients.length > 0 ? railGroup('Clients', (
+        <ul className="group space-list">
+          {clients.map((s) => spaceItem(s, 'client'))}
+        </ul>
+      )) : null}
 
       <span className="grow" />
       <ul className="group foot">
