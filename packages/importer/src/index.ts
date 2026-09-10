@@ -13,3 +13,4 @@ export {
 export { applyMapping, resolveDate, unmappedCategories } from './mapping.js';
 export { analyzeBatch, getConflicts } from './analyze.js';
 export { confirmBatch, importBatch, verifyBatch, getAudit, abortBatch } from './import.js';
+export { rollbackBatch } from './rollback.js';
