@@ -15,7 +15,8 @@
     "api": "tsx apps/api/src/index.ts",
     "mcp": "tsx packages/mcp/src/index.ts",
     "sync-channels": "tsx scripts/sync-channel-map.ts",
-    "prune-interactions": "tsx scripts/prune.ts"
+    "prune-interactions": "tsx scripts/prune.ts",
+    "import-tasks": "tsx scripts/import-tasks.ts"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

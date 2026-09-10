@@ -1,0 +1,17 @@
+{
+  "spaces": {
+    "Agency / Internal": "Agency / Internal",
+    "Marketing": "Marketing",
+    "Music": "Music",
+    "Personal tasks": "Personal",
+    "Client - Nazareth Law": "Client - Nazareth Law",
+    "Client - Secure Logic": "Client - Secure Logic",
+    "Client - Milltown Cabinets": "Client - Milltown Cabinets"
+  },
+  "assignees": {
+    "josh@teamrileyweb.com": "REPLACE_WITH_JOSHUA_SLACK_USER_ID"
+  },
+  "statuses": {
+    "pending": "open"
+  }
+}
