@@ -104,3 +104,29 @@ unchecked task unless you are starting it.
     rows now both read x=285/319/1115/1225.
   - Explicitly NOT pixel-perfect, and said so: font metrics, the exact spacing scale and region boundaries are not
     recoverable from a JPEG. Closing that gap needs computed styles off the live Workast app.
+- [x] Web UI: move search to the top right corner
+  - Done 2026-09-10: SearchBox in the page header, right side. A GET form so the query lands in the URL; every other active filter rides along as a hidden field, or searching would silently clear the view you were filtering.
+- [x] Web UI: add icons to My tasks / Due today / Waiting / Completed in the sidebar
+  - Done 2026-09-10: components/Icon.tsx, eight inline SVGs. Inline rather than a font or a package: they inherit currentColor, so active and hover states need no extra rules.
+- [x] Web UI: automatically sort clients into their own section in the sidebar
+  - Done 2026-09-10: derived from the 'Client - ' prefix, not a flag, so nothing has to be maintained — name a Space 'Client - X' and it files itself. That is also why createSpace does not add the prefix for you: the prefix IS the signal.
+- [x] Web UI: drop the task count subtitle under My tasks, and make the page heading the Space name when a Space is selected
+  - Done 2026-09-10: subtitle removed from all four list views (a count above a list of the same tasks was noise). The Space page heading was already the Space name.
+- [x] Web UI: remove the Open / Waiting / Completed filter pills — keep only Overdue, Today, This week, No date
+  - Done 2026-09-10: gone. The views already mean that — a Space page splits into those three sections and Waiting/Completed have their own pages. Only Overdue / Today / This week / No date remain.
+- [x] Web UI: turn the assignee filter into a dropdown instead of name pills, and move it right or elsewhere
+  - Done 2026-09-10: a select with its own Apply, pushed right by a flex spacer. An auto-submitting select would need JavaScript, and this app ships none.
+- [x] Web UI: replace Manage Spaces cards with a plain list that looks like the open task list
+  - Done 2026-09-10: the same row/card shape the task lists use, with Open/Waiting/Done as real columns. Also renamed the sidebar entry from 'Manage spaces' to 'Spaces'.
+- [x] Web UI: on Settings, make import history, timezone and who-can-see-this collapsible sections, closed by default
+  - Done 2026-09-10: each is a details panel. Only the channel map starts open — it is the one thing anyone comes to that page to change; the rest is reference.
+- [x] Web UI: add spacing between the channel ID / channel name / space fields on Settings
+  - Done 2026-09-10: form.fields is a grid with 12px gaps, one field per line, instead of three inputs crammed on one row.
+- [x] Web UI: put Add new Space behind a modal instead of an inline form
+  - Done 2026-09-10: a pane at /spaces?new=1, same mechanism as the edit pane, so the list stays visible and the form is not permanently taking up page room.
+- [x] BUG: clicking Edit on a task makes the underlying list disappear — the modal should pop over to the right, list still visible
+  - Done 2026-09-10: it was its own ROUTE, so the whole page was swapped out. Editing is now a query parameter on the list you are already on (/?edit=<id>), the list renders behind the pane, and the URL stays linkable with a working back button — no intercepting routes and no client JS. Verified in a browser: pane=true, backdrop=true, listRows=21, rail=true. Save returns to the filtered view it was opened from, via a returnTo field.
+- [x] Web UI: sharpen the dropdown arrows on the Space sections and give them space to the right
+  - Done 2026-09-10: the chevron is two 1.6px borders rotated 45deg rather than a filled triangle, which at 7px read as a blob. Margin added to its right.
+- [x] Web UI: show the assignee name (Joshua) instead of the raw Slack ID, including on the edit form
+  - Done 2026-09-10: the edit form's assignee is a select of known names, not a text input holding U0BU0V0850Q. An id with no label still round-trips unchanged as its own option. Verified: options read ['Unassigned','Joshua'].

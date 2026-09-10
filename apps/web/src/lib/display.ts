@@ -55,8 +55,46 @@ export function ageLabel(task: Task, now = new Date()): string {
   return months === 1 ? '1 month' : `${months} months`;
 }
 
-export function taskEditHref(task: Task): string {
-  return `/tasks/${task.id}/edit`;
+/**
+ * Editing is a query parameter on the list you are already looking at, not a
+ * separate route.
+ *
+ * A route swapped the whole page out, so the list vanished behind the edit
+ * pane. As a parameter the list stays rendered underneath and the pane sits
+ * over it, while the URL is still linkable and the back button still works —
+ * without the complexity of intercepting routes or any client JavaScript.
+ *
+ * Existing filters are carried through, so cancelling returns you to the view
+ * you were filtering.
+ */
+export function taskEditHref(
+  task: Task, basePath = '/', params: Record<string, string | string[] | undefined> = {}
+): string {
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key === 'edit' || value === undefined) continue;
+    q.set(key, Array.isArray(value) ? (value[0] ?? '') : value);
+  }
+  q.set('edit', task.id);
+  return `${basePath}?${q.toString()}`;
+}
+
+/** The same view with the edit pane closed. */
+export function closeEditHref(
+  basePath = '/', params: Record<string, string | string[] | undefined> = {}
+): string {
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key === 'edit' || value === undefined) continue;
+    q.set(key, Array.isArray(value) ? (value[0] ?? '') : value);
+  }
+  const s = q.toString();
+  return s ? `${basePath}?${s}` : basePath;
+}
+
+/** True for a Space stored with the "Client - " prefix. */
+export function isClientSpace(space: Space): boolean {
+  return space.name.startsWith('Client - ');
 }
 
 export function spaceHref(space: Space): string {

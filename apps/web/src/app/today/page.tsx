@@ -6,6 +6,7 @@ import { myTasks, knownAssignees, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
+import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
 
@@ -23,6 +24,7 @@ export default async function TodayPage({
   const user = await requireUser();
   const query = await searchParams;
   const filters = { ...parseFilters(query), due: 'today' as const };
+  const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
   const db = await getDb();
 
   const [rows, spaces, assignees, summary] = await Promise.all([
@@ -39,16 +41,16 @@ export default async function TodayPage({
       spaces={summary.map(({ space, open, waiting }) => ({ space, open, waiting }))}
       railPath="/today"
       activeSlug={filters.space ?? null}
+      searchPath="/today"
+      searchParams={query}
       title="Due today"
-      subtitle={`${rows.length} ${rows.length === 1 ? 'task' : 'tasks'} due today.`}
       toolbar={
         <FilterBar
           path="/today"
           filters={filters}
-          spaces={spaces}
           assignees={assignees}
           assigneeLabels={assigneeLabels()}
-          show={['search', 'status', 'assignee']}
+          show={['assignee']}
         />
       }
     >
@@ -57,8 +59,20 @@ export default async function TodayPage({
           rows={rows}
           empty="Nothing due today."
           assigneeLabels={assigneeLabels()}
+          basePath="/today"
+          params={query}
         />
       </SectionCard>
+
+      {editing ? (
+        <EditPane
+          db={db}
+          taskId={editing}
+          basePath="/today"
+          params={query}
+          assigneeLabels={assigneeLabels()}
+        />
+      ) : null}
     </Shell>
   );
 }

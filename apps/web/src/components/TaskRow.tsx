@@ -15,6 +15,9 @@ export interface TaskRowProps {
    * repeating it on every row is the same noise the Slack card had.
    */
   showSpace?: boolean;
+  /** The page the row sits on, so Edit opens the pane over THIS view. */
+  basePath?: string;
+  params?: Record<string, string | string[] | undefined>;
   assigneeLabels?: Record<string, string>;
 }
 
@@ -37,6 +40,7 @@ function assigneeName(
  */
 export function TaskRow({
   task, space, showAge, showProvenance, showSpace = true, assigneeLabels,
+  basePath = '/', params = {},
 }: TaskRowProps) {
   const done = task.status === 'completed';
   const completeHere = async () => {
@@ -91,7 +95,7 @@ export function TaskRow({
 
       <span className="title">
         {/* Rendered as text, never as markup. */}
-        <Link href={taskEditHref(task)}>{task.title}</Link>
+        <Link href={taskEditHref(task, basePath, params)}>{task.title}</Link>
         {meta.length > 0 ? (
           <span className="meta">
             {meta.map((node, i) => (
@@ -145,6 +149,8 @@ export function TaskList(props: {
   showAge?: boolean;
   showProvenance?: boolean;
   showSpace?: boolean;
+  basePath?: string;
+  params?: Record<string, string | string[] | undefined>;
   assigneeLabels?: Record<string, string>;
 }) {
   if (props.rows.length === 0) {
@@ -160,6 +166,8 @@ export function TaskList(props: {
           showAge={props.showAge}
           showProvenance={props.showProvenance}
           showSpace={props.showSpace}
+          basePath={props.basePath}
+          params={props.params}
           assigneeLabels={props.assigneeLabels}
         />
       ))}

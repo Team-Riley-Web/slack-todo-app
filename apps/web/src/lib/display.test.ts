@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  dueLabel, ageInDays, ageLabel, taskEditHref, spaceHref, filterHref, shortSpaceName,
+  dueLabel, ageInDays, ageLabel, taskEditHref, closeEditHref, isClientSpace,
+  spaceHref, filterHref, shortSpaceName,
 } from './display.js';
 import type { Task, Space } from '@tr/task-core';
 
@@ -96,8 +97,32 @@ describe('age', () => {
 
 describe('links', () => {
   it('builds task and space hrefs', () => {
-    expect(taskEditHref(task())).toBe('/tasks/T1/edit');
+    // Editing is a query parameter on the current list, not a route, so the
+    // list stays rendered behind the pane instead of being swapped out.
+    expect(taskEditHref(task())).toBe('/?edit=T1');
     expect(spaceHref(space)).toBe('/spaces/nazareth-law');
+  });
+
+  it('opens the edit pane over the view it was opened from', () => {
+    expect(taskEditHref(task(), '/spaces/marketing', { due: 'today' }))
+      .toBe('/spaces/marketing?due=today&edit=T1');
+  });
+
+  it('carries filters through but never an existing edit param', () => {
+    // Otherwise opening a second task would append to the first.
+    expect(taskEditHref(task(), '/', { q: 'neil', edit: 'OLD' }))
+      .toBe('/?q=neil&edit=T1');
+  });
+
+  it('closes the pane back to the same filtered view', () => {
+    expect(closeEditHref('/spaces/marketing', { due: 'today', edit: 'T1' }))
+      .toBe('/spaces/marketing?due=today');
+    expect(closeEditHref('/', { edit: 'T1' })).toBe('/');
+  });
+
+  it('knows a client Space from its prefix', () => {
+    expect(isClientSpace(space)).toBe(true);
+    expect(isClientSpace({ ...space, name: 'Marketing' })).toBe(false);
   });
 
   it('builds a filter href, and omits the question mark when empty', () => {
