@@ -111,3 +111,17 @@ export function shortSpaceName(space: Space): string {
     ? space.name.slice('Client - '.length)
     : space.name;
 }
+
+/**
+ * The Space a `?space=<slug>` filter names, or null when it names nothing.
+ *
+ * Null for an unknown slug on purpose: a stale link should fall back to the
+ * unfiltered view's own heading rather than title the page after a Space that
+ * does not exist.
+ */
+export function spaceBySlug(
+  spaces: Space[], slug: string | undefined | null
+): Space | null {
+  if (!slug) return null;
+  return spaces.find((s) => s.slug === slug) ?? null;
+}

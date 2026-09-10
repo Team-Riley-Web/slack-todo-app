@@ -9,6 +9,7 @@ import { TaskList } from '@/components/TaskRow';
 import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
+import { spaceBySlug, shortSpaceName } from '@/lib/display';
 
 /**
  * Due today, across every Space.
@@ -34,6 +35,15 @@ export default async function TodayPage({
     spaceSummary(db),
   ]);
 
+  /*
+   * Filtered to a single Space, that Space names the page and drops out of
+   * the rows entirely -- both the column and the sub-line. Standing in
+   * "CFC Skincare", printing "CFC Skincare" on every row is not information,
+   * which is the same reason a card posted in its own channel does not repeat
+   * the Space. The section heading below still says which view this is.
+   */
+  const only = spaceBySlug(spaces, filters.space);
+
   return (
     <Shell
       current="/today"
@@ -43,7 +53,7 @@ export default async function TodayPage({
       activeSlug={filters.space ?? null}
       searchPath="/today"
       searchParams={query}
-      title="Due today"
+      title={only ? shortSpaceName(only) : "Due today"}
       toolbar={
         <FilterBar
           path="/today"
@@ -54,9 +64,10 @@ export default async function TodayPage({
         />
       }
     >
-      <SectionCard label="Due today" count={rows.length}>
+      <SectionCard label="Due today" count={rows.length} showSpace={!only}>
         <TaskList
           rows={rows}
+          showSpace={!only}
           empty="Nothing due today."
           assigneeLabels={assigneeLabels()}
           basePath="/today"
