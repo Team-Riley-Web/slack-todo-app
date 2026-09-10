@@ -102,10 +102,21 @@ Deterministic, no LLM. A time is recognised only with one of two signals:
 | `at 15:30` | 24-hour, already unambiguous |
 | `Fix ratio 2:1`, `Read chapter 3` | **not** a time — no due date set |
 
-A bare `3:30` with no am/pm resolves to the **next future occurrence**: at
-14:10 that is 15:30 today, because 03:30 has gone. At 22:00 it becomes 03:30
-tomorrow — predictable rather than clairvoyant. Write `3:30pm`, or add
-`due:fri`, to say which you meant.
+An hour with no am/pm uses a fixed daytime table, then rolls to tomorrow if
+that instant has already passed:
+
+| Written | Read as |
+|---|---|
+| 1–6 | afternoon, 13:00–18:00 |
+| 7–11 | morning, 07:00–11:00 |
+| 12 | noon |
+
+So at 14:45, `at 1:00` is 13:00 — gone, so 13:00 **tomorrow**. Write `1am`
+when you do mean the small hours.
+
+A typo is refused rather than guessed at: `at 1:oo` with letter o's sets no
+due date, which is visible and fixable, unlike a date invented from a
+misspelling.
 
 A `due:` token and a time combine: `Call Andre at 3:30 due:tomorrow` is
 tomorrow at 03:30. The token picks the day, the title picks the clock.
