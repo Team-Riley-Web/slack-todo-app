@@ -2,7 +2,10 @@ import { it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
 import { getSpaceForChannel, listSpaces, mapChannelToSpace } from '@tr/task-core';
-import { MAP_BLOCK, MAP_ACTION, MAP_NONE, MAP_CALLBACK_ID } from '@tr/slack-ui';
+import {
+  MAP_BLOCK, MAP_ACTION, MAP_NONE, MAP_CALLBACK_ID,
+  MAP_NEW_BLOCK, MAP_NEW_ACTION,
+} from '@tr/slack-ui';
 import {
   handleMapCommand, handleMapSubmission, isMapCommand,
 } from './map-command.js';
@@ -29,7 +32,10 @@ const cmd = (over: Record<string, unknown> = {}) => ({
 
 const view = () => client.views.open.mock.calls[0]![0].view as any;
 
-const submission = (value: string | null, over: Record<string, unknown> = {}) => ({
+const submission = (
+  value: string | null, newName: string | null = null,
+  over: Record<string, unknown> = {}
+) => ({
   team: { id: 'T_RILEY' },
   user: { id: 'U_JOSH' },
   view: {
@@ -39,6 +45,7 @@ const submission = (value: string | null, over: Record<string, unknown> = {}) =>
         [MAP_BLOCK]: {
           [MAP_ACTION]: value === null ? {} : { selected_option: { value } },
         },
+        [MAP_NEW_BLOCK]: { [MAP_NEW_ACTION]: { value: newName } },
       },
     },
   },
@@ -165,4 +172,67 @@ it('does not fail the mapping when the confirmation message fails', async () => 
   const result = await handleMapSubmission(deps(), submission('Marketing'));
   expect(result.outcome).toBe('mapped');
   expect((await getSpaceForChannel(db, 'C_MKT')).mapped).toBe(true);
+});
+
+
+// --- the create field, added when /tasks map and /tasks new merged into /space ---
+
+it('offers a create field that is optional', async () => {
+  await handleMapCommand(deps(), cmd() as never);
+  const block = view().blocks.find((b: any) => b.block_id === MAP_NEW_BLOCK);
+  expect(block.optional).toBe(true);
+  expect(block.element.type).toBe('plain_text_input');
+});
+
+it('creates the Space and maps the channel to it in one submit', async () => {
+  const r = await handleMapSubmission(deps(), submission(MAP_NONE, 'Client - Rosario'));
+  expect(r.outcome).toBe('created');
+
+  const context = await getSpaceForChannel(db, 'C_MKT');
+  expect(context.mapped).toBe(true);
+  expect(context.space.name).toBe('Client - Rosario');
+  expect(String(client.chat.postEphemeral.mock.calls[0]![0].text)).toContain('Created');
+});
+
+it('gives the new Space the standard two lists', async () => {
+  await handleMapSubmission(deps(), submission(MAP_NONE, 'Client - Rosario'));
+  const { rows } = await db.query<{ name: string }>(
+    `SELECT l.name FROM lists l JOIN spaces s ON s.id = l.space_id
+      WHERE s.name = 'Client - Rosario' ORDER BY l.name`
+  );
+  expect(rows.map((x) => x.name)).toEqual(['Open', 'Waiting / Blocked']);
+});
+
+it('lets the typed name override the picker', async () => {
+  const r = await handleMapSubmission(deps(), submission('Sales', 'Client - Rosario'));
+  expect(r.outcome).toBe('created');
+  expect((await getSpaceForChannel(db, 'C_MKT')).space.name).toBe('Client - Rosario');
+});
+
+it('maps to an existing Space rather than duplicating it', async () => {
+  const r = await handleMapSubmission(deps(), submission(MAP_NONE, 'marketing'));
+  expect(r.outcome).toBe('mapped');
+  expect((await getSpaceForChannel(db, 'C_MKT')).space.name).toBe('Marketing');
+  expect((await listSpaces(db)).filter((s) => s.slug === 'marketing')).toHaveLength(1);
+  expect(String(client.chat.postEphemeral.mock.calls[0]![0].text)).toContain('already existed');
+});
+
+it('errors on the create field for a name with no letters or digits', async () => {
+  const r = await handleMapSubmission(deps(), submission(MAP_NONE, '!!!'));
+  expect(r.outcome).toBe('invalid');
+  expect(r.error?.blockId).toBe(MAP_NEW_BLOCK);
+  expect((await getSpaceForChannel(db, 'C_MKT')).mapped).toBe(false);
+});
+
+it('still unmaps when the create field is empty and none is chosen', async () => {
+  await handleMapSubmission(deps(), submission('Marketing'));
+  const r = await handleMapSubmission(deps(), submission(MAP_NONE));
+  expect(r.outcome).toBe('unmapped');
+  expect((await getSpaceForChannel(db, 'C_MKT')).mapped).toBe(false);
+});
+
+it('/space is declared in the manifest', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const manifest = await readFile('config/slack-app-manifest.yaml', 'utf8');
+  expect(manifest).toContain('command: /space');
 });

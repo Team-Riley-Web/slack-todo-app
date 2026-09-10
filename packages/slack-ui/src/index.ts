@@ -33,6 +33,7 @@ export {
 export {
   channelMapView, parseMapSubmission,
   MAP_CALLBACK_ID, MAP_BLOCK, MAP_ACTION, MAP_NONE,
+  MAP_NEW_BLOCK, MAP_NEW_ACTION,
   type MapMeta, type ParsedMap,
 } from './map-view.js';
 export {

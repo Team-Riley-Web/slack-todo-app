@@ -68,8 +68,7 @@ prunes `node_modules`, and pnpm's own commands take precedence over scripts.
 | `/tasks` | **From a mapped channel:** that Space's list. **Otherwise:** every open task, grouped by Space. |
 | `/tasks all` | Every open task grouped by Space, from anywhere. |
 | `/tasks summary` | Per-Space counts only, no checkboxes. |
-| `/tasks map` | Set this channel's Space, in a modal. Choosing "none" unmaps it. |
-| `/tasks new <name>` | Create a Space and nothing else. |
+| `/space` | This channel's Space: pick one, create one, or unmap. One modal. |
 | `/import` | Import tasks from a CSV or JSON file, entirely in Slack. See IMPORT.md. |
 | `/tasks agency` | Full interactive list for a Space, matched by partial name. |
 | `/tasks joy within` | Multi-word Space scopes work. |
