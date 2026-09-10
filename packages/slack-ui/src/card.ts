@@ -41,6 +41,25 @@ function chunk<T>(items: T[], size: number): T[][] {
   return out;
 }
 
+/**
+ * A secondary overflow for state changes the checkbox cannot express.
+ * The checkbox remains the only control for open/completed — this never
+ * duplicates completion, and there is no Reopen item because unchecking
+ * the native checkbox is the reopen gesture.
+ */
+export function taskControlBlocks(entry: CardEntry, index = 0): KnownBlock[] {
+  if (entry.task.status === 'completed') return [];
+  const options =
+    entry.task.status === 'waiting'
+      ? [{ text: { type: 'plain_text' as const, text: 'Move to Open' }, value: `open:${entry.task.id}` }]
+      : [{ text: { type: 'plain_text' as const, text: 'Move to Waiting' }, value: `waiting:${entry.task.id}` }];
+  return [{
+    type: 'actions',
+    block_id: `${CONTROLS_BLOCK_PREFIX}:${index}`,
+    elements: [{ type: 'overflow', action_id: WAITING_ACTION_ID, options }],
+  } as unknown as KnownBlock];
+}
+
 export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock[] {
   if (entries.length === 0) return [];
   const blocks: KnownBlock[] = [];
@@ -66,6 +85,12 @@ export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock
     } as unknown as KnownBlock);
   });
 
+  // A single-task card carries the secondary overflow. Driven off entry count
+  // rather than a flag so a redraw always reproduces exactly what was posted.
+  if (entries.length === 1) {
+    blocks.push(...taskControlBlocks(entries[0]!));
+  }
+
   // Any title too long for a 75-char option label keeps its exact form here.
   const truncated = entries.filter((e) => truncateLabel(e.task.title).truncated);
   if (truncated.length > 0) {
@@ -80,25 +105,6 @@ export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock
   }
 
   return blocks;
-}
-
-/**
- * A secondary overflow for state changes the checkbox cannot express.
- * The checkbox remains the only control for open/completed — this never
- * duplicates completion, and there is no Reopen item because unchecking
- * the native checkbox is the reopen gesture.
- */
-export function taskControlBlocks(entry: CardEntry, index = 0): KnownBlock[] {
-  if (entry.task.status === 'completed') return [];
-  const options =
-    entry.task.status === 'waiting'
-      ? [{ text: { type: 'plain_text' as const, text: 'Move to Open' }, value: `open:${entry.task.id}` }]
-      : [{ text: { type: 'plain_text' as const, text: 'Move to Waiting' }, value: `waiting:${entry.task.id}` }];
-  return [{
-    type: 'actions',
-    block_id: `${CONTROLS_BLOCK_PREFIX}:${index}`,
-    elements: [{ type: 'overflow', action_id: WAITING_ACTION_ID, options }],
-  } as unknown as KnownBlock];
 }
 
 export function taskListBlocks(groups: CardGroup[], opts: MetaOpts): KnownBlock[] {

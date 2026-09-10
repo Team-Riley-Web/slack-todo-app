@@ -143,3 +143,41 @@ describe('truncated title', () => {
     expect(t.title).toBe(before);
   });
 });
+
+describe('waiting overflow', () => {
+  const overflows = (blocks: any[]) =>
+    blocks.filter((b) => b.type === 'actions')
+      .flatMap((b: any) => b.elements)
+      .filter((e: any) => e.type === 'overflow');
+
+  it('offers Move to Waiting on a single open task card', () => {
+    const o = overflows(taskCardBlocks([{ task: task(), space }], opts));
+    expect(o).toHaveLength(1);
+    expect(o[0].options[0].text.text).toBe('Move to Waiting');
+    expect(o[0].options[0].value).toBe(`waiting:${task().id}`);
+  });
+
+  it('offers Move to Open on a waiting task', () => {
+    const o = overflows(taskCardBlocks([{ task: task({ status: 'waiting' }), space }], opts));
+    expect(o[0].options[0].text.text).toBe('Move to Open');
+  });
+
+  it('offers no overflow on a completed task, leaving only the checkbox', () => {
+    const done = task({ status: 'completed', completed_at: new Date() });
+    expect(overflows(taskCardBlocks([{ task: done, space }], opts))).toHaveLength(0);
+  });
+
+  it('offers no overflow in a multi-task list, keeping list views uncluttered', () => {
+    const b = task({ id: '22222222-2222-4222-8222-222222222222', title: 'Exercise' });
+    expect(overflows(taskCardBlocks([{ task: task(), space }, { task: b, space }], opts)))
+      .toHaveLength(0);
+  });
+
+  it('never offers a Reopen control, since unchecking is the reopen gesture', () => {
+    const done = task({ status: 'completed', completed_at: new Date() });
+    for (const t of [task(), task({ status: 'waiting' }), done]) {
+      const json = JSON.stringify(taskCardBlocks([{ task: t, space }], opts));
+      expect(json.toLowerCase()).not.toContain('reopen');
+    }
+  });
+});
