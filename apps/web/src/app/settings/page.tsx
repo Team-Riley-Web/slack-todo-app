@@ -6,6 +6,7 @@ import {
   setChannelMappingFormVoid, removeChannelMappingFormVoid,
 } from '@/actions/settings';
 import { Shell } from '@/components/Shell';
+import { SpaceSelect } from '@/components/SpaceSelect';
 
 export default async function SettingsPage({
   searchParams,
@@ -81,12 +82,20 @@ export default async function SettingsPage({
         </label>
         <label className="small">
           Space
-          <select name="spaceName" required defaultValue="">
-            <option value="" disabled>Choose a Space</option>
-            {view.spaces.map((s) => (
-              <option key={s.id} value={s.name}>{s.name}</option>
-            ))}
-          </select>
+          {/*
+            The value is the canonical NAME, not the id: `setChannelMapping`
+            resolves it with `findSpaceExact`. Sending ids here once made
+            every mapping resolve to nothing and fall back to Inbox.
+          */}
+          <SpaceSelect
+            name="spaceName"
+            spaces={view.spaces}
+            valueOf={(space) => space.name}
+            defaultValue=""
+            placeholder="Choose a Space"
+            required
+            ariaLabel="Space"
+          />
         </label>
         <button type="submit" className="primary">Save mapping</button>
       </form>

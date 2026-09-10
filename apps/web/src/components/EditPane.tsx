@@ -3,6 +3,7 @@ import type { Db } from '@tr/db';
 import { getTask, listSpaces, type Space } from '@tr/task-core';
 import { editTaskFormVoid } from '@/actions/tasks';
 import { closeEditHref } from '@/lib/display';
+import { SpaceSelect } from '@/components/SpaceSelect';
 
 /**
  * The edit form, as a pane over the list that is still rendered behind it.
@@ -69,11 +70,13 @@ export async function EditPane({
 
           <label>
             Space
-            <select name="spaceId" defaultValue={task.space_id}>
-              {(spaces as Space[]).map((space) => (
-                <option key={space.id} value={space.id}>{space.name}</option>
-              ))}
-            </select>
+            <SpaceSelect
+              name="spaceId"
+              spaces={spaces as Space[]}
+              valueOf={(space) => space.id}
+              defaultValue={task.space_id}
+              ariaLabel="Space"
+            />
           </label>
 
           <label>
