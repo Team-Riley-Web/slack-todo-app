@@ -6,6 +6,7 @@ import { myTasks, knownAssignees, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
+import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
 
 export default async function MyTasksPage({
@@ -36,25 +37,29 @@ export default async function MyTasksPage({
       spaces={railSpaces}
       railPath="/"
       activeSlug={filters.space ?? null}
+      title="My tasks"
+      subtitle={
+        `${rows.length} ${rows.length === 1 ? 'task' : 'tasks'}` +
+        (Object.keys(filters).length > 0 ? ' matching these filters' : ' open')
+      }
+      toolbar={
+        <FilterBar
+          path="/"
+          filters={filters}
+          spaces={spaces}
+          assignees={assignees}
+          assigneeLabels={assigneeLabels()}
+          show={['search', 'status', 'due', 'assignee']}
+        />
+      }
     >
-      <h1>My tasks</h1>
-      <p className="muted small">
-        {rows.length} {rows.length === 1 ? 'task' : 'tasks'}
-        {Object.keys(filters).length > 0 ? ' matching these filters' : ' open'}
-      </p>
-      <FilterBar
-        path="/"
-        filters={filters}
-        spaces={spaces}
-        assignees={assignees}
-        assigneeLabels={assigneeLabels()}
-        show={['search', 'status', 'due', 'assignee']}
-      />
-      <TaskList
-        rows={rows}
-        empty="Nothing open. Capture something with /task in Slack."
-        assigneeLabels={assigneeLabels()}
-      />
+      <SectionCard label="Open" count={rows.length}>
+        <TaskList
+          rows={rows}
+          empty="Nothing open. Capture something with /task in Slack."
+          assigneeLabels={assigneeLabels()}
+        />
+      </SectionCard>
     </Shell>
   );
 }

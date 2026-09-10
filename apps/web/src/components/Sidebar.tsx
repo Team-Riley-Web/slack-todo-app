@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Space } from '@tr/task-core';
 import { shortSpaceName } from '@/lib/display';
 
@@ -9,41 +10,48 @@ export interface SidebarSpace {
 }
 
 /**
- * The Spaces rail.
+ * The sidebar, carrying the whole navigation.
  *
- * Every Space is one click away, the way a task manager's left rail works,
- * rather than a row of filter chips that has to be re-read each time. The
- * order comes from `listSpaces` -- Inbox first, then alphabetical by the name
- * as displayed -- so it is not re-sorted here and cannot drift from the rest
- * of the app.
- *
- * A count is shown only when there is something to count. A column of zeroes
- * is the noise this is meant to replace.
+ * This is the structural correction: Workast has no full-width top bar. The
+ * workspace identity, the cross-Space views, and the Space list all live in
+ * one dark rail down the left, and the main column is nothing but content.
+ * The previous version split them — a top bar for views, a light rail for
+ * Spaces — which is why it never read like the reference however the colours
+ * were tuned.
  */
 export function Sidebar({
-  spaces, activeSlug, path,
+  spaces, activeSlug, current, path, who,
 }: {
   spaces: SidebarSpace[];
   /** The Space currently filtered to, or null for all of them. */
   activeSlug: string | null;
-  /** Which view the links should filter, so the rail works on any page. */
+  /** Which top-level view is active, for the nav group. */
+  current: string;
+  /** Which view the Space links should filter. */
   path: string;
+  who: string | null;
 }) {
-  const href = (slug: string | null) =>
+  const spaceHref = (slug: string | null) =>
     slug === null ? path : `${path}?space=${encodeURIComponent(slug)}`;
 
-  const row = (
-    key: string, label: string, slug: string | null, count: number | null
+  const navItem = (href: string, label: string) => (
+    <li key={href}>
+      <Link href={href} aria-current={current === href ? 'page' : undefined}>
+        <span className="label">{label}</span>
+      </Link>
+    </li>
+  );
+
+  const spaceItem = (
+    key: string, label: string, slug: string | null, count: number
   ) => (
     <li key={key}>
       <Link
-        href={href(slug)}
+        href={spaceHref(slug)}
         aria-current={activeSlug === slug ? 'page' : undefined}
       >
         <span className="label">{label}</span>
-        {count !== null && count > 0 ? (
-          <span className="count">{count}</span>
-        ) : null}
+        {count > 0 ? <span className="count">{count}</span> : null}
       </Link>
     </li>
   );
@@ -51,12 +59,34 @@ export function Sidebar({
   const total = spaces.reduce((n, s) => n + s.open, 0);
 
   return (
-    <nav className="rail" aria-label="Spaces">
-      <ul>
-        {row('__all__', 'All spaces', null, total)}
+    <nav className="rail" aria-label="Navigation">
+      <Link className="workspace" href="/">
+        <Image src="/tasks-logo.png" alt="" width={30} height={30} priority />
+        <span className="names">
+          <span className="team">Team Riley</span>
+          {who ? <span className="who">{who}</span> : null}
+        </span>
+      </Link>
+
+      <ul className="group">
+        {navItem('/', 'My tasks')}
+        {navItem('/today', 'Due today')}
+        {navItem('/waiting', 'Waiting')}
+        {navItem('/history', 'Completed')}
+      </ul>
+
+      <p className="group-head">Spaces</p>
+      <ul className="group space-list">
+        {spaceItem('__all__', 'All spaces', null, total)}
         {spaces.map((s) =>
-          row(s.space.id, shortSpaceName(s.space), s.space.slug, s.open)
+          spaceItem(s.space.id, shortSpaceName(s.space), s.space.slug, s.open)
         )}
+      </ul>
+
+      <span className="grow" />
+      <ul className="group foot">
+        {navItem('/spaces', 'Manage spaces')}
+        {navItem('/settings', 'Settings')}
       </ul>
     </nav>
   );

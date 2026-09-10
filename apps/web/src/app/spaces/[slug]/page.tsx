@@ -7,6 +7,7 @@ import { myTasks, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
+import { SectionCard } from '@/components/SectionCard';
 import { NewTaskForm } from '@/components/NewTaskForm';
 import { assigneeLabels } from '@/lib/env';
 import { shortSpaceName } from '@/lib/display';
@@ -53,12 +54,13 @@ export default async function SpacePage({
     empty: string,
     startOpen: boolean
   ) => (
-    <details className="section" open={startOpen}>
-      <summary>
-        <span className="chevron" aria-hidden="true" />
-        {label}
-        <span className="count">{rows.length}</span>
-      </summary>
+    <SectionCard
+      key={label}
+      label={label}
+      count={rows.length}
+      startOpen={startOpen}
+      createHref={`/spaces/${space.slug}`}
+    >
       {/* The heading names the Space; the rows do not repeat it. */}
       <TaskList
         rows={rows}
@@ -66,7 +68,7 @@ export default async function SpacePage({
         showSpace={false}
         assigneeLabels={assigneeLabels()}
       />
-    </details>
+    </SectionCard>
   );
 
   return (
@@ -78,25 +80,27 @@ export default async function SpacePage({
       }))}
       railPath="/"
       activeSlug={space.slug}
+      title={shortSpaceName(space)}
+      subtitle={
+        `${counts?.open ?? 0} open · ${counts?.waiting ?? 0} waiting · ` +
+        `${counts?.completed ?? 0} completed`
+      }
+      toolbar={
+        <>
+          <NewTaskForm
+            spaceSlug={space.slug}
+            error={query.error ? String(query.error) : undefined}
+          />
+          {/* No status chips: the sections below ARE the status split. */}
+          <FilterBar
+            path={`/spaces/${space.slug}`}
+            filters={base}
+            spaces={spaces}
+            show={['search', 'due']}
+          />
+        </>
+      }
     >
-      <h1>{shortSpaceName(space)}</h1>
-      <p className="muted small">
-        {counts?.open ?? 0} open · {counts?.waiting ?? 0} waiting ·{' '}
-        {counts?.completed ?? 0} completed
-      </p>
-
-      <NewTaskForm
-        spaceSlug={space.slug}
-        error={query.error ? String(query.error) : undefined}
-      />
-
-      {/* No status chips: the three sections below ARE the status split. */}
-      <FilterBar
-        path={`/spaces/${space.slug}`}
-        filters={base}
-        spaces={spaces}
-        show={['search', 'due']}
-      />
 
       {section('Open', open, 'Nothing open.', true)}
       {section('Waiting', waiting, 'Nothing waiting.', true)}

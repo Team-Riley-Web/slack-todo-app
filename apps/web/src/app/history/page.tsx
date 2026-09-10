@@ -6,6 +6,7 @@ import { history, knownAssignees, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
+import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
 
 export default async function HistoryPage({
@@ -36,26 +37,30 @@ export default async function HistoryPage({
       spaces={railSpaces}
       railPath="/history"
       activeSlug={filters.space ?? null}
+      title="Completed"
+      subtitle={
+        `${rows.length} completed ${rows.length === 1 ? 'task' : 'tasks'}. ` +
+        'Nothing is ever deleted; untick one to reopen it.'
+      }
+      toolbar={
+        <FilterBar
+          path="/history"
+          filters={filters}
+          spaces={spaces}
+          assignees={assignees}
+          assigneeLabels={assigneeLabels()}
+          show={['dates', 'assignee', 'search']}
+        />
+      }
     >
-      <h1>Completed</h1>
-      <p className="muted small">
-        {rows.length} completed {rows.length === 1 ? 'task' : 'tasks'}. Nothing is
-        ever deleted; untick one to reopen it.
-      </p>
-      <FilterBar
-        path="/history"
-        filters={filters}
-        spaces={spaces}
-        assignees={assignees}
-        assigneeLabels={assigneeLabels()}
-        show={['dates', 'space', 'assignee', 'search']}
-      />
-      <TaskList
-        rows={rows}
-        empty="Nothing completed in this range."
-        showProvenance
-        assigneeLabels={assigneeLabels()}
-      />
+      <SectionCard label="Completed" count={rows.length}>
+        <TaskList
+          rows={rows}
+          empty="Nothing completed in this range."
+          showProvenance
+          assigneeLabels={assigneeLabels()}
+        />
+      </SectionCard>
     </Shell>
   );
 }

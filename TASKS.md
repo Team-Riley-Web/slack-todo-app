@@ -87,3 +87,20 @@ unchecked task unless you are starting it.
   - Done 2026-09-10: not a code bug, and my fault. I ran `pnpm --filter @tr/web build` at 16:32 to verify the favicon while `next dev` was still running. They share apps/web/.next, so the production build deleted the dev server's CSS chunks; the HTML kept linking /_next/static/css/app/layout.css and that URL 404'd, so every page rendered unstyled. Confirmed on disk: .next/static/css/app was empty and a BUILD_ID dated 16:32 was present. Fixed by stopping the server, rm -rf apps/web/.next, restarting. Verified through Aside: 5 stylesheets, nav display flex, 1px border, circle cursor pointer. Documented in README and WEB.md so it is recognisable next time.
 - [x] Add a note in the README on how to run the local web UI on my own, whenever I want
   - Done 2026-09-10: new "Running the web UI yourself" section in README.md — `pnpm web`, one command. Added that script because `pnpm --filter @tr/web dev` does NOT work: Next only auto-loads a .env in its own directory, this repo's is at the root, so DATABASE_URL and WEB_DEV_USER are unset and every page 307s to /signin, which cannot complete locally. Verified by reproducing the 307 and then confirming `pnpm web` returns 200 with CSS. Also added pnpm web:build and the build-clobbers-dev warning.
+
+- [x] Match the Workast design more closely in the web UI
+  - Done 2026-09-10: the problem was architectural, not colour. Workast has NO top bar -- workspace identity, the
+    cross-Space views, the Space list and Settings all live in one dark rail, and the main column is content only.
+    Rebuilt to that: Nav.tsx deleted and folded into Sidebar.tsx, Shell.tsx now takes title/subtitle/toolbar so every
+    page has the same shape, new SectionCard.tsx wraps each list in a card with a table header and a create footer,
+    and TaskRow became a 5-track grid row instead of a flex line. Colours sampled from the screenshots with
+    ImageMagick (#1e2432 rail, #5986ff active, #35ca8c check, #ea4954 overdue) rather than guessed.
+  - Two layout bugs found by MEASURING in the browser rather than eyeballing the screenshot: (1) the sidebar's
+    `ul.group.spaces` was inheriting the /spaces PAGE grid, `repeat(auto-fill, minmax(215px,1fr))`, so it laid out in
+    two columns 280px wide inside a 240px rail and clipped; renamed to .space-list and scoped the page grid under
+    .content. (2) Rewriting globals.css appended the whole old sheet after the new one, and the surviving
+    `li.task { display: flex }` outranked `.row { display: grid }` on specificity, so task rows never gridded while
+    the header row did -- the columns were visibly misaligned. Verified fixed by comparing bounding boxes: header and
+    rows now both read x=285/319/1115/1225.
+  - Explicitly NOT pixel-perfect, and said so: font metrics, the exact spacing scale and region boundaries are not
+    recoverable from a JPEG. Closing that gap needs computed styles off the live Workast app.
