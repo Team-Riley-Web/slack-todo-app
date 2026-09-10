@@ -69,9 +69,9 @@ export function Sidebar({
       </Link>
 
       <ul className="group">
-        {navItem('/', 'My tasks', 'check')}
+        {navItem('/', 'My tasks', 'inbox')}
         {navItem('/today', 'Due today', 'calendar')}
-        {navItem('/waiting', 'Waiting', 'pause')}
+        {navItem('/waiting', 'Waiting', 'paused')}
         {navItem('/history', 'Completed', 'done')}
       </ul>
 

@@ -1,24 +1,43 @@
 /**
  * The handful of icons the sidebar needs, inline.
  *
- * Inline SVG rather than an icon font or a package: five glyphs is not worth
+ * Inline SVG rather than an icon font or a package: ten glyphs is not worth
  * a dependency, and inline means they inherit `currentColor` so the active
  * and hover states need no extra rules.
+ *
+ * Every glyph has to survive 16px, which is the only size the rail uses.
+ * Detail that reads at 34px and closes up at 16 is worse than no detail.
  *
  * 16px on a 24-unit grid, 1.6 stroke — thin enough to sit beside 14px text
  * without shouting.
  */
 export type IconName =
-  | 'check' | 'calendar' | 'pause' | 'done' | 'space' | 'client' | 'cog'
+  | 'inbox' | 'calendar' | 'paused' | 'done' | 'space' | 'client' | 'cog'
   | 'search' | 'pencil' | 'trash';
 
 const PATHS: Record<IconName, string> = {
-  // My tasks: a ticked box
-  check: 'M9 11.5l2.2 2.2L15.5 9.4M5.5 4.5h13a1 1 0 011 1v13a1 1 0 01-1 1h-13a1 1 0 01-1-1v-13a1 1 0 011-1z',
+  /*
+   * My tasks: an inbox tray.
+   *
+   * It was a ticked box, which said the same thing as Completed's checkmark
+   * one row below -- the two most-used items in the rail read alike. A tray
+   * says "everything of mine, unsorted" and shares no shape with any other
+   * glyph in the set. A circled check and a checklist were tried: the first
+   * still reads as Completed, and the second turns to mush at 16px.
+   */
+  inbox: 'M3.5 14h4.4l1.3 2h5.6l1.3-2h4.4M6.3 5.5h11.4a1 1 0 01.95.69L21 14v3.5a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17.5V14l2.35-7.81a1 1 0 01.95-.69z',
   // Due today
   calendar: 'M4.5 8.5h15M7.5 4.5v3M16.5 4.5v3M5.5 6.5h13a1 1 0 011 1v11a1 1 0 01-1 1h-13a1 1 0 01-1-1v-11a1 1 0 011-1z',
-  // Waiting
-  pause: 'M9.5 6v12M14.5 6v12',
+  /*
+   * Waiting: the pause bars, now inside a circle.
+   *
+   * Bare bars read as two stray marks rather than an icon. Enclosing them
+   * makes it a control, and keeps the meaning the old glyph had -- stopped,
+   * not moving -- which is what "Waiting / blocked" is. A clock was the other
+   * candidate and lost on purpose: Due today is already a calendar, and a
+   * second time-shaped glyph beside it would say "date" rather than "stuck".
+   */
+  paused: 'M12 20.5a8.5 8.5 0 100-17 8.5 8.5 0 000 17zM10.2 9.3v5.4M13.8 9.3v5.4',
   // Completed
   done: 'M20 6.5L9.5 17 4.5 12',
   // A Space
