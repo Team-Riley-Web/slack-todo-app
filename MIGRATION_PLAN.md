@@ -1,7 +1,13 @@
 # Migration Plan
 
-Deferred to Phase 2 by design. Phase 1 was built and tested against an empty
-database; nothing has been imported.
+**Status as of 2026-09-10: the importer is built and the Workast path is ready
+to run.** See `IMPORT.md` for how to use it. Nothing has been imported into a
+real database yet — the migration itself is still your call to make.
+
+| Source | Status |
+|---|---|
+| Workast | **ready.** Adapter verified against the real 21-task export; a full-pipeline test imports it into the right seven Spaces |
+| Hermes Kanban | **blocked** on a sample manifest. Nothing to write the adapter against |
 
 **The absolute requirement: migration must preserve exact task titles.** An
 importer that normalizes, trims beyond the outer trim, re-cases, or "cleans up"
@@ -141,8 +147,22 @@ Without one of these there is no safe way to re-run a partially-failed import.
 ## Order of work
 
 1. ~~Get decisions 1–3 from Joshua.~~ Done 2026-09-09.
-2. ~~Add the `details` column.~~ Done — migration 003. Still needed:
-   `source_external_id text UNIQUE` for idempotent re-import.
+2. ~~Add the `details` column.~~ Done — migration 003.
+   ~~`source_external_id` for idempotent re-import.~~ Done — migration 007,
+   with a partial unique index on `(source_platform, source_external_id)`.
+3. ~~Write the importer.~~ Done — `packages/importer`, `pnpm import-tasks`.
+4. ~~Verify against a copy of the export.~~ Done — the adapter and a
+   full-pipeline test both run against the real file on every test run.
+5. Fill in Joshua's Slack user id in `config/workast-mapping.json`.
+6. Dry-run against the real database: `pnpm import-tasks -- --file … --type
+   workast --map config/workast-mapping.json` (writes nothing).
+7. Import with `--confirm --actor <slack-id>`, then spot-check in Slack.
+8. Leave Workast read-only for a week before decommissioning. Roll back with
+   `--rollback <batch-id>` if anything looks wrong.
+
+**Known limitation, worth deciding on before you run it:** the export carries no
+creation timestamps, so every imported task will show as created at import time.
+Due dates, completion dates, waiting state, and details all survive.
 3. Write the importer against a copy of the export, in a test, asserting all 21
    titles round-trip byte-exact — including the `’` and `—` ones.
 4. Dry-run against a scratch database; diff the 21 titles against the export.
