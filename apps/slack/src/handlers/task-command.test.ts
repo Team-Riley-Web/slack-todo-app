@@ -103,3 +103,34 @@ it('rejects an unauthorized workspace with no task created', async () => {
   const { rows } = await db.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM tasks`);
   expect(rows[0]!.n).toBe(0);
 });
+
+// --- a time written in the title ---
+
+it('sets a due date from a time in the title and keeps the title byte-exact', async () => {
+  const r = await handleTaskCommand(deps(), cmd('Call Andre at 3:30') as never);
+  expect(r.created!.title).toBe('Call Andre at 3:30');
+  expect(r.created!.due_at).not.toBeNull();
+});
+
+it('says outright that it inferred the due date', async () => {
+  await handleTaskCommand(deps(), cmd('Call Andre at 3:30') as never);
+  const arg = client.chat.postMessage.mock.calls[0]![0] as any;
+  const context = (arg.blocks as any[]).find((b) => b.type === 'context');
+  expect(JSON.stringify(context)).toContain('from the time in the title');
+  // Rendered as a Slack date token, so each reader sees their own timezone.
+  expect(JSON.stringify(context)).toContain('<!date^');
+});
+
+it('adds no due note when there is no time to read', async () => {
+  await handleTaskCommand(deps(), cmd('Offer Neil a package for $100') as never);
+  const arg = client.chat.postMessage.mock.calls[0]![0] as any;
+  expect(JSON.stringify(arg.blocks)).not.toContain('from the time in the title');
+});
+
+it('does not read a due date out of a number that is not a time', async () => {
+  const r = await handleTaskCommand(
+    deps(), cmd('Consolidate 401(k): move Corebridge to Fidelity') as never
+  );
+  expect(r.created!.due_at).toBeNull();
+  expect(r.created!.title).toBe('Consolidate 401(k): move Corebridge to Fidelity');
+});

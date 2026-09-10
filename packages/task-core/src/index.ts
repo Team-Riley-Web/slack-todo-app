@@ -2,6 +2,10 @@ export * from './types.js';
 export * from './errors.js';
 export { parseCapture, type Capture, type CaptureOptions } from './capture.js';
 export {
+  findTimeInText, resolveCaptureTime,
+  type FoundTime, type ResolveTimeOptions,
+} from './capture-time.js';
+export {
   listSpaces, getInboxSpace, resolveSpaceForChannel, findSpaceByQuery,
 } from './spaces.js';
 export {
