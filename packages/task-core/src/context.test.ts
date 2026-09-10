@@ -118,3 +118,32 @@ it('treats a blank explicit destination as absent, not as an error', async () =>
   expect(d.space.name).toBe('Agency / Internal');
   expect(d.source).toBe('channel');
 });
+
+// --- Approved schema decisions, 2026-09-09 ---
+
+it('resolves Music as its own top-level Space', async () => {
+  expect((await findSpaceExact(db, 'Music'))?.slug).toBe('music');
+  expect((await findSpaceExact(db, 'music'))?.slug).toBe('music');
+  const d = await resolveDestinationSpace(db, { channelId: 'C_SECURE', space: 'Music' });
+  expect(d.space.name).toBe('Music');
+  expect(d.source).toBe('explicit');
+});
+
+it('resolves the "Personal tasks" alias to the Personal Space', async () => {
+  expect((await findSpaceExact(db, 'Personal tasks'))?.name).toBe('Personal');
+  expect((await findSpaceExact(db, 'personal tasks'))?.name).toBe('Personal');
+  expect((await findSpaceExact(db, 'PERSONAL TASKS'))?.name).toBe('Personal');
+  const d = await resolveDestinationSpace(db, { space: 'Personal tasks' });
+  expect(d.space.name).toBe('Personal');
+});
+
+it('still resolves the canonical Personal name', async () => {
+  expect((await findSpaceExact(db, 'Personal'))?.name).toBe('Personal');
+  expect((await findSpaceExact(db, 'personal'))?.name).toBe('Personal');
+});
+
+it('does not treat an alias as a licence for partial matching', async () => {
+  for (const q of ['personal task', 'tasks', 'personal stuff']) {
+    expect(await findSpaceExact(db, q)).toBeNull();
+  }
+});

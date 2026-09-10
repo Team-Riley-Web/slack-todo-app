@@ -16,6 +16,7 @@ export interface Task {
   status: TaskStatus;
   due_at: Date | null;
   waiting_on: string | null;
+  details: string | null;
   created_at: Date;
   completed_at: Date | null;
   source_platform: string;

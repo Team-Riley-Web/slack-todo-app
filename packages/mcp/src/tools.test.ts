@@ -82,7 +82,7 @@ it('reports counts and waiting separately from actionable tasks', async () => {
 });
 
 it('lists all spaces', async () => {
-  expect((await call('list_spaces', {})).spaces).toHaveLength(11);
+  expect((await call('list_spaces', {})).spaces).toHaveLength(12);
 });
 
 it('states the verbatim-title rule in the create_task description', () => {
@@ -199,4 +199,40 @@ it('carries the verbatim-title instruction on the context creator too', () => {
 it('exposes no context tool that can rename a task', () => {
   const contextTools = TOOL_NAMES.filter((n) => n.endsWith('_for_context'));
   expect(contextTools).toEqual(['list_tasks_for_context', 'create_task_for_context']);
+});
+
+// --- details column and approved Space decisions, 2026-09-09 ---
+
+it('stores details verbatim from Hermes', async () => {
+  const details = 'Workstream: onboarding\nNext actor: Joshua';
+  const { task } = await call('create_task', { title: 'X', space_id: spaceId, details });
+  expect(task.details).toBe(details);
+  expect((await call('get_task', { task_id: task.id })).task.details).toBe(details);
+});
+
+it('accepts details on the context creator', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const r = await call('create_task_for_context', {
+    channel_id: 'C_SECURE', title: 'X', details: 'notes',
+  });
+  expect(r.task.details).toBe('notes');
+});
+
+it('resolves Music as a Space and Personal tasks as an alias', async () => {
+  const music = await call('create_task_for_context', {
+    channel_id: 'C_NONE', title: 'Prepare for YFF', space: 'Music',
+  });
+  expect(music.space.name).toBe('Music');
+
+  const personal = await call('create_task_for_context', {
+    channel_id: 'C_NONE', title: 'Buy a new vehicle', space: 'Personal tasks',
+  });
+  expect(personal.space.name).toBe('Personal');
+  expect(personal.resolved_from).toBe('explicit');
+});
+
+it('marks details write-once in its tool schema', () => {
+  const t = buildTools(db).find((x) => x.name === 'create_task')!;
+  const details = (t.inputSchema as any).properties.details.description as string;
+  expect(details.toLowerCase()).toContain('write-once');
 });

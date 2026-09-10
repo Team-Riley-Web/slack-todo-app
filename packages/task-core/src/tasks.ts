@@ -13,11 +13,13 @@ export interface CreateTaskInput {
   sourceChannelId?: string | null;
   sourceMessageTs?: string | null;
   createdBy?: string | null;
+  /** Free-form capture notes. Write-at-create; no update path in Phase 1. */
+  details?: string | null;
 }
 
 const COLS = `id, title, space_id, list_id, assignee_id, status, due_at, waiting_on,
-              created_at, completed_at, source_platform, source_channel_id,
-              source_message_ts, created_by`;
+              details, created_at, completed_at, source_platform,
+              source_channel_id, source_message_ts, created_by`;
 
 /**
  * The title is written exactly as given. No trimming, casing, or normalization
@@ -29,13 +31,14 @@ export async function createTask(db: Db, input: CreateTaskInput): Promise<Task> 
   }
   const { rows } = await db.query<Task>(
     `INSERT INTO tasks (title, space_id, assignee_id, due_at, source_platform,
-                        source_channel_id, source_message_ts, created_by)
-     VALUES ($1, $2, $3, $4, COALESCE($5, 'slack'), $6, $7, $8)
+                        source_channel_id, source_message_ts, created_by, details)
+     VALUES ($1, $2, $3, $4, COALESCE($5, 'slack'), $6, $7, $8, $9)
      RETURNING ${COLS}`,
     [
       input.title, input.spaceId, input.assigneeId ?? null, input.dueAt ?? null,
       input.sourcePlatform ?? null, input.sourceChannelId ?? null,
       input.sourceMessageTs ?? null, input.createdBy ?? null,
+      input.details ?? null,
     ]
   );
   const task = rows[0]!;

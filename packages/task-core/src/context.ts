@@ -45,11 +45,13 @@ export async function getSpaceForChannel(
  *   - canonical name   "Client - Secure Logic"
  *   - slug             "secure-logic"
  *   - name with the "Client - " prefix dropped   "Secure Logic"
+ *   - a configured alias from space_aliases         "Personal tasks"
  * Anything else is unresolvable and raises, rather than landing somewhere.
  */
 export async function findSpaceExact(db: Db, query: string): Promise<Space | null> {
   const needle = query.trim().toLowerCase();
   if (!needle) return null;
+
   const { rows } = await db.query<Space>(
     `SELECT ${COLS} FROM spaces
       WHERE lower(name) = $1
@@ -58,7 +60,16 @@ export async function findSpaceExact(db: Db, query: string): Promise<Space | nul
       LIMIT 1`,
     [needle]
   );
-  return rows[0] ?? null;
+  if (rows[0]) return rows[0];
+
+  // Canonical names win over aliases, so this runs only on a miss above.
+  const { rows: aliased } = await db.query<Space>(
+    `SELECT s.id, s.name, s.slug, s.is_inbox
+       FROM space_aliases a JOIN spaces s ON s.id = a.space_id
+      WHERE a.alias = $1 LIMIT 1`,
+    [needle]
+  );
+  return aliased[0] ?? null;
 }
 
 export interface DestinationRequest {
