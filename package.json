@@ -1,0 +1,28 @@
+{
+  "name": "team-riley-tasks",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b",
+    "migrate": "node --experimental-strip-types packages/db/src/cli-migrate.ts",
+    "slack": "node --experimental-strip-types apps/slack/src/index.ts",
+    "api": "node --experimental-strip-types apps/api/src/index.ts",
+    "mcp": "node --experimental-strip-types packages/mcp/src/index.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.7.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
