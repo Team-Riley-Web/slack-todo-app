@@ -43,6 +43,7 @@ pnpm slack                # Slack app (Socket Mode)
 pnpm api                  # REST API on :3030
 pnpm mcp                  # MCP server on stdio, for Hermes
 pnpm prune-interactions   # prune dedupe rows past the retention window
+pnpm import-tasks -- --help  # import legacy tasks; see IMPORT.md
 ```
 
 Note `prune-interactions`, not `prune` — `pnpm prune` is a pnpm built-in that
@@ -59,6 +60,13 @@ prunes `node_modules`, and pnpm's own commands take precedence over scripts.
 | `/tasks agency` | Full interactive list for a Space, matched by partial name. |
 | `/tasks joy within` | Multi-word Space scopes work. |
 | `/tasks waiting` | Everything waiting or blocked. |
+
+Every task card carries a small ⋮ menu with **Move to Waiting** (one click) and
+**Edit task…**, which opens a window holding every field: title, Space, status,
+assignee, due date and time, waiting-on, and notes. Nothing is required except
+the title, so `/task Call Neil` stays a single clean line and the fields are
+there only when a task earns them. A completed card is just the ticked box and
+the struck-through title — no menu.
 
 Bare `/tasks` is channel-aware because someone standing in
 `#client-secure-logic` asking for "tasks" means that client's tasks. An unmapped
@@ -143,4 +151,5 @@ docs              spec, plan, and the Workast export used for design
 - `ARCHITECTURE.md` — why the boundaries are where they are
 - `SLACK_SETUP.md` — creating the app, scopes, and the one runtime check
 - `MCP_CONTRACT.md` — the eight Hermes tools and their limits
-- `MIGRATION_PLAN.md` — Workast/Kanban import, deferred to Phase 2
+- `IMPORT.md` — importing legacy tasks: the flow, formats, duplicates, rollback
+- `MIGRATION_PLAN.md` — the Workast and Kanban migration plan
