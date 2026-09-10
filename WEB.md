@@ -41,12 +41,35 @@ Node's `fs.readFile` wants a path, and every route returns a 500 with
 So `apps/web/src/db.ts` checks the URL up front and throws a readable error
 rather than letting a request fail deep inside a bundled dependency.
 
-Use the Supabase **transaction-mode pooler** (port 6543). Prepared statements
-are disabled automatically on that port, which is what the pooler requires.
+Use the Supabase **transaction-mode pooler** (port 6543), not the direct
+connection. Two independent reasons:
 
-```
-DATABASE_URL=postgres://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
-```
+- Prepared statements are disabled automatically on that port, which is what
+  transaction pooling requires.
+- The direct host (`db.<ref>.supabase.co`) resolves to IPv6 only on the free
+  plan. From an IPv4-only network that fails as `ENETUNREACH`, which reads
+  like the database being down rather than a routing problem.
+
+Get the exact string from the dashboard's **Connect** button, "Transaction
+pooler". Do not hand-assemble it — the pooler hostname's region prefix is not
+guessable from the project's region.
+
+## The database, as it stands
+
+Project **Team Riley Tasks**, ref `albtfpjmxpksydbnmzay`, us-east-1,
+Postgres 17. Deliberately a **separate project** from Team Riley gBrain
+(`marxnnnbojsaeetxyrwn`): gBrain is the system of record for 16,149 pages and
+the PGLite backups are gone, so a bad migration or an import rollback here
+must have no way to reach it.
+
+All nine migrations are applied — 12 tables, 12 Spaces, 24 lists, one Space
+alias. The runner tracks applied files in `public.schema_migrations`, and those
+rows were written as part of the same transaction, so `pnpm migrate` against
+this database is a no-op rather than an attempt to re-apply.
+
+Supabase's security advisors report one INFO-level lint, "RLS enabled, no
+policy", on all 12 tables. That is the intended posture, not a finding to fix
+— see the API-surface section in ARCHITECTURE.md.
 
 ### Signing in
 
