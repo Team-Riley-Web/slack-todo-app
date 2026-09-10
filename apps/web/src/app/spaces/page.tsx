@@ -22,11 +22,9 @@ export default async function SpacesPage({
       spaces={rows.map(({ space, open, waiting }) => ({ space, open, waiting }))}
       railPath="/"
       activeSlug={null}
+      title="Spaces"
+      subtitle="Every Space, including the empty ones. Counts exclude nothing."
     >
-      <h1>Spaces</h1>
-      <p className="muted small">
-        Every Space, including the empty ones. Counts exclude nothing.
-      </p>
 
       {error ? <p className="error">{String(error)}</p> : null}
 

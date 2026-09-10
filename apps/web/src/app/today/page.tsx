@@ -6,6 +6,7 @@ import { myTasks, knownAssignees, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
+import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
 
 /**
@@ -38,24 +39,26 @@ export default async function TodayPage({
       spaces={summary.map(({ space, open, waiting }) => ({ space, open, waiting }))}
       railPath="/today"
       activeSlug={filters.space ?? null}
+      title="Due today"
+      subtitle={`${rows.length} ${rows.length === 1 ? 'task' : 'tasks'} due today.`}
+      toolbar={
+        <FilterBar
+          path="/today"
+          filters={filters}
+          spaces={spaces}
+          assignees={assignees}
+          assigneeLabels={assigneeLabels()}
+          show={['search', 'status', 'assignee']}
+        />
+      }
     >
-      <h1>Due today</h1>
-      <p className="muted small">
-        {rows.length} {rows.length === 1 ? 'task' : 'tasks'} due today.
-      </p>
-      <FilterBar
-        path="/today"
-        filters={filters}
-        spaces={spaces}
-        assignees={assignees}
-        assigneeLabels={assigneeLabels()}
-        show={['search', 'status', 'assignee']}
-      />
-      <TaskList
-        rows={rows}
-        empty="Nothing due today."
-        assigneeLabels={assigneeLabels()}
-      />
+      <SectionCard label="Due today" count={rows.length}>
+        <TaskList
+          rows={rows}
+          empty="Nothing due today."
+          assigneeLabels={assigneeLabels()}
+        />
+      </SectionCard>
     </Shell>
   );
 }

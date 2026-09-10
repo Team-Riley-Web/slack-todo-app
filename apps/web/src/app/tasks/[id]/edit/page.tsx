@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTask, listSpaces } from '@tr/task-core';
 import { getDb } from '@/db';
+import { spaceSummary } from '@/data/tasks';
 import { requireUser } from '@/user';
 import { editTaskFormVoid } from '@/actions/tasks';
 import { Shell } from '@/components/Shell';
@@ -37,6 +38,9 @@ export default async function EditTaskPage({
   if (!task) notFound();
 
   const spaces = await listSpaces(db);
+  const railSpaces = (await spaceSummary(db)).map(({ space, open, waiting }) => ({
+    space, open, waiting,
+  }));
 
   // datetime-local wants `YYYY-MM-DDTHH:mm` with no zone or seconds.
   const dueValue = task.due_at
@@ -44,7 +48,14 @@ export default async function EditTaskPage({
     : '';
 
   return (
-    <Shell current="/" who={user.name ?? user.slackUserId}>
+    <Shell
+      current="/"
+      who={user.name ?? user.slackUserId}
+      spaces={railSpaces}
+      railPath="/"
+      title="My tasks"
+      subtitle="Editing a task."
+    >
       {/* The backdrop is a link, so clicking away closes the pane. */}
       <Link className="pane-backdrop" href="/" aria-label="Close" />
 

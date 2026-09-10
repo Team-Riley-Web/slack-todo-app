@@ -51,6 +51,34 @@ deliberate constraint, and it shapes three things:
   to the list, so closing needs no script, the URL is linkable, and the back
   button behaves.
 
+## Layout
+
+The structure follows Workast, because that is the reference and the previous
+version's problem was architectural rather than chromatic:
+
+- **One dark rail carries all navigation.** Workspace identity, the
+  cross-Space views, the Space list, and Settings. There is no top bar. The
+  earlier version split them — a top bar for views, a light rail for Spaces —
+  which is why it never read like the reference however the colours were
+  tuned.
+- **The main column is content only**: a page heading with a subtitle, a
+  toolbar row, then cards.
+- **Task lists are cards**, each with a collapse chevron, a count, a table
+  header naming the columns, and a "+ Create new task" footer.
+- **Rows are a grid**, not a flex line: `34px 1fr 110px 92px 78px` shared by
+  the header row and every task row, so the columns line up without a table
+  element. Below 860px the assignee and due columns drop out and the title
+  keeps its sub-line.
+
+Colours were sampled from the reference screenshots with ImageMagick rather
+than guessed — `#1e2432` rail, `#5986ff` active row, `#35ca8c` for the
+completed check, `#ea4954` for overdue.
+
+**This is a structural match, not a pixel-perfect one**, and it cannot be from
+screenshots alone: font metrics, the exact spacing scale, and precise region
+boundaries are not recoverable from a JPEG. Getting the rest would mean
+reading computed styles off the live Workast app.
+
 ## The Spaces rail
 
 Every Space sits in a rail beside the content, so switching Space is one click

@@ -1,4 +1,5 @@
 import { getDb } from '@/db';
+import { spaceSummary } from '@/data/tasks';
 import { requireUser } from '@/user';
 import { settingsView } from '@/operations/settings';
 import {
@@ -13,14 +14,20 @@ export default async function SettingsPage({
 }) {
   const user = await requireUser();
   const { error } = await searchParams;
-  const view = await settingsView(await getDb());
+  const db = await getDb();
+  const view = await settingsView(db);
+  const railSpaces = (await spaceSummary(db)).map(({ space, open, waiting }) => ({
+    space, open, waiting,
+  }));
 
   return (
-    <Shell current="/settings" who={user.name ?? user.slackUserId}>
-      <h1>Settings</h1>
-      <p className="muted small">
-        No tokens or keys are shown here, or read by this page at all.
-      </p>
+    <Shell
+      current="/settings"
+      who={user.name ?? user.slackUserId}
+      spaces={railSpaces}
+      title="Settings"
+      subtitle="No tokens or keys are shown here, or read by this page at all."
+    >
       {error ? <p className="error">{String(error)}</p> : null}
 
       <h2>Slack channel to Space</h2>

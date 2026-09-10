@@ -6,6 +6,7 @@ import { waitingTasks, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
+import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
 
 export default async function WaitingPage({
@@ -35,24 +36,25 @@ export default async function WaitingPage({
       spaces={railSpaces}
       railPath="/waiting"
       activeSlug={filters.space ?? null}
+      title="Waiting / blocked"
+      subtitle="Parked on purpose, so they stay out of the open list."
+      toolbar={
+        <FilterBar
+          path="/waiting"
+          filters={filters}
+          spaces={spaces}
+          show={['search']}
+        />
+      }
     >
-      <h1>Waiting / blocked</h1>
-      <p className="muted small">
-        Across every Space. These are parked on purpose, so they stay out of the
-        open list.
-      </p>
-      <FilterBar
-        path="/waiting"
-        filters={filters}
-        spaces={spaces}
-        show={['space', 'search']}
-      />
-      <TaskList
-        rows={rows}
-        empty="Nothing is waiting."
-        showAge
-        assigneeLabels={assigneeLabels()}
-      />
+      <SectionCard label="Waiting" count={rows.length}>
+        <TaskList
+          rows={rows}
+          empty="Nothing is waiting."
+          showAge
+          assigneeLabels={assigneeLabels()}
+        />
+      </SectionCard>
     </Shell>
   );
 }

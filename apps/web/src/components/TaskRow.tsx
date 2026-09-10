@@ -53,10 +53,8 @@ export function TaskRow({
   const meta: React.ReactNode[] = showSpace
     ? [<span key="space">{shortSpaceName(space)}</span>]
     : [];
-  if (who) meta.push(<span key="who">{who}</span>);
-  if (due && !done) {
-    meta.push(<span key="due" className={due.tone}>{due.text}</span>);
-  }
+  // Assignee and due date have their own columns now, so they are not
+  // repeated in the sub-line under the title.
   if (task.status === 'waiting') {
     meta.push(
       <span key="waiting">
@@ -65,27 +63,17 @@ export function TaskRow({
     );
   }
   if (showAge) meta.push(<span key="age">{ageLabel(task)} old</span>);
-  if (done && task.completed_at) {
-    meta.push(
-      <span key="completed">
-        completed {task.completed_at.toLocaleDateString('en-US', {
-          month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
-        })}
-      </span>
-    );
-  }
   if (showProvenance) {
     meta.push(<span key="src">from {task.source_platform}</span>);
   }
 
   return (
-    <li className={done ? 'task done' : 'task'}>
+    <li className={done ? 'row task done' : 'row task'}>
       {/*
         A submit BUTTON, not a checkbox.
-        An <input type="checkbox"> does not submit a form when clicked, and
-        this app ships no JavaScript to submit one for it -- so the previous
-        version, a readOnly checkbox beside a hidden submit button, could not
-        complete anything at all. The circle is drawn in the button.
+        An input type=checkbox does not submit a form when clicked, and this
+        app ships no JavaScript to submit one for it, so the previous version
+        could not complete anything at all.
       */}
       <form className="tick" action={done ? reopenHere : completeHere}>
         <button
@@ -101,17 +89,31 @@ export function TaskRow({
         </button>
       </form>
 
-      <div className="body">
-        {/* The title is rendered as text, never as markup. */}
-        <span className="title">{task.title}</span>
-        <div className="meta">
-          {meta.map((node, i) => (
-            <span key={i}>{i > 0 ? ' · ' : ''}{node}</span>
-          ))}
-        </div>
-      </div>
+      <span className="title">
+        {/* Rendered as text, never as markup. */}
+        <Link href={taskEditHref(task)}>{task.title}</Link>
+        {meta.length > 0 ? (
+          <span className="meta">
+            {meta.map((node, i) => (
+              <span key={i}>{i > 0 ? ' · ' : ''}{node}</span>
+            ))}
+          </span>
+        ) : null}
+      </span>
 
-      <div className="actions">
+      <span className="assignee">{who ?? '—'}</span>
+
+      <span className={due && !done ? `due ${due.tone}` : 'due'}>
+        {done && task.completed_at
+          ? task.completed_at.toLocaleDateString('en-US', {
+              month: 'short', day: 'numeric', timeZone: 'UTC',
+            })
+          : due
+            ? due.text.replace(/^due /i, '')
+            : '—'}
+      </span>
+
+      <span className="rowactions">
         {task.status === 'open' && (
           <form
             action={async () => {
@@ -132,8 +134,7 @@ export function TaskRow({
             <button type="submit" title="Move back to open">Unblock</button>
           </form>
         )}
-        <Link className="btn" href={taskEditHref(task)}>Edit</Link>
-      </div>
+      </span>
     </li>
   );
 }
@@ -150,7 +151,7 @@ export function TaskList(props: {
     return <p className="muted">{props.empty}</p>;
   }
   return (
-    <ul className="tasks">
+    <ul className="rows">
       {props.rows.map(({ task, space }) => (
         <TaskRow
           key={task.id}
