@@ -9,6 +9,7 @@ export {
   CHECKBOX_ACTION_ID, CHECKBOX_BLOCK_PREFIX, WAITING_ACTION_ID,
   checkboxBlockId, parseBlockVersion,
   CONTROLS_BLOCK_PREFIX, MAX_OPTIONS_PER_ELEMENT, MAX_ENTRIES_PER_MESSAGE,
+  MAX_BLOCKS_PER_MESSAGE,
   type CardEntry, type CardGroup,
 } from './card.js';
 export {

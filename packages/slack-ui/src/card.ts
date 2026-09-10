@@ -144,7 +144,17 @@ export function taskControlBlocks(entry: CardEntry, index = 0): KnownBlock[] {
   } as unknown as KnownBlock];
 }
 
-export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock[] {
+/**
+ * `chunkOffset` continues the block_id numbering from an earlier call.
+ *
+ * Slack requires block_id to be unique within a message and rejects the WHOLE
+ * message otherwise -- `invalid_blocks: block_id task_toggle:0:v1 already
+ * exists`. A multi-Space list calls this once per Space, so without an offset
+ * every Space emitted task_toggle:0:v1 and nothing rendered at all.
+ */
+export function taskCardBlocks(
+  entries: CardEntry[], opts: MetaOpts, chunkOffset = 0
+): KnownBlock[] {
   if (entries.length === 0) return [];
   const blocks: KnownBlock[] = [];
 
@@ -173,7 +183,7 @@ export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock
     // beside or below the task was clutter either way.
     blocks.push({
       type: 'actions',
-      block_id: checkboxBlockId(groupIndex, opts.version ?? 1),
+      block_id: checkboxBlockId(chunkOffset + groupIndex, opts.version ?? 1),
       elements: [element],
     } as unknown as KnownBlock);
   });
@@ -205,15 +215,49 @@ export function taskCardBlocks(entries: CardEntry[], opts: MetaOpts): KnownBlock
   return blocks;
 }
 
+/**
+ * Slack rejects a message with more than 50 blocks. One group was always well
+ * inside that; a list covering every Space is not, so the cap is enforced here
+ * rather than trusted.
+ */
+export const MAX_BLOCKS_PER_MESSAGE = 50;
+
 export function taskListBlocks(groups: CardGroup[], opts: MetaOpts): KnownBlock[] {
   const blocks: KnownBlock[] = [];
+  // Continues across groups, so no two Spaces share a block_id.
+  let chunkOffset = 0;
+  let droppedGroups = 0;
+
   for (const group of groups) {
     if (group.entries.length === 0) continue;
-    if (group.heading) {
-      blocks.push(headerBlock(group.heading));
+
+    const groupBlocks: KnownBlock[] = [];
+    if (group.heading) groupBlocks.push(headerBlock(group.heading));
+    groupBlocks.push(...taskCardBlocks(group.entries, opts, chunkOffset));
+
+    // Leave one block spare for the note explaining what was left out.
+    if (blocks.length + groupBlocks.length > MAX_BLOCKS_PER_MESSAGE - 1) {
+      droppedGroups += 1;
+      continue;
     }
-    blocks.push(...taskCardBlocks(group.entries, opts));
+
+    blocks.push(...groupBlocks);
+    chunkOffset += groupBlocks.filter(
+      (b) => (b as { type?: string }).type === 'actions'
+    ).length;
   }
+
+  if (droppedGroups > 0) {
+    blocks.push({
+      type: 'context',
+      elements: [{
+        type: 'plain_text',
+        text: `${droppedGroups} more Space${droppedGroups === 1 ? '' : 's'} not shown — Slack caps a message at ${MAX_BLOCKS_PER_MESSAGE} blocks. Use \`/tasks <space>\`.`,
+        emoji: true,
+      }],
+    } as unknown as KnownBlock);
+  }
+
   return blocks;
 }
 

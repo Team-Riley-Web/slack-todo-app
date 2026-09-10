@@ -299,3 +299,19 @@ it('renders a scoped list heading as a native header block', async () => {
   expect(blocks[0].text.text).toBe('MARKETING');
   expect(JSON.stringify(blocks)).not.toContain('*MARKETING*');
 });
+
+it('posts every-Space blocks with unique block ids, which Slack requires', async () => {
+  // Slack rejects the WHOLE message on a duplicate block_id, so this failed as
+  // "invalid_blocks: task_toggle:0:v1 already exists" and rendered nothing at
+  // all. Guarded at the handler too, not just in the block builder.
+  for (const space of ['Marketing', 'Sales', 'Music', 'Personal', 'Agency / Internal']) {
+    await add(space, `${space} task`);
+  }
+  await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+
+  const blocks = (client.chat.postMessage.mock.calls[0]![0] as any).blocks as any[];
+  const ids = blocks.map((b) => b.block_id).filter(Boolean);
+  expect(ids.length).toBeGreaterThan(1);
+  expect(new Set(ids).size).toBe(ids.length);
+  expect(blocks.length).toBeLessThanOrEqual(50);
+});
