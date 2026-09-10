@@ -2,7 +2,7 @@ import { listSpaces } from '@tr/task-core';
 import { getDb } from '@/db';
 import { requireUser } from '@/user';
 import { parseFilters } from '@/data/filters';
-import { myTasks, knownAssignees } from '@/data/tasks';
+import { myTasks, knownAssignees, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
@@ -23,8 +23,20 @@ export default async function MyTasksPage({
     knownAssignees(db),
   ]);
 
+  // The rail comes from the same summary the /spaces page uses, so a count
+  // there and a count here can never disagree.
+  const railSpaces = (await spaceSummary(db)).map(({ space, open, waiting }) => ({
+    space, open, waiting,
+  }));
+
   return (
-    <Shell current="/" who={user.name ?? user.slackUserId}>
+    <Shell
+      current="/"
+      who={user.name ?? user.slackUserId}
+      spaces={railSpaces}
+      railPath="/"
+      activeSlug={filters.space ?? null}
+    >
       <h1>My tasks</h1>
       <p className="muted small">
         {rows.length} {rows.length === 1 ? 'task' : 'tasks'}

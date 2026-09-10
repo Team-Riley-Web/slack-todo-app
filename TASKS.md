@@ -45,3 +45,9 @@ unchecked task unless you are starting it.
   - Done 2026-09-10: `/tasks map` opens a native modal with a static_select of every Space, current one preselected, plus a "none" option that unmaps. A subcommand of /tasks rather than a new command, so no manifest change and no reinstall. mapChannelToSpace/unmapChannel moved into task-core and the web settings page now delegates to them instead of keeping its own copy.
 - [x] In a channel already mapped to a Space, don't show the Space on each task row — the channel already implies it
   - Done 2026-09-10: the /tasks case was already covered by the grouping change (a Space heading suppresses the row-level Space). Added it for the /task capture card, and for redrawCard so ticking a checkbox does not make the Space reappear. An unmapped channel still shows Inbox, because that one IS worth knowing.
+- [x] Delete Spaces from inside the web UI — Yoga Farm is one I don't want
+  - Done 2026-09-10: deleteSpace in task-core, offered on /spaces behind a native details disclosure (two clicks, no client JS). Refuses Inbox and refuses a Space holding tasks including completed ones; removes its lists, channel mappings and aliases; clears import staging pointers but keeps the source text. One transaction. Yoga Farm deleted.
+- [x] List Spaces in alphabetical order automatically
+  - Done 2026-09-10: listSpaces now orders by the DISPLAYED name (regexp_replace strips 'Client - '). It was already alphabetical by the stored name, which is why it looked random: the client block sorted under C. Inbox stays pinned first.
+- [x] Show Spaces as a vertical sidebar in the web UI, closer to the Workast setup, with things toggleable
+  - Done 2026-09-10: components/Sidebar.tsx, a rail on My tasks / Waiting / History / Spaces. One CSS grid, stacks above the content below 820px. Counts only where non-zero. Reads the same spaceSummary the /spaces page uses so counts cannot disagree.

@@ -12,12 +12,44 @@ functions. There is no second copy of any rule.
 | Route | What it is |
 | --- | --- |
 | `/` | My Tasks. Open and waiting tasks, filterable by space, status, assignee, due bucket, and title search. |
-| `/spaces` | Every Space with its open / waiting / completed counts. Empty Spaces are listed too. |
+| `/spaces` | Every Space with its open / waiting / completed counts. Empty Spaces are listed too, and an empty one can be deleted here. |
 | `/spaces/<slug>` | One Space, plus the form for adding a task to it. |
 | `/waiting` | Waiting and blocked tasks, oldest first, with an age in days. |
 | `/history` | Completed tasks, filterable by date range. |
 | `/settings` | Channel → Space mappings, the authorized user list, the timezone, and import history. |
 | `/tasks/<id>/edit` | The only place a title changes from the web. Every field the Slack modal offers, prefilled, plus the task's event history. |
+
+## The Spaces rail
+
+Every Space sits in a rail beside the content, so switching Space is one click
+rather than re-reading a row of filter chips. It stacks above the content below
+820px. Counts show only where there is something to count.
+
+Order is Inbox first, then alphabetical **by the name as displayed**. Sorting by
+the stored name looked broken: every client Space is stored as
+`Client - Yoga Farm` and shown as `Yoga Farm`, so the whole client block sorted
+under C and landed between `Agency / Internal` and `Marketing`. The sort key has
+to match the text on screen.
+
+## Deleting a Space
+
+On `/spaces`, an empty Space has a Delete disclosure — two deliberate clicks,
+no client JavaScript. `deleteSpace` in `task-core` owns the rules, so the same
+answers apply wherever it is called from:
+
+- **Inbox is refused.** Every unmapped capture falls back to it.
+- **A Space holding tasks is refused**, completed ones included. Those are
+  history; move them first. The page does not even offer the button, but the
+  refusal is in the engine, not the UI.
+- **Lists, channel mappings and aliases pointing at it are removed.** A channel
+  mapped to a Space that no longer exists would be worse than an unmapped
+  channel: captures would fail instead of falling back to Inbox.
+- **Import staging pointers are cleared, not deleted.** `resolved_space_id` is
+  derived; the source `space` text stays, so the record of what was submitted
+  survives.
+
+All of it in one transaction, so a refusal partway leaves nothing
+half-deleted.
 
 ## Running it locally
 

@@ -126,3 +126,66 @@ table.plain th, table.plain td {
   text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line);
 }
 .scroll-x { overflow-x: auto; }
+
+/* --- Spaces rail --- */
+
+/*
+ * Rail beside the content on a wide screen, above it on a phone. One grid, so
+ * there is no second layout to keep in step.
+ */
+.with-rail {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 1140px;
+  margin: 0 auto;
+}
+@media (min-width: 820px) {
+  .with-rail { grid-template-columns: 210px 1fr; }
+  .with-rail .shell { margin: 0; max-width: none; }
+  nav.rail {
+    border-right: 1px solid var(--line);
+    border-bottom: none;
+    position: sticky;
+    top: 45px;
+    align-self: start;
+    max-height: calc(100vh - 45px);
+    overflow-y: auto;
+  }
+}
+
+nav.rail {
+  padding: 16px 8px;
+  border-bottom: 1px solid var(--line);
+}
+nav.rail ul { list-style: none; margin: 0; padding: 0; }
+nav.rail li { margin: 1px 0; }
+nav.rail a {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: var(--radius);
+  text-decoration: none; color: var(--fg); font-size: 14px;
+}
+nav.rail a:hover { background: var(--line); }
+nav.rail a[aria-current="page"] { background: var(--accent); color: #fff; }
+nav.rail .label {
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+nav.rail .count {
+  color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums;
+}
+nav.rail a[aria-current="page"] .count { color: #fff; }
+
+/* --- destructive row action --- */
+.danger-form { display: inline; }
+details.confirm-delete > summary {
+  cursor: pointer; color: var(--danger); font-size: 13px;
+  list-style: none; display: inline-block; padding: 2px 0;
+}
+details.confirm-delete > summary::-webkit-details-marker { display: none; }
+details.confirm-delete[open] > summary { font-weight: 600; }
+details.confirm-delete p { margin: 6px 0; }
+button.danger {
+  background: none; border: 1px solid var(--line); color: var(--danger);
+  border-radius: var(--radius); padding: 4px 8px; font-size: 13px;
+  cursor: pointer;
+}
+button.danger:hover { border-color: var(--danger); }

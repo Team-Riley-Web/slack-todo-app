@@ -1,7 +1,8 @@
 import type { Db } from '@tr/db';
 import {
   listChannelMap, listSpaces, getInboxSpace,
-  mapChannelToSpace, unmapChannel, type Space, UnknownSpaceError,
+  mapChannelToSpace, unmapChannel, deleteSpace as deleteSpaceCore,
+  type Space, UnknownSpaceError,
 } from '@tr/task-core';
 import { listBatches, type ImportBatch } from '@tr/importer';
 import { authorizedUserIds, timeZone } from '@/lib/env';
@@ -77,4 +78,19 @@ export async function removeChannelMapping(
   if (!id) return { ok: false, error: 'A Slack channel ID is required.' };
   await unmapChannel(db, id);
   return { ok: true, taskId: id };
+}
+
+/**
+ * Deletes a Space.
+ *
+ * The rule lives in task-core, which refuses Inbox and refuses a Space still
+ * holding tasks -- including completed ones. This only translates the result
+ * into the shape the page renders.
+ */
+export async function removeSpace(
+  db: Db, spaceId: string
+): Promise<OperationResult> {
+  const result = await deleteSpaceCore(db, spaceId);
+  if (!result.ok) return { ok: false, error: result.error ?? 'Could not delete that Space.' };
+  return { ok: true, taskId: spaceId };
 }

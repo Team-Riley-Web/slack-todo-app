@@ -2,7 +2,7 @@ import { listSpaces } from '@tr/task-core';
 import { getDb } from '@/db';
 import { requireUser } from '@/user';
 import { parseFilters } from '@/data/filters';
-import { history, knownAssignees } from '@/data/tasks';
+import { history, knownAssignees, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
@@ -23,8 +23,20 @@ export default async function HistoryPage({
     knownAssignees(db),
   ]);
 
+  // The rail comes from the same summary the /spaces page uses, so a count
+  // there and a count here can never disagree.
+  const railSpaces = (await spaceSummary(db)).map(({ space, open, waiting }) => ({
+    space, open, waiting,
+  }));
+
   return (
-    <Shell current="/history" who={user.name ?? user.slackUserId}>
+    <Shell
+      current="/history"
+      who={user.name ?? user.slackUserId}
+      spaces={railSpaces}
+      railPath="/history"
+      activeSlug={filters.space ?? null}
+    >
       <h1>Completed</h1>
       <p className="muted small">
         {rows.length} completed {rows.length === 1 ? 'task' : 'tasks'}. Nothing is

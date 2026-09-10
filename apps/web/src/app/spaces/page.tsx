@@ -4,30 +4,83 @@ import { requireUser } from '@/user';
 import { spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { spaceHref, shortSpaceName } from '@/lib/display';
+import { removeSpaceFormVoid } from '@/actions/settings';
 
-export default async function SpacesPage() {
+export default async function SpacesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireUser();
+  const { error } = await searchParams;
   const rows = await spaceSummary(await getDb());
 
   return (
-    <Shell current="/spaces" who={user.name ?? user.slackUserId}>
+    <Shell
+      current="/spaces"
+      who={user.name ?? user.slackUserId}
+      spaces={rows.map(({ space, open, waiting }) => ({ space, open, waiting }))}
+      railPath="/"
+      activeSlug={null}
+    >
       <h1>Spaces</h1>
       <p className="muted small">
         Every Space, including the empty ones. Counts exclude nothing.
       </p>
+
+      {error ? <p className="error">{String(error)}</p> : null}
+
       <div className="spaces">
-        {rows.map(({ space, open, waiting, completed }) => (
-          <div className="space-card" key={space.id}>
-            <h3>
-              <Link href={spaceHref(space)}>{shortSpaceName(space)}</Link>
-            </h3>
-            <div className="counts">
-              <span className="open">{open} open</span>
-              <span>{waiting} waiting</span>
-              <span>{completed} done</span>
+        {rows.map(({ space, open, waiting, completed }) => {
+          const total = open + waiting + completed;
+          return (
+            <div className="space-card" key={space.id}>
+              <h3>
+                <Link href={spaceHref(space)}>{shortSpaceName(space)}</Link>
+              </h3>
+              <div className="counts">
+                <span className="open">{open} open</span>
+                <span>{waiting} waiting</span>
+                <span>{completed} done</span>
+              </div>
+
+              {/*
+                Delete is offered only where it can actually succeed: never for
+                Inbox, and never for a Space still holding tasks. `deleteSpace`
+                refuses both regardless, so this is the UI agreeing with the
+                rule rather than enforcing it.
+              */}
+              {space.is_inbox ? (
+                <p className="muted small">The fallback Space. Cannot be deleted.</p>
+              ) : total > 0 ? (
+                <p className="muted small">
+                  Holds {total} task{total === 1 ? '' : 's'} — move them to delete this Space.
+                </p>
+              ) : (
+                /*
+                  A native `details` disclosure is the confirmation step. This
+                  app ships no client JavaScript, so there is no onClick
+                  confirm available -- and a bare button would delete on one
+                  stray click. Two deliberate clicks, no script.
+                */
+                <details className="confirm-delete">
+                  <summary>Delete</summary>
+                  <form action={removeSpaceFormVoid}>
+                    <input type="hidden" name="spaceId" value={space.id} />
+                    <p className="muted small">
+                      Removes the Space, its lists, and any channel mapping or
+                      alias pointing at it. Channels mapped here fall back to
+                      Inbox.
+                    </p>
+                    <button type="submit" className="danger">
+                      Yes, delete {shortSpaceName(space)}
+                    </button>
+                  </form>
+                </details>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Shell>
   );
