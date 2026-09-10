@@ -300,6 +300,18 @@ button.circle.done svg path { stroke: #fff; opacity: 1; }
 
 h2 { font-size: 15px; margin: 26px 0 8px; }
 .muted { color: var(--muted); }
+/*
+ * An empty list's message, which had no padding at all and so sat flush
+ * against the card's inner edge -- 37px left of the card title above it.
+ * It now starts on the title's left edge, because with the column header
+ * suppressed those two are the only text in the card and sharing an edge is
+ * what makes it read as deliberate. The offset is the summary's own
+ * arithmetic: 16px padding + 13px chevron box + 8px gap.
+ */
+.card-body > p.empty {
+  margin: 0; padding: 14px 16px 16px calc(16px + 13px + 8px);
+  color: var(--muted);
+}
 .small { font-size: 13px; }
 .error {
   color: var(--danger); background: #fef3f2; border: 1px solid #fecdca;
@@ -308,6 +320,23 @@ h2 { font-size: 15px; margin: 26px 0 8px; }
 
 .filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .filters form { display: flex; gap: 6px; align-items: center; margin: 0; }
+/*
+ * One height for every control in a toolbar row. They were vertically centred
+ * but three different sizes -- 30px chips, a 32px select, a 35px button --
+ * which reads as sloppy even when nothing is strictly misaligned, because the
+ * tops and bottoms of adjacent controls never line up. Padding still sets
+ * the horizontal rhythm; only the height is pinned.
+ */
+.filters > a.chip, .filters .chip,
+.filters button, .filters .btn, .filters select, .filters input {
+  /* height, not min-height: the button's own padding made it 35px, so a
+     minimum left it a pixel taller than everything beside it. box-sizing is
+     border-box everywhere, so this is the exact outer height. */
+  height: 34px;
+}
+.filters > a.chip, .filters .chip, .filters button, .filters .btn {
+  display: inline-flex; align-items: center;
+}
 input[type="text"], input[type="search"], input[type="date"],
 input[type="datetime-local"], select, textarea {
   font: inherit; padding: 6px 10px; border: 1px solid var(--border);

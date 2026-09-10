@@ -40,7 +40,13 @@ export function SectionCard({
       </summary>
 
       <div className="card-body">
-        {columns === 'tasks' ? (
+        {/*
+          No column header over an empty list. "Task / Assignee / Due date"
+          above "Nothing open" labels columns that are not there, and it was
+          the thing that made the card look misaligned: three text elements at
+          three different left edges, one of them floating over nothing.
+        */}
+        {columns === 'tasks' && count > 0 ? (
           <div
             className={showSpace ? 'row head' : 'row head nospace'}
             aria-hidden="true"
@@ -52,7 +58,7 @@ export function SectionCard({
             <span className="due">Due date</span>
           </div>
         ) : null}
-        {columns === 'spaces' ? (
+        {columns === 'spaces' && count > 0 ? (
           <div className="row spacerow head" aria-hidden="true">
             <span className="title">Space</span>
             <span className="num">Open</span>
