@@ -22,9 +22,12 @@ export interface FilterBarProps {
 const DUE_OPTIONS: Array<{
   value: TaskFilters['due']; label: string; tone: string;
 }> = [
-  { value: 'overdue', label: 'Overdue', tone: 'overdue' },
+  // Order is the horizon you are asking about: today, then the week, then
+  // what slipped, then what was never dated. Overdue led before, which put
+  // the exception first and today's work third.
   { value: 'today', label: 'Today', tone: 'today' },
   { value: 'week', label: 'This week', tone: 'week' },
+  { value: 'overdue', label: 'Overdue', tone: 'overdue' },
   { value: 'none', label: 'No date', tone: 'none' },
 ];
 
