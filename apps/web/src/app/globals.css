@@ -29,6 +29,15 @@
   --muted: oklch(0.551 0.0234 264.36);
   --border: #e6e8eb;
   --border: oklch(0.9303 0.0046 258.33);
+  /*
+   * The alternate row tone, 2.4% darker than the surface, shared by the
+   * column header band and the striped rows. Chosen by rendering four
+   * strengths side by side: the header's old 1.2% was invisible as a stripe,
+   * and 3% started to read as banding across the page. This is the point
+   * where a row is trackable and the list is still quiet.
+   */
+  --surface-alt: #f6f7f9;
+  --surface-alt: oklch(0.9759 0.0029 264.54);
 
   /*
    * The one token the spec actually changes: the accent becomes the same
@@ -264,6 +273,17 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
   border-bottom: 1px solid var(--border);
 }
 ul.rows li.row:last-child { border-bottom: 0; }
+/*
+ * Zebra striping on task rows. A 20-row list of flat white separated only by
+ * hairlines is hard to read across: the eye loses the line somewhere between
+ * the title on the left and the due date on the right. nth-child works
+ * because the column header is a sibling of this list, not a child of it, so
+ * the first task row is always odd.
+ *
+ * Task rows only. The Spaces list is short and its rows are mostly counts;
+ * striping it would be decoration rather than help.
+ */
+ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
 .row.head {
   /*
    * --fg, not --muted: the spec asks for secondary metadata to read quieter
@@ -273,7 +293,7 @@ ul.rows li.row:last-child { border-bottom: 0; }
    * under the 4.5:1 floor.
    */
   min-height: 34px; color: var(--fg); font-size: 12px; font-weight: 600;
-  background: #fafbfc; border-bottom: 1px solid var(--border);
+  background: var(--surface-alt); border-bottom: 1px solid var(--border);
 }
 .row .title { min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-right: 12px; }
 .row .title a { color: var(--fg); text-decoration: none; word-break: break-word; }
