@@ -668,16 +668,40 @@ button.danger:hover { border-color: var(--danger); }
  * the element is mounted by a navigation -- there is no previous state for a
  * transition to run from.
  *
- * Leaving is NOT animated, and cannot be from CSS alone: the pane is removed
- * from the tree when the query parameter goes, and nothing gets the chance
- * to animate an element that no longer exists. Doing it properly needs the
- * navigation wrapped in a view transition, which needs client JavaScript --
- * a deliberate absence here (see WEB.md).
+ * Leaving is animated too, by PaneShell adding `.leaving` BEFORE the pane is
+ * taken away -- an element that no longer exists cannot be animated, so the
+ * animation has to run while it is still here. See PaneShell for why React's
+ * <ViewTransition>, which is built for this, is not usable on this version.
+ *
+ * The exit is faster than the entrance on purpose: what is leaving should
+ * stop competing for attention quickly, what is arriving deserves a beat.
  */
 @keyframes pane-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pane-in {
   from { transform: translateX(16px); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
+}
+@keyframes pane-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes pane-out {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(16px); opacity: 0; }
+}
+
+/* The wrapper carries no layout of its own: both children are fixed. */
+.pane-shell { display: contents; }
+
+/*
+ * `forwards` matters here. The pane is unmounted a moment after the
+ * animation ends, and without it the last frame would snap back to full
+ * opacity for that moment -- a flash of the pane returning as it leaves.
+ */
+.pane-shell.leaving .pane-backdrop {
+  animation: pane-backdrop-out 150ms ease-in forwards;
+}
+.pane-shell.leaving .pane {
+  animation: pane-out 150ms cubic-bezier(.4, 0, 1, 1) forwards;
+  /* Clicks during the exit would hit a pane that is on its way out. */
+  pointer-events: none;
 }
 
 .pane-backdrop {
@@ -698,6 +722,7 @@ button.danger:hover { border-color: var(--danger); }
 /* Movement is the part that can make someone ill; the fade is not. */
 @media (prefers-reduced-motion: reduce) {
   .pane { animation: pane-backdrop-in 120ms ease-out both; }
+  .pane-shell.leaving .pane { animation: pane-backdrop-out 120ms ease-in forwards; }
 }
 .pane-head {
   display: flex; align-items: center; gap: 12px;

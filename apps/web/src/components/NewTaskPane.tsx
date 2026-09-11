@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PaneShell } from '@/components/PaneShell';
 import { assigneeChoices, type Space } from '@tr/task-core';
 import { createTaskFormVoid } from '@/actions/tasks';
 import { closeNewTaskHref } from '@/lib/display';
@@ -23,13 +24,14 @@ export function NewTaskPane({
   const error = Array.isArray(params.error) ? params.error[0] : params.error;
 
   return (
-    <>
-      <Link className="pane-backdrop" href={back} aria-label="Close" />
+    /* PaneShell plays the exit animation before the pane goes away. */
+    <PaneShell>
+      <Link className="pane-backdrop" href={back} aria-label="Close" data-pane-close />
 
       <aside className="pane" aria-label="New task">
         <header className="pane-head">
           <h2>New task</h2>
-          <Link className="pane-close" href={back} aria-label="Close">×</Link>
+          <Link className="pane-close" href={back} aria-label="Close" data-pane-close>×</Link>
         </header>
 
         {error ? <p className="error">{String(error)}</p> : null}
@@ -92,10 +94,10 @@ export function NewTaskPane({
 
           <div className="filters">
             <button type="submit" className="primary">Create task</button>
-            <Link className="btn" href={back}>Cancel</Link>
+            <Link className="btn" href={back} data-pane-close>Cancel</Link>
           </div>
         </form>
       </aside>
-    </>
+    </PaneShell>
   );
 }

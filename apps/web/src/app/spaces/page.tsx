@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PaneShell } from '@/components/PaneShell';
 import { getDb } from '@/db';
 import { requireUser } from '@/user';
 import { spaceSummary } from '@/data/tasks';
@@ -155,7 +156,7 @@ export default async function SpacesPage({
                 <Link className="btn primary" href={spaceHref(deleting.space)}>
                   Open {shortSpaceName(deleting.space)}
                 </Link>
-                <Link className="btn" href="/spaces">Cancel</Link>
+                <Link className="btn" href="/spaces" data-pane-close>Cancel</Link>
               </div>
             </>
           ) : (
@@ -169,7 +170,7 @@ export default async function SpacesPage({
                 <button type="submit" className="danger">
                   Yes, delete {shortSpaceName(deleting.space)}
                 </button>
-                <Link className="btn" href="/spaces">Cancel</Link>
+                <Link className="btn" href="/spaces" data-pane-close>Cancel</Link>
               </div>
             </form>
           )}
@@ -188,17 +189,18 @@ function SpacePane({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    /* PaneShell plays the exit animation before the pane goes away. */
+    <PaneShell>
       {/* The backdrop is a link, so clicking away closes the pane. */}
-      <Link className="pane-backdrop" href={close} aria-label="Close" />
+      <Link className="pane-backdrop" href={close} aria-label="Close" data-pane-close />
       <aside className="pane" aria-label={title}>
         <header className="pane-head">
           <h2>{title}</h2>
-          <Link className="pane-close" href={close} aria-label="Close">×</Link>
+          <Link className="pane-close" href={close} aria-label="Close" data-pane-close>×</Link>
         </header>
         {children}
       </aside>
-    </>
+    </PaneShell>
   );
 }
 
@@ -206,7 +208,7 @@ function PaneButtons({ label }: { label: string }) {
   return (
     <div className="filters">
       <button type="submit" className="primary">{label}</button>
-      <Link className="btn" href="/spaces">Cancel</Link>
+      <Link className="btn" href="/spaces" data-pane-close>Cancel</Link>
     </div>
   );
 }
