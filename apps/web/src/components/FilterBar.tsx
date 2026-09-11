@@ -11,15 +11,25 @@ export interface FilterBarProps {
   show?: Array<'due' | 'assignee' | 'dates'>;
 }
 
-const DUE_OPTIONS: Array<{ value: TaskFilters['due']; label: string }> = [
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'today', label: 'Today' },
-  { value: 'week', label: 'This week' },
-  { value: 'none', label: 'No date' },
+/**
+ * The due buckets, each with a tone.
+ *
+ * The tones are not decoration: overdue borrows the hue the overdue due-date
+ * text already uses, "this week" the amber of a date coming up soon, today
+ * the accent blue, and "no date" a neutral. So a pill and the column it
+ * filters agree on what colour that state is.
+ */
+const DUE_OPTIONS: Array<{
+  value: TaskFilters['due']; label: string; tone: string;
+}> = [
+  { value: 'overdue', label: 'Overdue', tone: 'overdue' },
+  { value: 'today', label: 'Today', tone: 'today' },
+  { value: 'week', label: 'This week', tone: 'week' },
+  { value: 'none', label: 'No date', tone: 'none' },
 ];
 
 /**
- * The filter row: due buckets as pills, assignee as a select.
+ * The filter row: due buckets as pills, assignee as a dropdown.
  *
  * What used to be here and is not any more:
  *
@@ -28,8 +38,9 @@ const DUE_OPTIONS: Array<{ value: TaskFilters['due']; label: string }> = [
  *   Space page splits into those three sections, and Waiting and Completed
  *   have their own pages.
  * - **A pill per person.** One pill per name does not scale past two people
- *   and reads as clutter at one. It is a select now.
+ *   and reads as clutter at one. It is a dropdown.
  * - **Search.** Moved to the top right, in the page header.
+ * - **The assignee's Apply button.** See below.
  *
  * Everything is still a link carrying query parameters, so each filtered view
  * has its own URL, the back button behaves, and no client JavaScript runs.
@@ -52,12 +63,22 @@ export function FilterBar({
     </Link>
   );
 
+  const dueChip = (o: (typeof DUE_OPTIONS)[number]) => (
+    <Link
+      key={`due-${o.value}`}
+      className={`chip tone-${o.tone}`}
+      href={filterHref(path, withFilter(filters, 'due', o.value))}
+      aria-current={filters.due === o.value}
+    >
+      {o.label}
+    </Link>
+  );
+
   const active = Object.keys(filters).filter((k) => k !== 'space').length > 0;
 
   return (
     <div className="filters">
-      {visible.includes('due') &&
-        DUE_OPTIONS.map((o) => chip('due', o.value, o.label!))}
+      {visible.includes('due') && DUE_OPTIONS.map(dueChip)}
 
       {visible.includes('dates') && (
         <form method="get" action={path}>
@@ -80,28 +101,49 @@ export function FilterBar({
 
       {visible.includes('assignee') && assignees && assignees.length > 0 && (
         /*
-         * A GET form with an auto-submitting select would need JavaScript, so
-         * it keeps its own Apply. One extra click, no script.
+         * A dropdown whose options are links, not a select in a form.
+         *
+         * It was a select plus an Apply button, because a select cannot submit
+         * its own form without JavaScript and this app ships none. Picking a
+         * name and then having to press Apply is one click too many for a
+         * filter, so the options are links instead: choosing one navigates,
+         * and the list is filtered on arrival. `details`/`summary` gives the
+         * dropdown its open and closed states with no script, and it closes
+         * on its own because following a link renders the page afresh.
          */
-        <form method="get" action={path} className="assignee-filter">
-          {(['space', 'q', 'due', 'from', 'to'] as const).map((key) =>
-            filters[key] ? (
-              <input key={key} type="hidden" name={key} value={filters[key]} />
-            ) : null
-          )}
-          <label className="small">
-            Assignee
-            <select name="assignee" defaultValue={filters.assignee ?? ''}>
-              <option value="">Anyone</option>
+        <>
+          <span className="filter-label">Assignee</span>
+          <details className="menu">
+            <summary>
+              <span className="menu-value">
+                {filters.assignee
+                  ? assigneeLabels?.[filters.assignee] ?? filters.assignee
+                  : 'Anyone'}
+              </span>
+              <span className="chevron" aria-hidden="true" />
+            </summary>
+            <ul className="menu-list">
+              <li>
+                <Link
+                  href={filterHref(path, withFilter(filters, 'assignee', undefined))}
+                  aria-current={!filters.assignee}
+                >
+                  Anyone
+                </Link>
+              </li>
               {assignees.map((id) => (
-                <option key={id} value={id}>
-                  {assigneeLabels?.[id] ?? id}
-                </option>
+                <li key={id}>
+                  <Link
+                    href={filterHref(path, withFilter(filters, 'assignee', id))}
+                    aria-current={filters.assignee === id}
+                  >
+                    {assigneeLabels?.[id] ?? id}
+                  </Link>
+                </li>
               ))}
-            </select>
-          </label>
-          <button type="submit">Apply</button>
-        </form>
+            </ul>
+          </details>
+        </>
       )}
 
       {active && <Link className="chip" href={path}>Clear</Link>}
