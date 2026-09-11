@@ -64,7 +64,13 @@
   --overdue: #ea4954;
 
   /* --- type, docs/brand-spec.md --- */
-  --font-display: "Iowan Old Style", Charter, Georgia, serif;
+  /*
+   * No display face. docs/brand-spec.md lists a serif (Iowan Old Style,
+   * Charter, Georgia) and it was applied to the page heading, the pane
+   * heading and the team name; it was rejected on sight. One sans stack sets
+   * everything, so do not re-add the serif from the spec -- this is a
+   * deliberate override of it, not an omission.
+   */
   --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 
@@ -106,13 +112,7 @@ a { color: var(--accent-strong); }
   padding: 22px 0 6px;
 }
 .page-head .heading { flex: 1; min-width: 0; }
-.page-head h1 {
-  margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em;
-  /* The display face earns its keep on the page title and the team name in
-     the rail, and nowhere else: section headings staying sans is what keeps
-     a list of tasks reading as a table rather than a document. */
-  font-family: var(--font-display);
-}
+.page-head h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
 .page-head .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
 .toolbar { padding: 12px 0 4px; }
 
@@ -150,10 +150,7 @@ nav.rail a.workspace {
 }
 nav.rail a.workspace img { border-radius: 6px; display: block; }
 nav.rail .names { display: flex; flex-direction: column; min-width: 0; }
-nav.rail .team {
-  font-weight: 600; font-size: 16px; letter-spacing: -0.01em;
-  font-family: var(--font-display);
-}
+nav.rail .team { font-weight: 650; font-size: 15px; letter-spacing: -0.01em; }
 
 /*
  * A rail group heading, which is also its collapse control. Same small
@@ -495,10 +492,7 @@ button.danger:hover { border-color: var(--danger); }
 }
 /* h2, not h1: a pane sits inside a page that already has an h1, and both
    panes render an h2. The old `.pane-head h1` rule matched nothing. */
-.pane-head h2 {
-  flex: 1; margin: 8px 0; font-size: 18px; font-weight: 600;
-  font-family: var(--font-display);
-}
+.pane-head h2 { flex: 1; margin: 8px 0; font-size: 18px; font-weight: 650; }
 a.pane-close {
   text-decoration: none; color: var(--muted);
   font-size: 24px; line-height: 1; padding: 4px 10px;
