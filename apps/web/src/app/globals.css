@@ -403,8 +403,88 @@ a.chip, .filters .chip {
   padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px;
   font-size: 13px; text-decoration: none; color: var(--fg); background: var(--surface);
 }
-a.chip[aria-current="true"] {
+/*
+ * Pill tones. Each background is L 0.955 and each label L 0.46 on the SAME
+ * hue, which lands every pair at roughly 6.4:1 -- well past the 4.5:1 floor,
+ * so a tinted pill is no harder to read than the plain one was. Hues come
+ * from tokens that already exist: --overdue for overdue, --soon for the week
+ * ahead, --accent for today, and the text neutral for no date.
+ */
+a.chip.tone-overdue { background: oklch(0.955 0.03 21.1); color: oklch(0.46 0.14 21.1); border-color: oklch(0.92 0.045 21.1); }
+a.chip.tone-today   { background: oklch(0.955 0.03 266); color: oklch(0.46 0.14 266); border-color: oklch(0.92 0.045 266); }
+a.chip.tone-week    { background: oklch(0.955 0.03 43); color: oklch(0.46 0.14 43); border-color: oklch(0.92 0.045 43); }
+a.chip.tone-none    { background: oklch(0.955 0.012 264.4); color: oklch(0.46 0.01 264.4); border-color: oklch(0.92 0.012 264.4); }
+a.chip.tone-overdue:hover { background: oklch(0.925 0.045 21.1); }
+a.chip.tone-today:hover   { background: oklch(0.925 0.045 266); }
+a.chip.tone-week:hover    { background: oklch(0.925 0.045 43); }
+a.chip.tone-none:hover    { background: oklch(0.925 0.018 264.4); }
+
+/*
+ * Selected still means blue, whatever the pill's own tone is. The brand spec
+ * reserves blue for the selected state, and one colour meaning "this is on"
+ * is worth more than letting each pill darken into its own hue -- where four
+ * different "on" colours would have to be learned.
+ */
+a.chip[aria-current="true"],
+a.chip.tone-overdue[aria-current="true"],
+a.chip.tone-today[aria-current="true"],
+a.chip.tone-week[aria-current="true"],
+a.chip.tone-none[aria-current="true"] {
   background: var(--accent-strong); border-color: var(--accent-strong); color: #fff;
+}
+
+/* The word before a control, which had only a collapsed text space between
+   it and the control it names. */
+.filters .filter-label {
+  color: var(--muted); font-size: 13px; margin-left: 4px; margin-right: 2px;
+}
+
+/*
+ * A dropdown built from details/summary, used for the assignee filter.
+ *
+ * Its options are links, so choosing one navigates and filters immediately --
+ * no Apply, and no JavaScript, which a self-submitting <select> would have
+ * required. It closes by itself: following a link re-renders the page and a
+ * fresh details starts shut.
+ */
+.filters details.menu { position: relative; }
+.filters details.menu > summary {
+  display: inline-flex; align-items: center; gap: 8px; height: 34px;
+  padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--fg); font-size: 13px;
+  cursor: pointer; list-style: none; white-space: nowrap;
+}
+.filters details.menu > summary::-webkit-details-marker { display: none; }
+.filters details.menu > summary::marker { content: ''; }
+.filters details.menu > summary:hover { background: #f3f4f6; }
+.filters details.menu > summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+/*
+ * This chevron points DOWN when closed, like a select's caret, and up when
+ * open. The shared one points right when closed, which is right for a
+ * disclosure -- "there is more below" -- but wrong for a menu button, where
+ * down means "there is a list behind this".
+ */
+.filters details.menu .chevron {
+  width: 6px; height: 6px; margin: 0 0 3px;
+  border-right-color: var(--muted); border-bottom-color: var(--muted);
+}
+.filters details.menu > summary .chevron { transform: rotate(45deg); }
+.filters details.menu[open] > summary .chevron { transform: rotate(225deg); }
+.filters details.menu ul.menu-list {
+  position: absolute; z-index: 5; top: calc(100% + 4px); left: 0;
+  min-width: 100%; margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 6px 20px rgba(16, 24, 40, .12);
+}
+.filters details.menu ul.menu-list a {
+  display: block; padding: 6px 10px; border-radius: 4px;
+  color: var(--fg); text-decoration: none; font-size: 13px; white-space: nowrap;
+}
+.filters details.menu ul.menu-list a:hover { background: #f3f4f6; }
+.filters details.menu ul.menu-list a[aria-current="true"] {
+  background: var(--accent-strong); color: #fff;
 }
 
 .stack { display: flex; flex-direction: column; gap: 12px; max-width: 520px; }

@@ -170,3 +170,10 @@ unchecked task unless you are starting it.
 - [x] Web UI: drop the serif display font - use the sans-serif body font for the page heading, pane heading and the Team Riley name in the rail
   - Done 2026-09-10: --font-display deleted rather than redefined, so no rule reads a face the app does not use. Reverted the sizes and weights I had raised to suit the serif's smaller apparent size: page heading 21px/600 back to 20px/650, team name 16px/600 back to 15px/650. Verified no element anywhere resolves to a non-sans serif family.
   - This overrides docs/brand-spec.md, which lists a display serif. Recorded in WEB.md and in a comment on the token block so a future session does not re-apply it from the spec.
+- [x] Web UI: give the filter pills (Overdue, Today, This week, No date) light colours
+  - Done 2026-09-10: each pill is a light tint of a hue that already means something here -- --overdue's red, --soon's amber for the week ahead, --accent's blue for today, and a neutral for no date. Background L 0.955 against label L 0.46 on the same hue puts every pair near 6.4:1, so a tinted pill reads no harder than the plain one. Selected still goes solid blue whatever the pill's tone: one colour meaning "on" beats four.
+- [x] Web UI: add space between the Assignee label and its select
+  - Done 2026-09-10: the label was nested inside the control's <label>, so only a collapsed text space separated them. It is its own element now, 8px clear of the dropdown.
+- [x] Web UI: remove the Apply button - selecting an assignee should update the list on its own
+  - Done 2026-09-10: a <select> cannot submit its own form without JavaScript, which is why the Apply was there. Replaced it with a details/summary dropdown whose options are LINKS -- picking one navigates and the list arrives filtered, no Apply and still no script. It closes itself, since following a link re-renders the page. Verified 20 rows -> 14 on picking Joshua, with the button reading Joshua and Clear appearing.
+  - The Apply on /history stays: it submits the From/To date inputs, which cannot self-submit either, and it is a different control pair from the one in the screenshot.
