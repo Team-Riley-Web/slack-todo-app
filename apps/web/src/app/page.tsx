@@ -7,7 +7,7 @@ import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
 import { EditPane } from '@/components/EditPane';
-import { SectionCard } from '@/components/SectionCard';
+import { SectionCard, ColumnHead } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
 import { sortRows, sortingFor } from '@/lib/sort';
 import { spaceBySlug, shortSpaceName } from '@/lib/display';
@@ -65,7 +65,7 @@ export default async function MyTasksPage({
       activeSlug={filters.space ?? null}
       searchPath="/"
       searchParams={query}
-      title={only ? shortSpaceName(only) : "My tasks"}
+      title={only ? shortSpaceName(only) : "My Tasks"}
       toolbar={
         <FilterBar
           path="/"
@@ -76,34 +76,141 @@ export default async function MyTasksPage({
         />
       }
     >
-      <SectionCard sorting={sorting} label="Open" count={rows.length} showSpace={!only}>
-        <TaskList
-          rows={sortRows(rows, sortBy, assigneeLabels())}
-          showSpace={!only}
-          empty="Nothing open. Capture something with /task in Slack."
-          assigneeLabels={assigneeLabels()}
-          basePath="/"
-          params={query}
-        />
-      </SectionCard>
+      {only ? (
+        /*
+         * One Space: the page already names it, so Open and Waiting are the
+         * only division left worth making. Unchanged.
+         */
+        <>
+          {/*
+           * No column band on a Space page: the summary above names the group
+           * and carries its tone, so a repeated "OPEN" strip under it said the
+           * same thing twice.
+           */}
+          <SectionCard label="Open" count={rows.length}
+            showSpace={false} columns="none" tone="open">
+            <TaskList
+              rows={sortRows(rows, sortBy, assigneeLabels())}
+              showSpace={false}
+              empty="Nothing open. Capture something with /task in Slack."
+              assigneeLabels={assigneeLabels()}
+              basePath="/"
+              params={query}
+            />
+          </SectionCard>
 
-      {/* Below Open, with the columns that say what each task is stuck on. */}
-      <SectionCard sorting={sorting}
-        label="Waiting"
-        count={waiting.length}
-        showSpace={!only}
-        showWaiting
-      >
-        <TaskList
-          rows={sortRows(waiting, sortBy, assigneeLabels())}
-          showSpace={!only}
-          showWaiting
-          empty="Nothing waiting."
-          assigneeLabels={assigneeLabels()}
-          basePath="/"
-          params={query}
-        />
-      </SectionCard>
+          {/* Below Open, with the columns that say what each task is stuck on. */}
+          <SectionCard
+            label="Waiting"
+            count={waiting.length}
+            showSpace={false}
+            showWaiting
+            columns="none"
+            tone="waiting"
+          >
+            <TaskList
+              rows={sortRows(waiting, sortBy, assigneeLabels())}
+              showSpace={false}
+              showWaiting
+              empty="Nothing waiting."
+              assigneeLabels={assigneeLabels()}
+              basePath="/"
+              params={query}
+            />
+          </SectionCard>
+        </>
+      ) : (
+        /*
+         * Every Space: one card per Space, the way the Slack card groups them.
+         *
+         * This replaced a single flat "Open" list with a Space column, which
+         * made you read the same Space name down thirty rows to work out what
+         * belonged together. The card names the Space once, so the column
+         * comes off the rows entirely.
+         *
+         * Waiting tasks sit inside their own Space's card under a subheading
+         * rather than in a separate list at the bottom of the page. Most
+         * Spaces have none, so most cards are simply a list of tasks.
+         *
+         * Order follows `listSpaces`, the same order the rail and the Slack
+         * digests use. A Space with nothing in it is omitted rather than shown
+         * empty -- an empty card per idle client is noise, and the rail
+         * already says which Spaces exist.
+         */
+        <>
+          {spaces.map((space) => {
+            const open = sortRows(
+              rows.filter((r) => r.task.space_id === space.id), sortBy, assigneeLabels()
+            );
+            const blocked = sortRows(
+              waiting.filter((r) => r.task.space_id === space.id), sortBy, assigneeLabels()
+            );
+            if (open.length + blocked.length === 0) return null;
+
+            return (
+              <SectionCard
+                key={space.id}
+                sorting={sorting}
+                label={shortSpaceName(space)}
+                count={open.length + blocked.length}
+                showSpace={false}
+                /*
+                 * The card emits no band of its own. Each GROUP carries one,
+                 * so a Space holding only blocked work shows a WAITING band
+                 * and nothing else -- it used to show an empty OPEN band above
+                 * it, labelling rows that were not there.
+                 */
+                columns="none"
+              >
+                {open.length > 0 ? (
+                  <>
+                    <ColumnHead
+                      label="Open"
+                      tone="open"
+                      sorting={sorting}
+                      showSpace={false}
+                    />
+                    <TaskList
+                      rows={open}
+                      showSpace={false}
+                      empty=""
+                      assigneeLabels={assigneeLabels()}
+                      basePath="/"
+                      params={query}
+                    />
+                  </>
+                ) : null}
+                {blocked.length > 0 ? (
+                  <>
+                    {/*
+                      The same band as the one above the open rows, so the two
+                      groups are told apart by their word and their tint rather
+                      than by one being a header and the other a label. Waiting
+                      rows keep the SAME columns, so both bands describe what is
+                      under them. What a task waits on is still on /waiting and
+                      in the edit pane.
+                    */}
+                    <ColumnHead
+                      label="Waiting"
+                      tone="waiting"
+                      sorting={sorting}
+                      showSpace={false}
+                    />
+                    <TaskList
+                      rows={blocked}
+                      showSpace={false}
+                      empty=""
+                      assigneeLabels={assigneeLabels()}
+                      basePath="/"
+                      params={query}
+                    />
+                  </>
+                ) : null}
+              </SectionCard>
+            );
+          })}
+        </>
+      )}
 
       {editing ? (
         <EditPane

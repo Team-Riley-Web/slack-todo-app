@@ -15,7 +15,7 @@ import type { Sorting } from '@/lib/sort';
  */
 export function SectionCard({
   label, count, startOpen = true, createHref, columns = 'tasks',
-  showSpace = true, showWaiting = false, sorting, children,
+  showSpace = true, showWaiting = false, sorting, headLabel, tone, children,
 }: {
   label: string;
   count: number;
@@ -35,14 +35,29 @@ export function SectionCard({
   showWaiting?: boolean;
   /** When given, column labels become links that order the list. */
   sorting?: Sorting;
+  /** What the first cell of the band says. Defaults to the column's own name. */
+  headLabel?: string;
+  /** Tints the band so a group reads as Open or Waiting at a glance. */
+  tone?: HeadTone;
   children: React.ReactNode;
 }) {
   return (
     <details
-      className={columns === 'spaces' ? 'card cols-spaces' : 'card'}
+      className={[
+        'card',
+        columns === 'spaces' ? 'cols-spaces' : null,
+      ].filter(Boolean).join(' ')}
       open={startOpen}
     >
-      <summary>
+      {/*
+       * The tone goes on the summary, not on a band beneath it.
+       *
+       * On a Space page the summary ALREADY says Open or Waiting, so a second
+       * strip repeating the word under it was the redundancy. Tinting the row
+       * that carries the word is the same signal with one element instead of
+       * two.
+       */}
+      <summary className={tone ? `summary-${tone}` : undefined}>
         <span className="chevron" aria-hidden="true" />
         <span className="name">{label}</span>
         <span className="count">{count}</span>
@@ -56,30 +71,13 @@ export function SectionCard({
           three different left edges, one of them floating over nothing.
         */}
         {columns === 'tasks' && count > 0 ? (
-          <div
-            className={[
-              'row', 'head',
-              showSpace ? null : 'nospace',
-              showWaiting ? 'haswait' : null,
-            ].filter(Boolean).join(' ')}
-            /* Plain labels are hidden from screen readers -- read out of a
-               grid that is not a real table they are noise. Sort links are
-               controls, and a link inside aria-hidden is unreachable. */
-            aria-hidden={sorting ? undefined : true}
-          >
-            <span className="tick" />
-            {column('title', 'title', 'Task', sorting)}
-            {column('priority', 'priority', 'Priority', sorting)}
-            {showSpace ? column('space', 'space', 'Space', sorting) : null}
-            {showWaiting ? (
-              <>
-                {column('waiting-on', 'waiting', 'Waiting on', sorting)}
-                {column('age', 'age', 'Age', sorting)}
-              </>
-            ) : null}
-            {column('assignee', 'assignee', 'Assignee', sorting)}
-            {column('due', 'due', 'Due date', sorting)}
-          </div>
+          <ColumnHead
+            label={headLabel}
+            tone={tone}
+            sorting={sorting}
+            showSpace={showSpace}
+            showWaiting={showWaiting}
+          />
         ) : null}
         {columns === 'spaces' && count > 0 ? (
           <div className="row spacerow head" aria-hidden="true">
@@ -133,5 +131,61 @@ function column(
         ) : null}
       </Link>
     </span>
+  );
+}
+
+
+export type HeadTone = 'open' | 'waiting';
+
+/**
+ * The band above a group of rows.
+ *
+ * It is the column header AND the group label in one strip, which is the whole
+ * point: a card used to stack a "Task / Priority / Assignee / Due date" header
+ * directly on top of a "WAITING" band, two grey bars meaning different things.
+ * Now the first cell carries the group name -- OPEN or WAITING -- and the rest
+ * of the cells stay the sortable column labels they always were.
+ *
+ * A tint says which group it is without reading the word: the faintest blue
+ * for open work, the faintest purple for blocked. Both are far too light to
+ * affect the label's contrast, so this is decoration on top of a word rather
+ * than colour carrying meaning on its own.
+ */
+export function ColumnHead({
+  label, tone, sorting, showSpace = true, showWaiting = false,
+}: {
+  label?: string;
+  tone?: HeadTone;
+  sorting?: Sorting;
+  showSpace?: boolean;
+  showWaiting?: boolean;
+}) {
+  return (
+    <div
+      className={[
+        'row', 'head',
+        tone ? `head-${tone}` : null,
+        label ? 'head-group' : null,
+        showSpace ? null : 'nospace',
+        showWaiting ? 'haswait' : null,
+      ].filter(Boolean).join(' ')}
+      /* Plain labels are hidden from screen readers -- read out of a grid that
+         is not a real table they are noise. Sort links are controls, and a
+         link inside aria-hidden is unreachable. */
+      aria-hidden={sorting ? undefined : true}
+    >
+      <span className="tick" />
+      {column('title', 'title', label ?? 'Task', sorting)}
+      {column('priority', 'priority', 'Priority', sorting)}
+      {showSpace ? column('space', 'space', 'Space', sorting) : null}
+      {showWaiting ? (
+        <>
+          {column('waiting-on', 'waiting', 'Waiting on', sorting)}
+          {column('age', 'age', 'Age', sorting)}
+        </>
+      ) : null}
+      {column('assignee', 'assignee', 'Assignee', sorting)}
+      {column('due', 'due', 'Due date', sorting)}
+    </div>
   );
 }
