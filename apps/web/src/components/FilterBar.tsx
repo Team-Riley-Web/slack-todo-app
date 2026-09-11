@@ -20,6 +20,9 @@ export interface FilterBarProps {
  * the green of a completed check, and no date a neutral. So the palette stays
  * the same size -- no colour exists only to tint a pill.
  */
+/** One assignee menu renders per page, so a fixed id is safe. */
+const MENU_ID = 'assignee-menu';
+
 const DUE_OPTIONS: Array<{
   value: TaskFilters['due']; label: string; tone: string;
 }> = [
@@ -121,21 +124,39 @@ export function FilterBar({
          * its own form without JavaScript and this app ships none. Picking a
          * name and then having to press Apply is one click too many for a
          * filter, so the options are links instead: choosing one navigates,
-         * and the list is filtered on arrival. `details`/`summary` gives the
-         * dropdown its open and closed states with no script, and it closes
-         * on its own because following a link renders the page afresh.
+         * and the list is filtered on arrival.
+         *
+         * The open state is a checkbox rather than `details`/`summary`. A
+         * `details` has no light dismiss: clicking away leaves it hanging
+         * open, because only its own summary can close it. A checkbox can be
+         * unchecked by any label pointing at it, so a full-viewport label
+         * behind the menu closes it on a click anywhere outside -- still with
+         * no JavaScript.
+         *
+         * The id is fixed because exactly one of these renders per page; two
+         * would collide, and the label/checkbox pairing is by id.
          */
         <>
           <span className="filter-label">Assignee</span>
-          <details className="menu">
-            <summary>
+          <span className="menu">
+            <input
+              type="checkbox"
+              id={MENU_ID}
+              className="menu-state"
+              aria-label="Filter by assignee"
+            />
+            {/* Closes the menu from anywhere outside it. Hidden from screen
+                readers: it is a mouse affordance, and Escape or Tab already
+                serve the keyboard. */}
+            <label className="menu-backdrop" htmlFor={MENU_ID} aria-hidden="true" />
+            <label className="menu-button" htmlFor={MENU_ID}>
               <span className="menu-value">
                 {filters.assignee
                   ? assigneeLabels?.[filters.assignee] ?? filters.assignee
                   : 'Anyone'}
               </span>
               <span className="chevron" aria-hidden="true" />
-            </summary>
+            </label>
             <ul className="menu-list">
               <li>
                 <Link
@@ -156,7 +177,7 @@ export function FilterBar({
                 </li>
               ))}
             </ul>
-          </details>
+          </span>
         </>
       )}
 
