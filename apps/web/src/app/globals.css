@@ -30,14 +30,21 @@
   --border: #e6e8eb;
   --border: oklch(0.9303 0.0046 258.33);
   /*
-   * The alternate row tone, 2.4% darker than the surface, shared by the
-   * column header band and the striped rows. Chosen by rendering four
-   * strengths side by side: the header's old 1.2% was invisible as a stripe,
-   * and 3% started to read as banding across the page. This is the point
-   * where a row is trackable and the list is still quiet.
+   * The alternate row tone, for zebra striping. Chosen by rendering four
+   * strengths side by side: 1.2% was invisible, 3% read as banding.
    */
   --surface-alt: #f6f7f9;
   --surface-alt: oklch(0.9759 0.0029 264.54);
+
+  /*
+   * The column header bar. It used to share --surface-alt with the stripes,
+   * which capped how distinct it could be: any darker and every second row
+   * went with it. Its own token now, 4.5% down from the surface, so the bar
+   * reads as a header rather than as one more row. Labels stay at --fg and
+   * measure 13.3:1 on it.
+   */
+  --header-bg: #eef0f4;
+  --header-bg: oklch(0.955 0.006 264.54);
 
   /*
    * The one token the spec actually changes: the accent becomes the same
@@ -296,7 +303,7 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
    * floor.
    */
   min-height: 34px; color: var(--fg); font-size: 12px; font-weight: 600;
-  background: var(--surface-alt); border-bottom: 1px solid var(--border);
+  background: var(--header-bg); border-bottom: 1px solid var(--border);
 }
 .row .title { min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-right: 12px; }
 .row .title a { color: var(--fg); text-decoration: none; word-break: break-word; }
