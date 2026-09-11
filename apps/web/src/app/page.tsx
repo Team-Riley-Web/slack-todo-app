@@ -59,6 +59,7 @@ export default async function MyTasksPage({
 
   return (
     <Shell
+      path="/"
       current="/"
       spaces={railSpaces}
       activeSlug={filters.space ?? null}

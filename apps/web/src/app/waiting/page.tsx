@@ -50,6 +50,7 @@ export default async function WaitingPage({
 
   return (
     <Shell
+      path="/waiting"
       current="/waiting"
       spaces={railSpaces}
       activeSlug={filters.space ?? null}

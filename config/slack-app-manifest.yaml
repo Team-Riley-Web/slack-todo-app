@@ -82,6 +82,9 @@ oauth_config:
       - files:read
 
 settings:
+  # This checked-in manifest keeps Socket Mode enabled for `pnpm slack` local
+  # development. The Vercel production app instead disables it and points all
+  # commands plus Interactivity at /api/slack/events; see SLACK_SETUP.md.
   # Interactivity is required for the checkbox and the overflow menu to send
   # block_actions, and for the modals to send view_submission. Under Socket
   # Mode no request_url is needed.

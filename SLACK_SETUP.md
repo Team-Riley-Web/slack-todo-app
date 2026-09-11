@@ -230,7 +230,31 @@ If the box appears **unchecked on a completed task**, that is the
 
 ## HTTP mode (deployment)
 
-Set `SLACK_MODE=http` and `PORT`. Then set the Request URL on both Slash Commands
-and Interactivity to `https://<host>/slack/events`, and disable Socket Mode.
-Request signatures are verified with the v0 HMAC scheme and a five-minute replay
-window.
+### Vercel (recommended)
+
+Deploy the Next app with `apps/web` as the Vercel Root Directory. Set the
+production variables listed in `WEB.md`, but omit `SLACK_APP_TOKEN`: the
+deployed receiver does not use Socket Mode. Its health check and signed event
+endpoint are the same route:
+
+```text
+https://<production-domain>/api/slack/events
+```
+
+Once `GET` on that URL returns `200`, set it as the Request URL on `/task`,
+`/tasks`, `/space`, `/import`, and Interactivity, then disable Socket Mode.
+The receiver reads the untouched request body, verifies Slack's v0 HMAC and
+five-minute replay window, and acknowledges before database work. Remaining
+listener work runs through Next's post-response lifecycle; no keep-warm ping
+or always-running process is involved. The interaction-retention sweep runs
+once per warm function instance as deferred work instead of relying on a
+long-lived timer.
+
+Run migrations as a deploy step, never from the event route. Local development
+stays on the existing `SLACK_MODE=socket` plus `pnpm slack` workflow.
+
+### Standalone Node host
+
+For a conventional always-running Node service, set `SLACK_MODE=http` and
+`PORT`. Set the Slash Command and Interactivity Request URLs to
+`https://<host>/slack/events`, and disable Socket Mode.

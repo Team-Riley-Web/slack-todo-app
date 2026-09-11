@@ -14,7 +14,8 @@ export default async function SettingsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
-  const { error } = await searchParams;
+  const query = await searchParams;
+  const { error } = query;
   const db = await getDb();
   const view = await settingsView(db);
   const railSpaces = (await spaceSummary(db)).map(({ space, open, waiting }) => ({
@@ -23,8 +24,10 @@ export default async function SettingsPage({
 
   return (
     <Shell
+      path="/settings"
       current="/settings"
       spaces={railSpaces}
+      searchParams={query}
       title="Settings"
     >
       <p className="muted small">

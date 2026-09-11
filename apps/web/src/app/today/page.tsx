@@ -52,6 +52,7 @@ export default async function TodayPage({
 
   return (
     <Shell
+      path="/today"
       current="/today"
       spaces={summary.map(({ space, open, waiting }) => ({ space, open, waiting }))}
       activeSlug={filters.space ?? null}

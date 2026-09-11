@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   dueLabel, ageInDays, ageLabel, taskEditHref, closeEditHref, isClientSpace,
-  spaceHref, filterHref, shortSpaceName, spaceBySlug,
+  spaceHref, filterHref, shortSpaceName, spaceBySlug, newTaskHref,
+  closeNewTaskHref, newTaskSpace,
 } from './display.js';
 import type { Task, Space } from '@tr/task-core';
 
@@ -120,6 +121,23 @@ describe('links', () => {
     expect(closeEditHref('/', { edit: 'T1' })).toBe('/');
   });
 
+  it('opens new-task capture over the current filtered view', () => {
+    expect(newTaskHref('/waiting', { space: 'marketing', q: 'neil' }))
+      .toBe('/waiting?space=marketing&q=neil&newTask=1');
+  });
+
+  it('does not carry an edit pane or stale error into new-task capture', () => {
+    expect(newTaskHref('/', { edit: 'T1', error: 'old', newTask: '1' }))
+      .toBe('/?newTask=1');
+  });
+
+  it('closes new-task capture back to the same filtered view', () => {
+    expect(closeNewTaskHref('/today', {
+      space: 'marketing', newTask: '1', error: 'A task needs a title.',
+    })).toBe('/today?space=marketing');
+    expect(closeNewTaskHref('/', { newTask: '1' })).toBe('/');
+  });
+
   it('knows a client Space from its prefix', () => {
     expect(isClientSpace(space)).toBe(true);
     expect(isClientSpace({ ...space, name: 'Marketing' })).toBe(false);
@@ -170,5 +188,26 @@ describe('spaceBySlug', () => {
   it('matches the slug exactly, not by prefix or case', () => {
     expect(spaceBySlug(spaces, 'cfc')).toBeNull();
     expect(spaceBySlug(spaces, 'CFC-Skincare')).toBeNull();
+  });
+});
+
+describe('newTaskSpace', () => {
+  const spaces: Space[] = [
+    { id: 'INBOX', name: 'Inbox', slug: 'inbox', is_inbox: true },
+    { id: 'S1', name: 'Marketing', slug: 'marketing', is_inbox: false },
+  ];
+
+  it('preselects the Space currently in view', () => {
+    expect(newTaskSpace(spaces, 'marketing')?.id).toBe('S1');
+  });
+
+  it('preselects Inbox on a cross-Space view', () => {
+    expect(newTaskSpace(spaces, null)?.id).toBe('INBOX');
+    expect(newTaskSpace(spaces, 'missing')?.id).toBe('INBOX');
+  });
+
+  it('still returns a usable choice if Inbox is missing', () => {
+    expect(newTaskSpace(spaces.slice(1), null)?.id).toBe('S1');
+    expect(newTaskSpace([], null)).toBeNull();
   });
 });

@@ -92,6 +92,47 @@ export function closeEditHref(
   return s ? `${basePath}?${s}` : basePath;
 }
 
+/** Opens the new-task pane over the view the user is already looking at. */
+export function newTaskHref(
+  basePath = '/', params: Record<string, string | string[] | undefined> = {}
+): string {
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    // A stale error belongs to the previous submission, and an edit pane is
+    // mutually exclusive with capture.
+    if (key === 'newTask' || key === 'edit' || key === 'error' || value === undefined) continue;
+    q.set(key, Array.isArray(value) ? (value[0] ?? '') : value);
+  }
+  q.set('newTask', '1');
+  return `${basePath}?${q.toString()}`;
+}
+
+/** The same view with the new-task pane and any submission error closed. */
+export function closeNewTaskHref(
+  basePath = '/', params: Record<string, string | string[] | undefined> = {}
+): string {
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key === 'newTask' || key === 'error' || value === undefined) continue;
+    q.set(key, Array.isArray(value) ? (value[0] ?? '') : value);
+  }
+  const s = q.toString();
+  return s ? `${basePath}?${s}` : basePath;
+}
+
+/**
+ * Capture follows the current Space when there is one, otherwise Inbox.
+ * The final fallback only covers a malformed database with no Inbox row.
+ */
+export function newTaskSpace(
+  spaces: Space[], activeSlug: string | undefined | null
+): Space | null {
+  return spaceBySlug(spaces, activeSlug)
+    ?? spaces.find((space) => space.is_inbox)
+    ?? spaces[0]
+    ?? null;
+}
+
 /** True for a Space stored with the "Client - " prefix. */
 export function isClientSpace(space: Space): boolean {
   return space.name.startsWith('Client - ');

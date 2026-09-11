@@ -9,7 +9,6 @@ import { FilterBar } from '@/components/FilterBar';
 import { TaskList } from '@/components/TaskRow';
 import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
-import { NewTaskForm } from '@/components/NewTaskForm';
 import { assigneeLabels } from '@/lib/env';
 import { sortRows, sortingFor } from '@/lib/sort';
 import { shortSpaceName } from '@/lib/display';
@@ -71,7 +70,6 @@ export default async function SpacePage({
       label={label}
       count={rows.length}
       startOpen={startOpen}
-      createHref={`/spaces/${space.slug}`}
       showSpace={false}
       showWaiting={showWaiting}
     >
@@ -90,6 +88,7 @@ export default async function SpacePage({
 
   return (
     <Shell
+      path={`/spaces/${space.slug}`}
       current="/"
       spaces={summary.map(({ space: s, open: o, waiting: w }) => ({
         space: s, open: o, waiting: w,
@@ -103,18 +102,12 @@ export default async function SpacePage({
         `${counts?.completed ?? 0} completed`
       }
       toolbar={
-        <>
-          <NewTaskForm
-            spaceSlug={space.slug}
-            error={query.error ? String(query.error) : undefined}
-          />
-          {/* No status chips: the sections below ARE the status split. */}
-          <FilterBar
-            path={`/spaces/${space.slug}`}
-            filters={base}
-            show={['due']}
-          />
-        </>
+        /* No status chips: the sections below ARE the status split. */
+        <FilterBar
+          path={`/spaces/${space.slug}`}
+          filters={base}
+          show={['due']}
+        />
       }
     >
 

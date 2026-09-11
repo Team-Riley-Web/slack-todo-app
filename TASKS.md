@@ -189,8 +189,10 @@ unchecked task unless you are starting it.
   - Also fixed: header labels were two colours -- Space/Assignee/Due date grey, Task/Waiting on/Age dark -- because the value colour rules outranked the header's. All labels --fg now.
 - [x] Web UI: the per-Space count in the rail should include waiting tasks, not just open
   - Done 2026-09-10: each Space and All spaces now count open + waiting. Milltown Cabinets went from no number to 1; All spaces from 20 to 21. The counts now agree with My tasks, which lists both since the task before last.
-- [ ] Web UI: add a New Task button in the top right of all views, as detailed in brand-spec.md
-- [ ] Web UI: give the "Wait" button an outline in its non-hovered state too, not only on hover
+- [x] Web UI: add a New Task button in the top right of all views, as detailed in brand-spec.md
+  - Done 2026-09-10: already built in another session -- "+ New task" top right of every view, opening a NewTaskPane at ?newTask=1. Verified rendering, not just present in the source.
+- [x] Web UI: give the "Wait" button an outline in its non-hovered state too, not only on hover
+  - Done 2026-09-10: the border was `transparent` until the row was hovered, so the label read as text and the only way to find out it was a control was to mouse over it. Outlined at rest now; hover deepens the border and fills it. On a striped row the button drops its white fill and keeps the outline, or it read as a white patch. Also gained a focus ring, which it never had.
 - [ ] Web UI: give the task list column header bar more visual distinction - darker background
 - [ ] Web UI: reorder the due pills to Today, This week, Overdue, No date
 - [ ] Web UI: the edit task pane should animate smoothly in on open and out on save
