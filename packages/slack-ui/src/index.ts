@@ -1,10 +1,10 @@
 export {
-  truncateLabel, metaLine, slackDate, slackUser,
+  truncateLabel, metaLine, slackDate, slackUser, priorityTag,
   LABEL_BUDGET, DESCRIPTION_BUDGET, type MetaOpts,
 } from './label.js';
 export {
   taskOption, taskCardBlocks, taskListBlocks, taskControlBlocks,
-  taskCardFallback,
+  taskCardFallback, titleBudgetFor,
   headerBlock, confirmObject, summaryBlocks, type SpaceCountLike,
   CHECKBOX_ACTION_ID, CHECKBOX_BLOCK_PREFIX, WAITING_ACTION_ID,
   checkboxBlockId, parseBlockVersion,

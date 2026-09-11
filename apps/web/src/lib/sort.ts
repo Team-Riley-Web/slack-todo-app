@@ -1,4 +1,4 @@
-import type { Space, Task } from '@tr/task-core';
+import { priorityRank, type Space, type Task } from '@tr/task-core';
 import type { SortDir, SortKey, TaskFilters } from '@/data/filters';
 import { filterHref, shortSpaceName } from '@/lib/display';
 
@@ -43,6 +43,18 @@ function valueOf(
         : task.due_at;
       return when ? when.getTime() : null;
     }
+    case 'priority':
+      /*
+       * The RANK for a real priority, and null for none.
+       *
+       * Both halves matter. The rank rather than the label because 'P0' < 'P1'
+       * only sorts correctly by accident of the alphabet. null rather than
+       * priorityRank's own 4 because the empty-last rule above is what keeps
+       * unprioritized tasks at the BOTTOM when the column is reversed -- as a
+       * number, 4 is simply the largest, so descending floated every
+       * unprioritized task to the top.
+       */
+      return task.priority ? priorityRank(task.priority) : null;
     case 'waiting':
       return task.waiting_on ?? null;
     case 'age':

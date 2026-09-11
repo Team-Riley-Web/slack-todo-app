@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { Space, Task } from '@tr/task-core';
+import type { Priority, Space, Task } from '@tr/task-core';
 
 /** Slack caps option.text at 75 chars; `~…~` costs 2, leaving 72 for the title. */
 export const LABEL_BUDGET = 72;
@@ -30,11 +30,29 @@ export interface MetaOpts {
 /**
  * Display-only. Counts code points, never UTF-16 units — `str.slice` can split
  * a surrogate pair and corrupt a character. Never written back to storage.
+ *
+ * `budget` shrinks when something is prefixed to the label. A `[P0] ` tag costs
+ * five characters, and Slack rejects the whole message if option.text runs past
+ * 75 — so the prefix has to come OUT of the title's allowance, not be added on
+ * top of it.
  */
-export function truncateLabel(title: string): { label: string; truncated: boolean } {
+export function truncateLabel(
+  title: string, budget: number = LABEL_BUDGET
+): { label: string; truncated: boolean } {
+  const room = Math.max(1, Math.floor(budget));
   const points = [...title];
-  if (points.length <= LABEL_BUDGET) return { label: title, truncated: false };
-  return { label: `${points.slice(0, LABEL_BUDGET).join('')}…`, truncated: true };
+  if (points.length <= room) return { label: title, truncated: false };
+  return { label: `${points.slice(0, room).join('')}…`, truncated: true };
+}
+
+/**
+ * The compact priority tag shown ahead of a title: `[P0] `, or nothing.
+ *
+ * A tag rather than a word, and nothing at all for an unprioritized task, so a
+ * list of mostly-unprioritized work does not grow a column of "None".
+ */
+export function priorityTag(priority: Priority | null | undefined): string {
+  return priority ? `[${priority}] ` : '';
 }
 
 /**

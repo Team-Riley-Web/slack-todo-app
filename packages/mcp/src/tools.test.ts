@@ -135,11 +135,18 @@ it('lists tasks for a channel context with no Space ID supplied', async () => {
     .toEqual(['Give Rachael access to Marty photos']);
 });
 
-it('creates a task in the channel Space with the title byte-exact', async () => {
+/**
+ * The guarantee that matters here is that Hermes cannot REWRITE what you wrote.
+ * Since 2026-09-11 a lowercase opening letter is capitalised by task-core on
+ * every surface; the rest of the string still reaches storage untouched, and
+ * MCP still has no way to reach the title of an EXISTING task.
+ */
+it('creates a task in the channel Space with the title otherwise byte-exact', async () => {
   await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
   const raw = 'update the contact form';
   const r = await call('create_task_for_context', { channel_id: 'C_SECURE', title: raw });
-  expect(r.task.title).toBe(raw);
+  expect(r.task.title).toBe('Update the contact form');
+  expect(r.task.title.slice(1)).toBe(raw.slice(1));
   expect(r.space.name).toBe('Client - Secure Logic');
   expect(r.resolved_from).toBe('channel');
   expect(r.task.source_channel_id).toBe('C_SECURE');
@@ -152,7 +159,7 @@ it('lets an explicit destination beat the channel mapping', async () => {
   });
   expect(r.space.name).toBe('Agency / Internal');
   expect(r.resolved_from).toBe('explicit');
-  expect(r.task.title).toBe('review pricing');
+  expect(r.task.title).toBe('Review pricing');
 });
 
 it('rejects an unrecognised explicit destination instead of using the channel Space', async () => {
@@ -369,4 +376,60 @@ it('uses a half-open range for completed_between', async () => {
     from: '2026-06-01T00:00:00Z', to: '2026-06-15T12:00:00Z',
   });
   expect(outside.tasks).toHaveLength(0);
+});
+
+// --- priority, 2026-09-11 ---
+
+it('exposes priority on every task it returns', async () => {
+  const { task } = await call('create_task', {
+    title: 'Fix Stripe checkout', space_id: spaceId, priority: 'P0',
+  });
+  expect((task as any).priority).toBe('P0');
+
+  const fetched = await call('get_task', { task_id: (task as any).id });
+  expect((fetched as any).task.priority).toBe('P0');
+
+  const listed = await call('list_tasks', {});
+  expect((listed as any).tasks[0].priority).toBe('P0');
+});
+
+it('leaves priority null when none is given, so an existing caller is unaffected', async () => {
+  const { task } = await call('create_task', { title: 'No priority', space_id: spaceId });
+  expect((task as any).priority).toBeNull();
+});
+
+it('accepts priority on create_task_for_context alongside channel routing', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const r = await call('create_task_for_context', {
+    channel_id: 'C_SECURE', title: 'Urgent client fix', priority: 'P1',
+  });
+  expect((r as any).task.priority).toBe('P1');
+  expect((r as any).resolved_from).toBe('channel');
+});
+
+it('rejects an invalid priority rather than storing it as unprioritized', async () => {
+  // Dropping P7 to null would make a mistyped priority indistinguishable from
+  // a task nobody prioritised, which is the failure this guards.
+  await expect(call('create_task', {
+    title: 'Bad', space_id: spaceId, priority: 'P7',
+  })).rejects.toThrow(/priority/i);
+});
+
+it('returns tasks in priority order, the same order every other surface uses', async () => {
+  for (const [title, priority] of [
+    ['None', undefined], ['Low', 'P3'], ['Critical', 'P0'], ['High', 'P1'],
+  ] as const) {
+    await call('create_task', { title, space_id: spaceId, ...(priority ? { priority } : {}) });
+  }
+  const { tasks } = await call('list_tasks', { status: 'open' }) as any;
+  expect(tasks.map((t: any) => t.title))
+    .toEqual(['Critical', 'High', 'Low', 'None']);
+});
+
+it('still exposes no way to change an existing task’s priority or title', () => {
+  // Priority is settable at CREATION only, exactly like the title. Adding a
+  // priority field must not have opened a general edit path for Hermes.
+  expect([...TOOL_NAMES].some(
+    (n) => /edit|rename|update_task|set_title|set_priority/i.test(n)
+  )).toBe(false);
 });

@@ -10,7 +10,7 @@ const NOW = new Date('2026-09-10T12:00:00Z');
 
 const task = (over: Partial<Task> = {}): Task => ({
   id: 'T1', title: 'Call Neil', space_id: 'S1', list_id: null, assignee_id: null,
-  status: 'open', due_at: null, waiting_on: null, details: null,
+  status: 'open', priority: null, due_at: null, waiting_on: null, details: null,
   created_at: new Date('2026-09-10T09:00:00Z'), completed_at: null,
   source_platform: 'web', source_channel_id: null, source_message_ts: null,
   created_by: null, source_external_id: null, import_batch_id: null, ...over,

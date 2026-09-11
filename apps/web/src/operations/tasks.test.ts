@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
-import { createTask, getTask } from '@tr/task-core';
+import { capitalizeFirstLetter, createTask, getTask } from '@tr/task-core';
 import { saveCard } from '@tr/slack-sync';
 import { buildServer } from '../../../api/src/server.js';
 import {
@@ -95,7 +95,25 @@ describe('completing and reopening', () => {
 });
 
 describe('editing', () => {
-  it('writes a title byte-exact', async () => {
+  it('changes and clears a priority from the edit pane', async () => {
+    const task = await seed();
+    expect((await editTaskOp(deps(), task.id, { priority: 'P1' })).ok).toBe(true);
+    expect((await getTask(db, task.id))!.priority).toBe('P1');
+    expect((await editTaskOp(deps(), task.id, { priority: null })).ok).toBe(true);
+    expect((await getTask(db, task.id))!.priority).toBeNull();
+  });
+
+  it('reports an invalid priority on edit without changing the task', async () => {
+    const task = await seed();
+    await editTaskOp(deps(), task.id, { priority: 'P2' });
+    const r = await editTaskOp(deps(), task.id, { priority: 'P9' as never });
+    expect(r).toEqual({ ok: false, error: 'That priority is not one of P0-P3.' });
+    expect((await getTask(db, task.id))!.priority).toBe('P2');
+  });
+
+  // Narrowed 2026-09-11: the opening letter is capitalised at both write paths.
+  // Everything after it is still written exactly as typed.
+  it('writes a title byte-exact apart from the opening letter', async () => {
     const task = await seed();
     for (const title of [
       'Offer Neil Instagram and Facebook package for $100',
@@ -105,7 +123,9 @@ describe('editing', () => {
       'fix *urgent* bug_now~ish~',
     ]) {
       expect((await editTaskOp(deps(), task.id, { title })).ok).toBe(true);
-      expect((await getTask(db, task.id))!.title).toBe(title);
+      const stored = (await getTask(db, task.id))!.title;
+      expect(stored.slice(1)).toBe(title.slice(1));
+      expect(stored).toBe(capitalizeFirstLetter(title));
     }
   });
 
@@ -222,6 +242,100 @@ describe('creating', () => {
     expect((await createTaskOp(deps(), {
       title: 'B', spaceSlug: 'Personal tasks',
     })).ok).toBe(true);
+  });
+
+  // --- parity with the Edit pane, 2026-09-11 ---
+
+  it('defaults to open with no waiting-on and no details', async () => {
+    const r = await createTaskOp(deps(), { title: 'Plain', spaceSlug: 'sales' });
+    const task = (await getTask(db, (r as { taskId: string }).taskId))!;
+    expect(task.status).toBe('open');
+    expect(task.waiting_on).toBeNull();
+    expect(task.details).toBeNull();
+  });
+
+  it('captures a waiting task with what it is waiting on, in one step', async () => {
+    const r = await createTaskOp(deps(), {
+      title: 'Chase the proposal', spaceSlug: 'sales',
+      status: 'waiting', waitingOn: 'Milltown’s reply',
+    });
+    expect(r.ok).toBe(true);
+    const task = (await getTask(db, (r as { taskId: string }).taskId))!;
+    expect(task.status).toBe('waiting');
+    expect(task.waiting_on).toBe('Milltown’s reply');
+  });
+
+  it('captures details verbatim', async () => {
+    const details = 'Line one\nLine two — with an em dash and *markdown*';
+    const r = await createTaskOp(deps(), {
+      title: 'With notes', spaceSlug: 'sales', details,
+    });
+    const task = (await getTask(db, (r as { taskId: string }).taskId))!;
+    expect(task.details).toBe(details);
+  });
+
+  it('records the status change as its own audited event, like Slack capture', async () => {
+    const r = await createTaskOp(deps(), {
+      title: 'Blocked thing', spaceSlug: 'sales', status: 'waiting',
+    });
+    const { rows } = await db.query<{ event: string }>(
+      `SELECT event FROM task_events WHERE task_id = $1 ORDER BY created_at, id`,
+      [(r as { taskId: string }).taskId]
+    );
+    expect(rows.map((e) => e.event)).toEqual(['created', 'moved']);
+  });
+
+  /**
+   * `completed` is not a capture status on either surface. Without this guard a
+   * hand-built POST could create an already-completed task, which the Slack
+   * modal has never allowed.
+   */
+  it('refuses to create a task that is already completed', async () => {
+    const r = await createTaskOp(deps(), {
+      title: 'Already done', spaceSlug: 'sales',
+      status: 'completed' as never,
+    });
+    expect(r).toEqual({ ok: false, error: 'A task cannot be created as "completed".' });
+    const { rows } = await db.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM tasks`);
+    expect(rows[0]!.n).toBe(0);
+  });
+
+  // --- priority, 2026-09-11 ---
+
+  it('captures a priority chosen in the pane', async () => {
+    const r = await createTaskOp(deps(), {
+      title: 'Fix Stripe checkout', spaceSlug: 'sales', priority: 'P0',
+    });
+    const task = (await getTask(db, (r as { taskId: string }).taskId))!;
+    expect(task.priority).toBe('P0');
+  });
+
+  it('captures no priority when the "No priority" option is chosen', async () => {
+    // The form sends '' for that option; the action maps it to null.
+    const r = await createTaskOp(deps(), {
+      title: 'Unprioritized', spaceSlug: 'sales', priority: null,
+    });
+    const task = (await getTask(db, (r as { taskId: string }).taskId))!;
+    expect(task.priority).toBeNull();
+  });
+
+  it('reports an invalid priority as a sentence rather than crashing', async () => {
+    const r = await createTaskOp(deps(), {
+      title: 'Bad', spaceSlug: 'sales', priority: 'P7' as never,
+    });
+    expect(r).toEqual({ ok: false, error: 'That priority is not one of P0-P3.' });
+    const { rows } = await db.query<{ n: number }>(`SELECT COUNT(*)::int AS n FROM tasks`);
+    expect(rows[0]!.n).toBe(0);
+  });
+
+  it('ignores an empty waiting-on and empty details rather than storing blanks', async () => {
+    const r = await createTaskOp(deps(), {
+      title: 'Blank fields', spaceSlug: 'sales', waitingOn: '   ', details: '',
+    });
+    const task = (await getTask(db, (r as { taskId: string }).taskId))!;
+    expect(task.status).toBe('open');
+    expect(task.waiting_on).toBeNull();
+    expect(task.details).toBeNull();
   });
 });
 

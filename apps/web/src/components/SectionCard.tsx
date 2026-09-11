@@ -69,6 +69,7 @@ export function SectionCard({
           >
             <span className="tick" />
             {column('title', 'title', 'Task', sorting)}
+            {column('priority', 'priority', 'Priority', sorting)}
             {showSpace ? column('space', 'space', 'Space', sorting) : null}
             {showWaiting ? (
               <>

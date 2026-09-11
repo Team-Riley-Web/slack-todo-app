@@ -13,7 +13,7 @@
  */
 export type IconName =
   | 'inbox' | 'calendar' | 'paused' | 'done' | 'space' | 'client' | 'cog'
-  | 'search' | 'pencil' | 'trash' | 'plus';
+  | 'search' | 'pencil' | 'trash' | 'plus' | 'menu';
 
 const PATHS: Record<IconName, string> = {
   /*
@@ -49,6 +49,13 @@ const PATHS: Record<IconName, string> = {
   pencil: 'M4.5 19.5h4l10-10a2.1 2.1 0 00-3-3l-10 10v3zM15 6.5l2.5 2.5',
   trash: 'M4.5 7.5h15M9.5 7.5v-2a1 1 0 011-1h3a1 1 0 011 1v2M6.5 7.5l.8 11a1 1 0 001 .9h7.4a1 1 0 001-.9l.8-11M10.5 11v5M13.5 11v5',
   plus: 'M12 5v14M5 12h14',
+  /*
+   * The hamburger. Three bars on the same 24 grid and the same 1.6 stroke as
+   * every other glyph here, at the spacing `space` already uses -- it is the
+   * one shape everyone reads as "the navigation", and inventing a different
+   * one would make it harder to recognise, not more original.
+   */
+  menu: 'M4.5 6.5h15M4.5 12h15M4.5 17.5h15',
 };
 
 export function Icon({ name }: { name: IconName }) {

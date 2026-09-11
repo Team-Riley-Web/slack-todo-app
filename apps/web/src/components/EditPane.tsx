@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { PaneShell } from '@/components/PaneShell';
 import type { Db } from '@tr/db';
-import { getTask, listSpaces, assigneeChoices, type Space } from '@tr/task-core';
+import {
+  getTask, listSpaces, assigneeChoices, PRIORITIES, priorityChoice, type Space,
+} from '@tr/task-core';
 import { editTaskFormVoid } from '@/actions/tasks';
 import { closeEditHref } from '@/lib/display';
 import { SpaceSelect } from '@/components/SpaceSelect';
@@ -91,6 +93,22 @@ export async function EditPane({
               <option value="open">Open</option>
               <option value="waiting">Waiting / blocked</option>
               <option value="completed">Completed</option>
+            </select>
+          </label>
+
+          {/*
+            Priority. Options come from the shared PRIORITIES constant, so this
+            select cannot offer a value task-core would reject — and "No
+            priority" is a real, common answer rather than an absence, so it is
+            an explicit option rather than a blank.
+          */}
+          <label>
+            Priority
+            <select name="priority" defaultValue={task.priority ?? ''}>
+              <option value="">No priority</option>
+              {PRIORITIES.map((p) => (
+                <option key={p} value={p}>{priorityChoice(p)}</option>
+              ))}
             </select>
           </label>
 

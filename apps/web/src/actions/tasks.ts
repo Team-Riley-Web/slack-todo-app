@@ -3,12 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { WebClient } from '@slack/web-api';
-import type { TaskStatus } from '@tr/task-core';
+import type { Priority, TaskStatus } from '@tr/task-core';
 import { getDb } from '@/db';
 import { currentUser } from '@/user';
 import {
   completeTaskOp, reopenTaskOp, moveTaskOp, editTaskOp, createTaskOp,
-  type OperationDeps, type OperationResult,
+  type OperationDeps, type OperationResult, type CaptureStatus,
 } from '@/operations/tasks';
 
 /**
@@ -105,6 +105,8 @@ export async function editTaskFormAction(formData: FormData): Promise<OperationR
   const assignee = String(formData.get('assigneeId') ?? '').trim();
   const waitingOn = String(formData.get('waitingOn') ?? '').trim();
   const details = String(formData.get('details') ?? '');
+  // '' is the "No priority" option, which parsePriority reads as null.
+  const priority = String(formData.get('priority') ?? '').trim();
 
   const result = await editTaskOp(d, taskId, {
     title: String(formData.get('title') ?? ''),
@@ -114,6 +116,7 @@ export async function editTaskFormAction(formData: FormData): Promise<OperationR
     dueAt: dueRaw.length > 0 ? new Date(dueRaw) : null,
     waitingOn: waitingOn.length > 0 ? waitingOn : null,
     details: details.length > 0 ? details : null,
+    priority: (priority.length > 0 ? priority : null) as Priority | null,
   });
   refresh();
   revalidatePath(`/tasks/${taskId}/edit`);
@@ -126,12 +129,22 @@ export async function createTaskFormAction(formData: FormData): Promise<Operatio
 
   const dueRaw = String(formData.get('dueAt') ?? '').trim();
   const assignee = String(formData.get('assigneeId') ?? '').trim();
+  const status = String(formData.get('status') ?? '').trim();
+  const waitingOn = String(formData.get('waitingOn') ?? '').trim();
+  const details = String(formData.get('details') ?? '');
+  const priority = String(formData.get('priority') ?? '').trim();
 
   const result = await createTaskOp(d, {
     title: String(formData.get('title') ?? ''),
     spaceSlug: String(formData.get('spaceSlug') ?? ''),
     assigneeId: assignee.length > 0 ? assignee : null,
     dueAt: dueRaw.length > 0 ? new Date(dueRaw) : null,
+    // Read the same way the edit form reads them, so the two paths agree on
+    // what an empty field means: nothing, not an empty string.
+    status: (status.length > 0 ? status : null) as CaptureStatus | null,
+    waitingOn: waitingOn.length > 0 ? waitingOn : null,
+    details: details.length > 0 ? details : null,
+    priority: (priority.length > 0 ? priority : null) as Priority | null,
   });
   refresh();
   return result;

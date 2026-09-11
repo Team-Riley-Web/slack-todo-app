@@ -1,6 +1,8 @@
 import type { KnownBlock, Option } from '@slack/types';
 import type { Space, Task } from '@tr/task-core';
-import { metaLine, truncateLabel, type MetaOpts } from './label.js';
+import {
+  LABEL_BUDGET, metaLine, priorityTag, truncateLabel, type MetaOpts,
+} from './label.js';
 
 export const CHECKBOX_ACTION_ID = 'task_checkbox';
 export const CHECKBOX_BLOCK_PREFIX = 'task_toggle';
@@ -97,14 +99,30 @@ export interface CardGroup { heading: string | null; entries: CardEntry[] }
  * Done  -> mrkdwn (strikethrough requires it) with verbatim, so URLs, @mentions
  *          and #channels inside a title are not rewritten into links.
  */
+/**
+ * How much of the 75-character option label the title may use, once the
+ * priority tag has taken its share. Shared with the truncation notice below so
+ * the two cannot disagree about whether a title was clipped.
+ */
+export function titleBudgetFor(task: Task): number {
+  return LABEL_BUDGET - priorityTag(task.priority).length;
+}
+
 export function taskOption(task: Task, space: Space, opts: MetaOpts): Option {
-  const { label } = truncateLabel(task.title);
+  const tag = priorityTag(task.priority);
+  const { label } = truncateLabel(task.title, titleBudgetFor(task));
   const description = metaLine(task, space, opts);
 
+  /*
+   * The tag sits inside the label rather than in the meta line, so priority
+   * reads at a glance on the row itself: `☐ [P0] Fix Stripe checkout`. The
+   * strikethrough on a completed task wraps the title only, so a finished P0
+   * still reads as a P0 rather than as struck-through noise.
+   */
   const text =
     task.status === 'completed'
-      ? ({ type: 'mrkdwn', text: `~${label}~`, verbatim: true } as const)
-      : ({ type: 'plain_text', text: label, emoji: true } as const);
+      ? ({ type: 'mrkdwn', text: `${tag}~${label}~`, verbatim: true } as const)
+      : ({ type: 'plain_text', text: `${tag}${label}`, emoji: true } as const);
 
   const option = { text, value: task.id } as Option;
   if (description.length > 0) {
@@ -189,7 +207,9 @@ export function taskCardBlocks(
   });
 
   // Any title too long for a 75-char option label keeps its exact form here.
-  const truncated = shown.filter((e) => truncateLabel(e.task.title).truncated);
+  const truncated = shown.filter(
+    (e) => truncateLabel(e.task.title, titleBudgetFor(e.task)).truncated
+  );
   if (truncated.length > 0) {
     blocks.push({
       type: 'context',
@@ -272,6 +292,11 @@ export function taskListBlocks(groups: CardGroup[], opts: MetaOpts): KnownBlock[
 export function taskCardFallback(entries: CardEntry[]): string {
   if (entries.length === 0) return 'No tasks';
   return entries
-    .map((e) => (e.task.status === 'completed' ? `[x] ${e.task.title}` : `[ ] ${e.task.title}`))
+    .map((e) => {
+      const box = e.task.status === 'completed' ? '[x]' : '[ ]';
+      // Same tag the visible row carries, so a notification preview and the
+      // message it previews do not disagree about what is critical.
+      return `${box} ${priorityTag(e.task.priority)}${e.task.title}`;
+    })
     .join('\n');
 }

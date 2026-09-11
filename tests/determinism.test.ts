@@ -18,6 +18,21 @@ async function sourceFiles(dir: string): Promise<string[]> {
   return out;
 }
 
+/**
+ * Source with comments removed.
+ *
+ * Every scan below is looking for what the code DOES. Prose explaining why a
+ * responsibility moved to Hermes, or which EOS meetings it took with it, is
+ * documentation and must not trip a guard — the same trap the importer's
+ * fuzzy-match scan and `no-secrets.test.ts` both hit. The `[^:]` guard keeps
+ * `https://` out of the line-comment rule.
+ */
+export function codeOnly(text: string): string {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
 async function allSources(): Promise<Array<{ file: string; text: string }>> {
   const out: Array<{ file: string; text: string }> = [];
   for (const root of ROOTS) {
@@ -95,6 +110,71 @@ it('keeps editTask reachable only from human surfaces', async () => {
     'apps/web/src/operations/tasks.ts',
     'packages/task-core/src/tasks.ts',
   ]);
+});
+
+/**
+ * Scheduled delivery must stand on its own.
+ *
+ * The brief is explicit: the 8am digests and the EOS reminders are plain cron
+ * jobs reading the task database, and they keep working with every AI surface
+ * switched off. MCP and Hermes may LATER consume the same functions for
+ * planning and prioritisation -- the dependency runs that way and never back,
+ * so an outage or a bad model response cannot cost you your morning list.
+ */
+it('keeps the scheduler independent of every Hermes and MCP surface', async () => {
+  const scheduler = (await allSources())
+    .filter(({ file }) => file.startsWith(join('packages', 'scheduler')));
+  expect(scheduler.length).toBeGreaterThan(0);
+
+  const offenders = scheduler
+    .filter(({ text }) => /@tr\/mcp|\bhermes\b/i.test(codeOnly(text)))
+    .map(({ file }) => file);
+  expect(offenders).toEqual([]);
+});
+
+/**
+ * Remote MCP (2026-09-11) put the tool surface on a public HTTPS endpoint.
+ * That raises the stakes on the rule it must not break: Hermes may read tasks
+ * and create them, and may never rewrite one. Asserted against the exported
+ * name list, so a tool added later is caught wherever it was defined.
+ */
+it('exposes no title- or priority-mutating tool on either MCP transport', async () => {
+  const { TOOL_NAMES } = await import('../packages/mcp/src/tools.js');
+  expect(TOOL_NAMES.some(
+    (n: string) => /edit|rename|update_task|set_title|set_priority/i.test(n)
+  )).toBe(false);
+  // The five that can write, unchanged. A sixth is a decision, not an accident.
+  const writers = ['create_task', 'create_task_for_context', 'complete_task',
+    'move_task', 'set_task_details'];
+  for (const w of writers) expect(TOOL_NAMES).toContain(w);
+});
+
+it('keeps remote MCP behind a credential of its own', async () => {
+  const { authorizeMcpRequest } = await import('../packages/mcp/src/http.js');
+  // Unset denies; the REST API's token is NOT accepted here, so revoking one
+  // does not revoke the other.
+  expect(authorizeMcpRequest('Bearer anything', {} as never)).toBe(false);
+  expect(authorizeMcpRequest('Bearer rest-token',
+    { TASKS_MCP_TOKEN: 'mcp-token-value' } as never)).toBe(false);
+  expect(authorizeMcpRequest('Bearer mcp-token-value',
+    { TASKS_MCP_TOKEN: 'mcp-token-value' } as never)).toBe(true);
+});
+
+/**
+ * Scheduling ownership, settled 2026-09-11: the Tasks app delivers the two
+ * morning task posts and nothing else. EOS reminders moved to Hermes, and this
+ * asserts they did not quietly stay behind.
+ */
+it('schedules only the two daily task posts, with no EOS delivery left behind', async () => {
+  const { JOB_KEYS } = await import('../packages/scheduler/src/schedule.js');
+  expect([...JOB_KEYS]).toEqual(['agency-daily', 'personal-daily']);
+
+  const scheduler = (await allSources())
+    .filter(({ file }) => file.startsWith(join('packages', 'scheduler')));
+  const eos = scheduler
+    .filter(({ text }) => /level.?10|same.?page|quarterly|eos/i.test(codeOnly(text)))
+    .map(({ file }) => file);
+  expect(eos).toEqual([]);
 });
 
 it('resolves tasks by uuid only — every mutation guards with assertTaskId', async () => {

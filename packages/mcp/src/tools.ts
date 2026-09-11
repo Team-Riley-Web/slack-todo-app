@@ -2,7 +2,7 @@ import type { Db } from '@tr/db';
 import {
   completeTask, createTask, getSpaceForChannel, getTask, getTaskCounts,
   listSpaces, listTasks, listWaiting, moveTask, resolveDestinationSpace,
-  updateTaskDetails, TaskNotFoundError, type TaskStatus,
+  updateTaskDetails, parsePriority, TaskNotFoundError, type TaskStatus,
   openCountBySpace, completedBetween, createdThisWeek, completedThisWeek,
   averageTaskAgeDays, staleTasks,
 } from '@tr/task-core';
@@ -77,6 +77,13 @@ export function buildTools(db: Db): McpTool[] {
               'Optional capture notes stored alongside the task. Write-once — there ' +
               'is no way to change it afterwards.',
           },
+          priority: {
+            type: 'string',
+            enum: ['P0', 'P1', 'P2', 'P3'],
+            description:
+              'Optional priority. P0 critical, P1 high, P2 medium, P3 low. ' +
+              'Omit for unprioritized; anything else is rejected.',
+          },
         },
         required: ['title', 'space_id'],
       },
@@ -93,6 +100,10 @@ export function buildTools(db: Db): McpTool[] {
             sourcePlatform: 'hermes',
             createdBy: str(a.created_by) ?? null,
             details: str(a.details) ?? null,
+            // parsePriority rejects anything outside P0-P3 rather than
+            // dropping it to null, so a bad value is an error Hermes sees
+            // instead of a task that silently looks unprioritized.
+            priority: parsePriority(a.priority),
           }),
         };
       },
@@ -230,6 +241,13 @@ export function buildTools(db: Db): McpTool[] {
           due_at: { type: 'string', description: 'ISO 8601 timestamp' },
           assignee_id: { type: 'string' },
           details: { type: 'string', description: 'Optional capture notes. Write-once.' },
+          priority: {
+            type: 'string',
+            enum: ['P0', 'P1', 'P2', 'P3'],
+            description:
+              'Optional priority. P0 critical, P1 high, P2 medium, P3 low. ' +
+              'Omit for unprioritized; anything else is rejected.',
+          },
         },
         required: ['channel_id', 'title'],
       },
@@ -248,6 +266,7 @@ export function buildTools(db: Db): McpTool[] {
           sourcePlatform: 'hermes',
           sourceChannelId: str(a.channel_id) ?? null,
           details: str(a.details) ?? null,
+          priority: parsePriority(a.priority),
         });
         return { task, space: dest.space, resolved_from: dest.source };
       },

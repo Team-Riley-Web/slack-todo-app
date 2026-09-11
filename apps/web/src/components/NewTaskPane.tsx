@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { PaneShell } from '@/components/PaneShell';
-import { assigneeChoices, type Space } from '@tr/task-core';
+import {
+  assigneeChoices, PRIORITIES, priorityChoice, type Space,
+} from '@tr/task-core';
 import { createTaskFormVoid } from '@/actions/tasks';
 import { closeNewTaskHref } from '@/lib/display';
 import { SpaceSelect } from '@/components/SpaceSelect';
@@ -64,6 +66,31 @@ export function NewTaskPane({
           </label>
 
           {/*
+            Status, in the Edit pane's position so the two forms read the same
+            way top to bottom. Only Open and Waiting are offered: `completed`
+            is absent here exactly as it is in the Slack capture modal, because
+            a task that is already done is an edit, not a capture.
+          */}
+          <label>
+            Status
+            <select name="status" defaultValue="open" aria-label="Status">
+              <option value="open">Open</option>
+              <option value="waiting">Waiting / blocked</option>
+            </select>
+          </label>
+
+          {/* Priority, in the Edit pane's position. Defaults to none. */}
+          <label>
+            Priority
+            <select name="priority" defaultValue="" aria-label="Priority">
+              <option value="">No priority</option>
+              {PRIORITIES.map((p) => (
+                <option key={p} value={p}>{priorityChoice(p)}</option>
+              ))}
+            </select>
+          </label>
+
+          {/*
             Assignee, preselected with the default. Without this field the
             form sent nothing and every web-captured task came out
             unassigned, while the identical task typed as `/task` in Slack
@@ -90,6 +117,27 @@ export function NewTaskPane({
           <label>
             Due
             <input type="datetime-local" name="dueAt" />
+          </label>
+
+          {/*
+            Waiting on and Details complete the parity with Edit. Before these,
+            capturing a blocked task from the web meant creating it and then
+            immediately opening the edit pane to say what it was blocked on --
+            two steps for one thought.
+          */}
+          <label>
+            Waiting on
+            <input
+              type="text"
+              name="waitingOn"
+              placeholder="Only used when the status is waiting"
+              aria-label="Waiting on"
+            />
+          </label>
+
+          <label>
+            Details
+            <textarea name="details" aria-label="Details" />
           </label>
 
           <div className="filters">

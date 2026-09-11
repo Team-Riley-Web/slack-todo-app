@@ -1,4 +1,7 @@
-import type { Space, TaskStatus } from '@tr/task-core';
+import {
+  PRIORITIES, isPriority, priorityChoice,
+  type Priority, type Space, type TaskStatus,
+} from '@tr/task-core';
 import { spaceOptionGroups } from './space-options.js';
 
 /**
@@ -21,6 +24,7 @@ export const CAPTURE_BLOCKS = {
   space: 'capture_space',
   newSpace: 'capture_new_space',
   status: 'capture_status',
+  priority: 'capture_priority',
   assignee: 'capture_assignee',
   due: 'capture_due',
   details: 'capture_details',
@@ -57,6 +61,13 @@ export function captureTaskView(
   const statusOptions = STATUSES.map((s) => ({
     text: plain(STATUS_LABELS[s]!),
     value: s,
+  }));
+
+  // Built from PRIORITIES rather than a second hand-written list, so the modal
+  // cannot offer a value task-core would reject.
+  const priorityOptions = PRIORITIES.map((p) => ({
+    text: plain(priorityChoice(p)),
+    value: p,
   }));
 
   return {
@@ -114,6 +125,23 @@ export function captureTaskView(
         },
       },
       {
+        /*
+         * Optional, with no initial option: "no priority" is a real answer and
+         * the commonest one, so it must not require deselecting something.
+         * `/task P0 …` sets the same field from the one-line path.
+         */
+        type: 'input',
+        block_id: CAPTURE_BLOCKS.priority,
+        optional: true,
+        label: plain('Priority'),
+        element: {
+          type: 'static_select',
+          action_id: 'priority',
+          placeholder: plain('No priority'),
+          options: priorityOptions,
+        },
+      },
+      {
         type: 'input',
         block_id: CAPTURE_BLOCKS.assignee,
         optional: true,
@@ -150,6 +178,7 @@ export interface ParsedCapture {
   /** Set when a name was typed in the new-Space field. */
   newSpaceName: string | null;
   status: TaskStatus;
+  priority: Priority | null;
   assigneeId: string | null;
   dueAt: Date | null;
   details: string | null;
@@ -180,6 +209,8 @@ export function parseCaptureSubmission(view: Record<string, any>): ParsedCapture
     | { value?: string } | null | undefined;
   const statusOption = at(CAPTURE_BLOCKS.status, 'status').selected_option as
     | { value?: string } | null | undefined;
+  const priorityOption = at(CAPTURE_BLOCKS.priority, 'priority').selected_option as
+    | { value?: string } | null | undefined;
   const selectedUser = at(CAPTURE_BLOCKS.assignee, 'assignee').selected_user;
   const selectedDateTime = at(CAPTURE_BLOCKS.due, 'due').selected_date_time;
   const rawDetails = at(CAPTURE_BLOCKS.details, 'details').value;
@@ -190,6 +221,9 @@ export function parseCaptureSubmission(view: Record<string, any>): ParsedCapture
     spaceId: spaceOption?.value ?? null,
     newSpaceName,
     status: statusOption?.value === 'waiting' ? 'waiting' : 'open',
+    // Validated rather than cast: a value Slack did not offer is treated as no
+    // priority here, and task-core rejects anything invalid at the write.
+    priority: isPriority(priorityOption?.value) ? priorityOption.value : null,
     assigneeId:
       typeof selectedUser === 'string' && selectedUser.length > 0 ? selectedUser : null,
     dueAt: typeof selectedDateTime === 'number' ? new Date(selectedDateTime * 1000) : null,

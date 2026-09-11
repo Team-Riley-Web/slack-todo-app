@@ -1,3 +1,5 @@
+import type { Priority } from './priority.js';
+
 export type TaskStatus = 'open' | 'waiting' | 'completed';
 
 export interface Space {
@@ -14,6 +16,8 @@ export interface Task {
   list_id: string | null;
   assignee_id: string | null;
   status: TaskStatus;
+  /** P0-P3, or null for Unprioritized. Sorts last when null. */
+  priority: Priority | null;
   due_at: Date | null;
   waiting_on: string | null;
   details: string | null;

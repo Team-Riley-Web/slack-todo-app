@@ -237,6 +237,7 @@ packages/slack-ui   Block Kit rendering
 packages/slack-sync  card storage, locking, and redrawing — shared by Slack and web
 packages/importer   parsing, analysis, staged import, rollback
 packages/mcp        MCP stdio server for Hermes
+packages/scheduler  deterministic scheduled Slack posts: daily digests, EOS reminders
 tests             repository-wide determinism guards
 docs              specs, plans, and the Workast export used for design
 ```
@@ -246,6 +247,8 @@ docs              specs, plans, and the Workast export used for design
 - `ARCHITECTURE.md` — why the boundaries are where they are
 - `WEB.md` — the web UI: views, the Postgres requirement, auth, deploying
 - `SLACK_SETUP.md` — creating the app, scopes, and the one runtime check
+- `SCHEDULED.md` — the two once-daily task posts: the cron entry, channels,
+  what Hermes owns instead, and how to test without waiting for the cron
 - `MCP_CONTRACT.md` — the eight Hermes tools and their limits
 - `IMPORT.md` — importing legacy tasks: the flow, formats, duplicates, rollback
 - `MIGRATION_PLAN.md` — the Workast and Kanban migration plan

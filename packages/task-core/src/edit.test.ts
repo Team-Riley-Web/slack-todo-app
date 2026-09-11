@@ -2,6 +2,7 @@ import { it, expect, beforeEach, afterEach } from 'vitest';
 import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
 import { createTask, getTask, completeTask, moveTask, editTask } from './tasks.js';
+import { capitalizeFirstLetter } from './capitalize.js';
 import { InvalidTaskIdError, InvalidDueDateError } from './errors.js';
 
 let db: Db;
@@ -30,7 +31,13 @@ const events = async (taskId: string, event: string) => {
   return rows[0]!.n;
 };
 
-it('writes a new title byte-exact', async () => {
+/**
+ * Narrowed 2026-09-11, deliberately. A lowercase opening letter is now
+ * capitalised at both write paths; EVERY other byte is still written exactly as
+ * typed, which is what this guard has always really been protecting -- markdown
+ * characters, curly apostrophes, em dashes and emoji surviving the round trip.
+ */
+it('writes a new title byte-exact apart from the opening letter', async () => {
   const t = await make();
   for (const title of [
     'Offer Neil Instagram and Facebook package for $100',
@@ -39,10 +46,20 @@ it('writes a new title byte-exact', async () => {
     'fix *urgent* bug_now~ish~ `code`',
     'ship it 🚀',
   ]) {
+    const expected = capitalizeFirstLetter(title);
     const edited = await editTask(db, t.id, { title }, actor);
-    expect(edited.title).toBe(title);
-    expect((await getTask(db, t.id))!.title).toBe(title);
+    expect(edited.title).toBe(expected);
+    expect((await getTask(db, t.id))!.title).toBe(expected);
+    // Nothing after the first character was touched.
+    expect(edited.title.slice(1)).toBe(title.slice(1));
   }
+});
+
+it('leaves a deliberately lowercase opening word alone on edit', async () => {
+  // Someone correcting "IPhone" back to "iPhone" must not have it undone.
+  const t = await make();
+  const edited = await editTask(db, t.id, { title: 'iPhone screen repair' }, actor);
+  expect(edited.title).toBe('iPhone screen repair');
 });
 
 it('trims only outer whitespace, the single permitted normalization', async () => {
@@ -160,7 +177,7 @@ it('ignores keys outside EditableFields', async () => {
   const t = await make();
   const before = await getTask(db, t.id);
   await editTask(db, t.id, {
-    title: 'legit change',
+    title: 'Legit change',
     id: '00000000-0000-4000-8000-000000000000',
     createdAt: new Date(0),
     created_at: new Date(0),
@@ -170,7 +187,7 @@ it('ignores keys outside EditableFields', async () => {
   } as never, actor);
   const after = (await getTask(db, t.id))!;
   expect(after.id).toBe(t.id);
-  expect(after.title).toBe('legit change');
+  expect(after.title).toBe('Legit change');
   expect(after.source_platform).toBe(before!.source_platform);
   expect(after.created_at.getTime()).toBe(before!.created_at.getTime());
 });

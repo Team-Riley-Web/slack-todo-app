@@ -1,0 +1,22 @@
+{
+  "name": "@tr/scheduler",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tr/db": "workspace:*",
+    "@tr/slack-sync": "workspace:*",
+    "@tr/slack-ui": "workspace:*",
+    "@tr/task-core": "workspace:*",
+    "luxon": "^3.5.0",
+    "@slack/types": "^2.14.0",
+    "@slack/web-api": "^7.19.0"
+  },
+  "devDependencies": {
+    "@types/luxon": "^3.4.2"
+  }
+}

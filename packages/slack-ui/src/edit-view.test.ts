@@ -14,7 +14,8 @@ const meta = { taskId: 'T1', channelId: 'C1', messageTs: '1.1' };
 
 const task = (over: Partial<Task> = {}): Task => ({
   id: 'T1', title: 'Call Neil', space_id: 's-mkt', list_id: null, assignee_id: null,
-  status: 'open', due_at: null, waiting_on: null, details: null, created_at: new Date(),
+  status: 'open', priority: null, due_at: null, waiting_on: null, details: null,
+  created_at: new Date(),
   completed_at: null, source_platform: 'slack', source_channel_id: null,
   source_message_ts: null, created_by: null,
   source_external_id: null, import_batch_id: null, ...over,

@@ -10,13 +10,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/tsconfig.json",
-    "migrate": "tsx packages/db/src/cli-migrate.ts",
+    "migrate": "sh -c 'set -a; [ -f .env ] && . ./.env; set +a; tsx packages/db/src/cli-migrate.ts'",
     "slack": "tsx apps/slack/src/index.ts",
     "api": "tsx apps/api/src/index.ts",
     "mcp": "tsx packages/mcp/src/index.ts",
     "sync-channels": "tsx scripts/sync-channel-map.ts",
     "prune-interactions": "tsx scripts/prune.ts",
     "import-tasks": "tsx scripts/import-tasks.ts",
+    "scheduled": "tsx scripts/run-scheduled.ts",
     "web": "sh -c 'set -a; . ./.env; set +a; pnpm --filter @tr/web dev'",
     "web:build": "sh -c 'set -a; . ./.env; set +a; pnpm --filter @tr/web build'"
   },
@@ -29,7 +30,8 @@
     "@tr/db": "workspace:*",
     "@tr/task-core": "workspace:*",
     "@tr/slack-ui": "workspace:*",
-    "@tr/importer": "workspace:*"
+    "@tr/importer": "workspace:*",
+    "@tr/scheduler": "workspace:*"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
