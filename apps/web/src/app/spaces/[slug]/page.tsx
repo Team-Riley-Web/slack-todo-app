@@ -89,7 +89,6 @@ export default async function SpacePage({
       spaces={summary.map(({ space: s, open: o, waiting: w }) => ({
         space: s, open: o, waiting: w,
       }))}
-      railPath="/"
       activeSlug={space.slug}
       searchPath={`/spaces/${space.slug}`}
       searchParams={query}

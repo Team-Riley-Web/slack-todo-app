@@ -180,7 +180,8 @@ unchecked task unless you are starting it.
 - [x] Web UI: move the task sub-line metadata (waiting, age, source) into its own column - no metadata under the task title at all
   - Done 2026-09-10: nothing renders under a task title now. "Waiting on" and "Age" are real columns (one `showWaiting` flag adds both -- what a task is stuck on and how long are the same question), used by /waiting and by a Space page's Waiting section, which would otherwise have been the one place a blocker was invisible. Four grid templates, matching the four cell combinations actually rendered. Header and rows verified on the same template on every list page.
   - Dropped "from slack" on /history rather than giving it a column: it was the same text on every row, and the edit pane's History table already records the source. Phone keeps the Space as an 84px column, since there is no sub-line left to fall back on.
-- [ ] Web UI: clicking a Space in the rail while on a report (e.g. Waiting) keeps that report selected, so a Space with 6 open tasks shows nothing - switching to a Space from a report should go to My tasks for that Space
+- [x] Web UI: clicking a Space in the rail while on a report (e.g. Waiting) keeps that report selected, so a Space with 6 open tasks shows nothing - switching to a Space from a report should go to My tasks for that Space
+  - Done 2026-09-10: Space links always open /?space=<slug>. The per-page railPath that steered them existed for nothing else, so it is gone from Shell and six pages. "All spaces" is now current only on My tasks itself -- it had lit up on every report with no Space filter, next to the report's own highlight, while linking away from that report. Verified on all four reports.
 - [ ] Web UI: My tasks should show Open AND Waiting on the same screen, with Waiting below
 - [ ] Web UI: make the task list columns sortable
 - [ ] Web UI: the per-Space count in the rail should include waiting tasks, not just open

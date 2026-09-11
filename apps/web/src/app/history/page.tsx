@@ -48,7 +48,6 @@ export default async function HistoryPage({
     <Shell
       current="/history"
       spaces={railSpaces}
-      railPath="/history"
       activeSlug={filters.space ?? null}
       searchPath="/history"
       searchParams={query}

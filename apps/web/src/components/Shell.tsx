@@ -12,7 +12,6 @@ export function Shell(props: {
   current: string;
   spaces: SidebarSpace[];
   activeSlug?: string | null;
-  railPath?: string;
   title: string;
   subtitle?: string;
   /** Where the search form submits, and the filters it must carry through. */
@@ -28,7 +27,6 @@ export function Shell(props: {
         spaces={props.spaces}
         activeSlug={props.activeSlug ?? null}
         current={props.current}
-        path={props.railPath ?? props.current}
       />
       <main className="main">
         <header className="page-head">

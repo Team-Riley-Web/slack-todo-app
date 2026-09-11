@@ -47,7 +47,6 @@ export default async function WaitingPage({
     <Shell
       current="/waiting"
       spaces={railSpaces}
-      railPath="/waiting"
       activeSlug={filters.space ?? null}
       searchPath="/waiting"
       searchParams={query}
