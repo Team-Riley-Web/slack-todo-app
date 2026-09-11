@@ -30,11 +30,14 @@
   --border: #e6e8eb;
   --border: oklch(0.9303 0.0046 258.33);
   /*
-   * The alternate row tone, for zebra striping. Chosen by rendering four
-   * strengths side by side: 1.2% was invisible, 3% read as banding.
+   * The alternate row tone, for zebra striping. Asked for at this exact
+   * value. It is a neutral grey rather than the faintly blue tint it
+   * replaced, and much lighter -- 1% down from the surface where the old one
+   * was 2.4% -- which works now that --header-bg carries the job of looking
+   * distinct. The stripe only has to separate a row from its neighbour.
    */
-  --surface-alt: #f6f7f9;
-  --surface-alt: oklch(0.9759 0.0029 264.54);
+  --surface-alt: #fcfcfc;
+  --surface-alt: oklch(0.99 0 0);
 
   /*
    * The column header bar. It used to share --surface-alt with the stripes,
@@ -488,11 +491,13 @@ a.chip, .filters .chip {
  */
 a.chip.tone-overdue { background: oklch(0.955 0.03 21.1); color: oklch(0.46 0.14 21.1); border-color: oklch(0.92 0.045 21.1); }
 a.chip.tone-today   { background: oklch(0.955 0.03 266); color: oklch(0.46 0.14 266); border-color: oklch(0.92 0.045 266); }
-a.chip.tone-week    { background: oklch(0.955 0.03 43); color: oklch(0.46 0.14 43); border-color: oklch(0.92 0.045 43); }
+/* Green, on the hue of --done (#35ca8c), so the app has one green rather
+   than a second one invented for a pill. Label 5.6:1 on its own fill. */
+a.chip.tone-week    { background: oklch(0.955 0.03 160.5); color: oklch(0.46 0.14 160.5); border-color: oklch(0.92 0.045 160.5); }
 a.chip.tone-none    { background: oklch(0.955 0.012 264.4); color: oklch(0.46 0.01 264.4); border-color: oklch(0.92 0.012 264.4); }
 a.chip.tone-overdue:hover { background: oklch(0.925 0.045 21.1); }
 a.chip.tone-today:hover   { background: oklch(0.925 0.045 266); }
-a.chip.tone-week:hover    { background: oklch(0.925 0.045 43); }
+a.chip.tone-week:hover    { background: oklch(0.925 0.045 160.5); }
 a.chip.tone-none:hover    { background: oklch(0.925 0.018 264.4); }
 
 /*

@@ -206,8 +206,10 @@ unchecked task unless you are starting it.
 - [x] Need to add Rachael as an Assignee U0BT6HDBYBC
   - Done 2026-09-10: only ONE assignee was configurable -- the DEFAULT_ASSIGNEE_SLACK_ID / DEFAULT_ASSIGNEE_LABEL pair -- so a second person needed a map, not a value. New ASSIGNEE_LABELS env var (`id=Name,id=Name`), parsed by task-core so the web app and the Slack app cannot disagree about it; 12 tests. The old pair still works and still names the default assignee, so an existing .env keeps running untouched.
   - The filter dropdown used to list only ids already ON tasks, which would have hidden Rachael until someone had already given her work -- backwards, since you filter to a person to see what they have. It lists everyone configured now, plus any id in use that nobody named (shown as the raw id, deliberately ugly: it reads as something to configure). Verified she appears in the filter and the edit pane; ASSIGNEE_LABELS set in .env, documented empty in .env.example.
-- [ ] Make alternating row color lighter - background: oklch(0.99 0 0 / 1)
-- [ ] make "This Week" pill green; capitalize Week
+- [x] Make alternating row color lighter - background: oklch(0.99 0 0 / 1)
+  - Done 2026-09-10: --surface-alt set to the exact value asked for. It is a neutral grey rather than the faintly blue tint it replaced, and 1% down from the surface where the old one was 2.4%. That works now only because --header-bg was split off in the earlier task and carries the job of looking distinct; the stripe just has to separate a row from its neighbour.
+- [x] make "This Week" pill green; capitalize Week
+  - Done 2026-09-10: label capitalised, tone moved from amber to green on hue 160.5 -- the hue of --done (#35ca8c), so the app has one green rather than a second invented for a pill. Label measures 5.6:1 on its own fill. The comment explaining the tones was rewritten: it claimed amber meant "coming up soon", which is no longer why that pill is the colour it is.
 
 
 ## Reference
