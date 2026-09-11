@@ -203,7 +203,9 @@ unchecked task unless you are starting it.
 - [x] Web UI: the search box needs the icon on the right and the border-within-a-border fixed
   - Done 2026-09-10: icon moved after the input. The doubled border was a specificity tie -- `.search-field input` and the global `input[type="search"]` rule score the same, and the global one sits later in the file, so its border and background won and drew a second field inside the first. Fixed by naming the type in the scoped selector to win on specificity rather than order, plus appearance:none to drop WebKit's own inset search decorations.
 - [ ] Launch a production version ###productiontask and Aside browser
-- [ ] Need to add Rachael as an Assignee U0BT6HDBYBC
+- [x] Need to add Rachael as an Assignee U0BT6HDBYBC
+  - Done 2026-09-10: only ONE assignee was configurable -- the DEFAULT_ASSIGNEE_SLACK_ID / DEFAULT_ASSIGNEE_LABEL pair -- so a second person needed a map, not a value. New ASSIGNEE_LABELS env var (`id=Name,id=Name`), parsed by task-core so the web app and the Slack app cannot disagree about it; 12 tests. The old pair still works and still names the default assignee, so an existing .env keeps running untouched.
+  - The filter dropdown used to list only ids already ON tasks, which would have hidden Rachael until someone had already given her work -- backwards, since you filter to a person to see what they have. It lists everyone configured now, plus any id in use that nobody named (shown as the raw id, deliberately ugly: it reads as something to configure). Verified she appears in the filter and the edit pane; ASSIGNEE_LABELS set in .env, documented empty in .env.example.
 - [ ] Make alternating row color lighter - background: oklch(0.99 0 0 / 1)
 - [ ] make "This Week" pill green; capitalize Week
 
