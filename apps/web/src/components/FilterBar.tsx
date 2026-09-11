@@ -15,10 +15,10 @@ export interface FilterBarProps {
 /**
  * The due buckets, each with a tone.
  *
- * The tones are not decoration: overdue borrows the hue the overdue due-date
- * text already uses, "this week" the amber of a date coming up soon, today
- * the accent blue, and "no date" a neutral. So a pill and the column it
- * filters agree on what colour that state is.
+ * The tones are not decoration, and each borrows a hue the app already uses:
+ * overdue the red of overdue due-date text, today the accent blue, this week
+ * the green of a completed check, and no date a neutral. So the palette stays
+ * the same size -- no colour exists only to tint a pill.
  */
 const DUE_OPTIONS: Array<{
   value: TaskFilters['due']; label: string; tone: string;
@@ -27,7 +27,7 @@ const DUE_OPTIONS: Array<{
   // what slipped, then what was never dated. Overdue led before, which put
   // the exception first and today's work third.
   { value: 'today', label: 'Today', tone: 'today' },
-  { value: 'week', label: 'This week', tone: 'week' },
+  { value: 'week', label: 'This Week', tone: 'week' },
   { value: 'overdue', label: 'Overdue', tone: 'overdue' },
   { value: 'none', label: 'No date', tone: 'none' },
 ];
