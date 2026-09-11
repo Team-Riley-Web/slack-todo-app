@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PaneShell } from '@/components/PaneShell';
 import type { Db } from '@tr/db';
 import { getTask, listSpaces, assigneeChoices, type Space } from '@tr/task-core';
 import { editTaskFormVoid } from '@/actions/tasks';
@@ -48,14 +49,15 @@ export async function EditPane({
   );
 
   return (
-    <>
+    /* PaneShell plays the exit animation before the pane goes away. */
+    <PaneShell>
       {/* The backdrop is a link, so clicking away closes the pane. */}
-      <Link className="pane-backdrop" href={back} aria-label="Close" />
+      <Link className="pane-backdrop" href={back} aria-label="Close" data-pane-close />
 
       <aside className="pane" aria-label="Edit task">
         <header className="pane-head">
           <h2>Edit task</h2>
-          <Link className="pane-close" href={back} aria-label="Close">×</Link>
+          <Link className="pane-close" href={back} aria-label="Close" data-pane-close>×</Link>
         </header>
 
         {error ? <p className="error">{String(error)}</p> : null}
@@ -123,14 +125,14 @@ export async function EditPane({
 
           <div className="filters">
             <button type="submit" className="primary">Save</button>
-            <Link className="btn" href={back}>Cancel</Link>
+            <Link className="btn" href={back} data-pane-close>Cancel</Link>
           </div>
         </form>
 
         <h2>History</h2>
         <TaskHistory db={db} taskId={task.id} />
       </aside>
-    </>
+    </PaneShell>
   );
 }
 

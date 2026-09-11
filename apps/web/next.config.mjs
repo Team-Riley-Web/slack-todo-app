@@ -13,6 +13,7 @@ const nextConfig = {
   ],
   eslint: { ignoreDuringBuilds: true },
 
+
   /**
    * Native and WASM packages must be loaded by Node, not bundled.
    *
