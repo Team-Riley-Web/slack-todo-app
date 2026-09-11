@@ -23,6 +23,16 @@ export function assigneeLabels(): Record<string, string> {
   };
 }
 
+/**
+ * Who a task belongs to when nobody says otherwise.
+ *
+ * The Slack command assigns this, so the web form does too -- otherwise the
+ * same task is assigned or unassigned depending on where it was typed.
+ */
+export function defaultAssigneeId(): string | null {
+  return process.env.DEFAULT_ASSIGNEE_SLACK_ID?.trim() || null;
+}
+
 export function authorizedUserIds(): string[] {
   return (process.env.AUTHORIZED_SLACK_USER_IDS ?? '')
     .split(',').map((s) => s.trim()).filter(Boolean);

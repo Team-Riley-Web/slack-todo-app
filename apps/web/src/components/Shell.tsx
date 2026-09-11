@@ -4,6 +4,7 @@ import { SearchBox } from './SearchBox';
 import { NewTaskPane } from './NewTaskPane';
 import { Icon } from './Icon';
 import { newTaskHref, newTaskSpace } from '@/lib/display';
+import { assigneeLabels, defaultAssigneeId } from '@/lib/env';
 
 /**
  * Chrome shared by every signed-in page.
@@ -63,6 +64,8 @@ export function Shell(props: {
             defaultSpaceSlug={selectedSpace?.slug}
             basePath={props.path}
             params={query}
+            assigneeLabels={assigneeLabels()}
+            defaultAssigneeId={defaultAssigneeId()}
           />
         ) : null}
       </main>
