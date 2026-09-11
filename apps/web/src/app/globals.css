@@ -114,6 +114,9 @@ a { color: var(--accent-strong); }
 .page-head .heading { flex: 1; min-width: 0; }
 .page-head h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
 .page-head .sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.page-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.page-actions > .btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; }
+.page-actions > .btn .icon { width: 15px; height: 15px; }
 .toolbar { padding: 12px 0 4px; }
 
 /* Search, top right. */
@@ -346,12 +349,24 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
 
 .row .rowactions { display: flex; justify-content: flex-end; gap: 4px; }
 .row .rowactions form { margin: 0; }
+/*
+ * Wait / Unblock. Outlined at rest, not only on hover: a transparent border
+ * made the label read as text, so the only way to discover it was a control
+ * was to mouse over the row. Hover now deepens a button that already looks
+ * like one, rather than conjuring it.
+ */
 .row .rowactions button {
-  background: none; border: 1px solid transparent; color: var(--muted);
+  background: var(--surface); border: 1px solid var(--border); color: var(--muted);
   border-radius: var(--radius); padding: 3px 8px; font-size: 12px; cursor: pointer;
 }
-.row:hover .rowactions button { border-color: var(--border); }
-.row .rowactions button:hover { color: var(--fg); background: #f3f4f6; }
+.row .rowactions button:hover { color: var(--fg); background: #f3f4f6; border-color: #c9ced6; }
+.row .rowactions button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+/* On a striped row the button's own --surface would read as a white patch, so
+   it takes the row's colour and keeps only its outline. */
+ul.rows li.row.task:nth-child(even) .rowactions button { background: transparent; }
+ul.rows li.row.task:nth-child(even) .rowactions button:hover { background: #f3f4f6; }
 
 /* The circle check. A real submit button, so completing needs no JavaScript. */
 .row form.tick { margin: 0; display: flex; align-items: center; }
@@ -432,8 +447,10 @@ button:hover, .btn:hover { background: #f3f4f6; }
  * text at 3.34:1, so anything here that sets white ON blue -- the single
  * primary action, a selected chip -- takes the darker step of the same hue.
  */
-button.primary { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
-button.primary:hover { filter: brightness(1.06); }
+button.primary, .btn.primary {
+  background: var(--accent-strong); border-color: var(--accent-strong); color: #fff;
+}
+button.primary:hover, .btn.primary:hover { background: var(--accent-strong); filter: brightness(1.06); }
 a.chip, .filters .chip {
   padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px;
   font-size: 13px; text-decoration: none; color: var(--fg); background: var(--surface);
@@ -699,6 +716,12 @@ a.iconbtn .icon { width: 15px; height: 15px; }
   /* No hover on a touch screen, so give them full contrast. */
   a.iconbtn { opacity: 1; }
   .page-head { flex-wrap: wrap; }
+  /* Keep the search and New task action inside the narrow main column. The
+     search used to claim 100% of this flex row before the button was added,
+     so the pair widened a 375px page to 432px. */
+  .page-head .heading { flex-basis: 100%; }
+  .page-actions { width: 100%; min-width: 0; }
+  .page-actions form.search { width: auto; min-width: 0; flex: 1; }
+  .page-actions .search-field { min-width: 0; }
   .search-field input { width: 100%; }
-  form.search { width: 100%; }
 }

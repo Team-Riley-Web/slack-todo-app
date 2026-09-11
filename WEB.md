@@ -284,12 +284,33 @@ test fails.
 Root directory `apps/web`. Build command `pnpm --filter @tr/web build`.
 
 Environment variables: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_SLACK_ID`,
-`AUTH_SLACK_SECRET`, `AUTHORIZED_SLACK_USER_IDS`, `DEFAULT_TIMEZONE`, and
-`SLACK_BOT_TOKEN` if you want the Slack redraw. Do not set `WEB_DEV_USER`;
+`AUTH_SLACK_SECRET`, `AUTHORIZED_SLACK_USER_IDS`, `DEFAULT_TIMEZONE`,
+`SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, and `SLACK_TEAM_ID`. The Slack
+values serve both card redraws and the production HTTP receiver. Do not set
+`SLACK_APP_TOKEN`: it is only for local Socket Mode. Do not set `WEB_DEV_USER`;
 it is inert in production anyway.
 
 Run `pnpm migrate` against the database before the first deploy. Migrations
 are deliberately **not** on the request path.
+
+`apps/web/vercel.json` enables Fluid compute. The Slack receiver is a Node
+Route Handler at `/api/slack/events`; `GET` is its deployment health check and
+`POST` accepts only requests carrying a current, valid Slack signature. Bolt
+acknowledges before it touches Postgres, and Next's `after()` keeps the rest of
+the listener alive after that response. The first completed listener in each
+warm instance also runs the interaction-retention sweep that the local worker
+runs on a timer. Do not add a keep-warm ping: the route is request-driven and
+holds no socket.
+
+After the first successful deploy, disable Socket Mode in the Slack app and
+set every Slash Command plus Interactivity Request URL to:
+
+```text
+https://<production-domain>/api/slack/events
+```
+
+Keep the local `pnpm slack` process in Socket Mode until those URLs are saved,
+so development and the production cutover never compete for deliveries.
 
 ## Notes on the shape of it
 

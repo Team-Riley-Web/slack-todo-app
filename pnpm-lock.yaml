@@ -83,6 +83,9 @@ importers:
       '@tr/importer':
         specifier: workspace:*
         version: link:../../packages/importer
+      '@tr/slack-app':
+        specifier: workspace:*
+        version: link:../slack
       '@tr/slack-sync':
         specifier: workspace:*
         version: link:../../packages/slack-sync

@@ -1,5 +1,9 @@
+import Link from 'next/link';
 import { Sidebar, type SidebarSpace } from './Sidebar';
 import { SearchBox } from './SearchBox';
+import { NewTaskPane } from './NewTaskPane';
+import { Icon } from './Icon';
+import { newTaskHref, newTaskSpace } from '@/lib/display';
 
 /**
  * Chrome shared by every signed-in page.
@@ -9,6 +13,8 @@ import { SearchBox } from './SearchBox';
  * of the same tasks was noise.
  */
 export function Shell(props: {
+  /** This view's route, used to keep its query state behind a task pane. */
+  path: string;
   current: string;
   spaces: SidebarSpace[];
   activeSlug?: string | null;
@@ -21,6 +27,11 @@ export function Shell(props: {
   toolbar?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const query = props.searchParams ?? {};
+  const creating = query.newTask !== undefined;
+  const spaces = props.spaces.map(({ space }) => space);
+  const selectedSpace = newTaskSpace(spaces, props.activeSlug);
+
   return (
     <div className="app">
       <Sidebar
@@ -34,12 +45,26 @@ export function Shell(props: {
             <h1>{props.title}</h1>
             {props.subtitle ? <p className="sub">{props.subtitle}</p> : null}
           </div>
-          {props.searchPath ? (
-            <SearchBox path={props.searchPath} params={props.searchParams ?? {}} />
-          ) : null}
+          <div className="page-actions">
+            {props.searchPath ? (
+              <SearchBox path={props.searchPath} params={query} />
+            ) : null}
+            <Link className="btn primary" href={newTaskHref(props.path, query)}>
+              <Icon name="plus" />
+              New task
+            </Link>
+          </div>
         </header>
         {props.toolbar ? <div className="toolbar">{props.toolbar}</div> : null}
         <div className="content">{props.children}</div>
+        {creating ? (
+          <NewTaskPane
+            spaces={spaces}
+            defaultSpaceSlug={selectedSpace?.slug}
+            basePath={props.path}
+            params={query}
+          />
+        ) : null}
       </main>
     </div>
   );

@@ -145,11 +145,17 @@ export async function createTaskFormAction(formData: FormData): Promise<Operatio
  * JavaScript and no silently swallowed error.
  */
 export async function createTaskFormVoid(formData: FormData): Promise<void> {
+  // The view under the pane, including its filters. Capture returns there on
+  // success and reopens over it on failure.
+  const returnTo = String(formData.get('returnTo') ?? '/') || '/';
   const result = await createTaskFormAction(formData);
   if (!result.ok) {
-    const slug = String(formData.get('spaceSlug') ?? '');
-    redirect(`/spaces/${encodeURIComponent(slug)}?error=${encodeURIComponent(result.error)}`);
+    const sep = returnTo.includes('?') ? '&' : '?';
+    redirect(
+      `${returnTo}${sep}newTask=1&error=${encodeURIComponent(result.error)}`
+    );
   }
+  redirect(returnTo);
 }
 
 export async function editTaskFormVoid(formData: FormData): Promise<void> {

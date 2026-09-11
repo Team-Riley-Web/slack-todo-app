@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tr/db": "workspace:*",
+    "@tr/slack-app": "workspace:*",
     "@tr/task-core": "workspace:*",
     "@tr/slack-sync": "workspace:*",
     "@tr/importer": "workspace:*",

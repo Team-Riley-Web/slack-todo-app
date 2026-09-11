@@ -46,9 +46,11 @@ export default async function SpacesPage({
 
   return (
     <Shell
+      path="/spaces"
       current="/spaces"
       spaces={rows.map(({ space, open, waiting }) => ({ space, open, waiting }))}
       activeSlug={null}
+      searchParams={query}
       title="Spaces"
       toolbar={
         <div className="filters">
