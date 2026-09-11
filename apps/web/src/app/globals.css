@@ -594,7 +594,69 @@ a.chip.tone-none[aria-current="true"] {
 
 .stack { display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
 .stack label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
-.narrow { max-width: 420px; margin: 15vh auto; padding: 16px; }
+/* --- sign in --- */
+
+/*
+ * The one page with no rail, so the card wears the rail's header instead: the
+ * same graphite, the same logo, the same team name at 650. Centred in the
+ * viewport rather than pushed down by a 15vh margin, which is what left it
+ * sitting high on a laptop and pushed off the bottom on a phone.
+ */
+.signin {
+  min-height: 100vh; padding: 32px 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.signin-card {
+  width: 100%; max-width: 380px; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px;
+  /* The only shadow in the interface. Cards inside the app sit flat because
+     the page around them is full of other things; this one is alone on an
+     empty background and needs something to lift it off. */
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 14px 34px rgb(16 24 40 / 0.09);
+}
+/*
+ * The rail's workspace header, reused: same graphite, same 6px radius on the
+ * mark, same team name at 15px/650. The one change is the logo, 40px here
+ * against the rail's 30 -- in the rail it is chrome beside a whole interface,
+ * and on this page it is the only thing identifying the product, so it gets
+ * to be legible rather than merely present.
+ */
+.signin-brand {
+  display: flex; align-items: center; gap: 12px;
+  padding: 18px 20px; background: var(--rail-bg);
+  border-bottom: 1px solid var(--rail-line);
+}
+.signin-brand img { border-radius: 6px; display: block; flex: none; }
+.signin-brand h1 {
+  margin: 0; color: #fff;
+  font-size: 15px; font-weight: 650; letter-spacing: -0.01em;
+}
+
+.signin-body { padding: 20px; }
+.signin-body p { margin: 0 0 16px; }
+.signin-body form { margin: 0; }
+/*
+ * Full width and a touch taller than a toolbar button. It is the only action
+ * on the page; a 150px button floating in a 380px card reads as one option
+ * among several that have not loaded yet.
+ */
+button.primary.slack {
+  width: 100%; height: 40px; gap: 9px; font-weight: 550;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+button.primary.slack svg { width: 16px; height: 16px; fill: currentColor; flex: none; }
+button.primary.slack:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/*
+ * The access note is help, not part of the form, so it drops to the footer
+ * tone the column headers use rather than sitting in the same white as the
+ * button and competing with it.
+ */
+.signin-note {
+  margin: 0; padding: 14px 20px; color: var(--muted);
+  background: var(--header-bg); border-top: 1px solid var(--border);
+}
 
 /* Scoped to .content so the sidebar's Space list cannot inherit this grid,
    which is exactly what overflowed the rail. */
