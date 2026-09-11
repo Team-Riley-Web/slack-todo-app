@@ -74,7 +74,10 @@ export function FilterBar({
     </Link>
   );
 
-  const active = Object.keys(filters).filter((k) => k !== 'space').length > 0;
+  // A sort is an ordering, not a filter: it narrows nothing, so it does not
+  // earn a Clear chip. Space is excluded because the rail owns it.
+  const active = Object.keys(filters)
+    .filter((k) => !['space', 'sort', 'dir'].includes(k)).length > 0;
 
   return (
     <div className="filters">
@@ -82,7 +85,7 @@ export function FilterBar({
 
       {visible.includes('dates') && (
         <form method="get" action={path}>
-          {(['space', 'assignee', 'q', 'due'] as const).map((key) =>
+          {(['space', 'assignee', 'q', 'due', 'sort', 'dir'] as const).map((key) =>
             filters[key] ? (
               <input key={key} type="hidden" name={key} value={filters[key]} />
             ) : null

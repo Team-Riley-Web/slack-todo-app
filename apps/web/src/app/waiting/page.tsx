@@ -9,6 +9,7 @@ import { TaskList } from '@/components/TaskRow';
 import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
+import { sortRows, sortingFor } from '@/lib/sort';
 import { spaceBySlug, shortSpaceName } from '@/lib/display';
 
 export default async function WaitingPage({
@@ -20,6 +21,10 @@ export default async function WaitingPage({
   await requireUser();
   const query = await searchParams;
   const filters = parseFilters(query);
+  // Ordering comes from the URL's own params, never a page's derived
+  // filters, so a header link reproduces exactly the view it sits on.
+  const sortBy = parseFilters(query);
+  const sorting = sortingFor('/waiting', sortBy);
   const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
   const db = await getDb();
 
@@ -59,14 +64,14 @@ export default async function WaitingPage({
         />
       }
     >
-      <SectionCard
+      <SectionCard sorting={sorting}
         label="Waiting"
         count={rows.length}
         showSpace={!only}
         showWaiting
       >
         <TaskList
-          rows={rows}
+          rows={sortRows(rows, sortBy, assigneeLabels())}
           showSpace={!only}
           empty="Nothing is waiting."
           showWaiting

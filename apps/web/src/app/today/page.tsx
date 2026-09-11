@@ -9,6 +9,7 @@ import { TaskList } from '@/components/TaskRow';
 import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
+import { sortRows, sortingFor } from '@/lib/sort';
 import { spaceBySlug, shortSpaceName } from '@/lib/display';
 
 /**
@@ -26,6 +27,10 @@ export default async function TodayPage({
   await requireUser();
   const query = await searchParams;
   const filters = { ...parseFilters(query), due: 'today' as const };
+  // Ordering comes from the URL's own params, never a page's derived
+  // filters, so a header link reproduces exactly the view it sits on.
+  const sortBy = parseFilters(query);
+  const sorting = sortingFor('/today', sortBy);
   const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
   const db = await getDb();
 
@@ -63,9 +68,9 @@ export default async function TodayPage({
         />
       }
     >
-      <SectionCard label="Due today" count={rows.length} showSpace={!only}>
+      <SectionCard sorting={sorting} label="Due today" count={rows.length} showSpace={!only}>
         <TaskList
-          rows={rows}
+          rows={sortRows(rows, sortBy, assigneeLabels())}
           showSpace={!only}
           empty="Nothing due today."
           assigneeLabels={assigneeLabels()}

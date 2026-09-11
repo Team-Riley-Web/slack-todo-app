@@ -16,7 +16,7 @@ export function SearchBox({
   const one = (v: string | string[] | undefined): string | undefined =>
     Array.isArray(v) ? v[0] : v;
 
-  const carry = (['space', 'status', 'assignee', 'due', 'from', 'to'] as const)
+  const carry = (['space', 'status', 'assignee', 'due', 'from', 'to', 'sort', 'dir'] as const)
     .map((key) => [key, one(params[key])] as const)
     .filter(([, value]) => value !== undefined && value !== '');
 

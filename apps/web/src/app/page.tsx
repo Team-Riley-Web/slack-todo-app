@@ -9,6 +9,7 @@ import { TaskList } from '@/components/TaskRow';
 import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { assigneeLabels } from '@/lib/env';
+import { sortRows, sortingFor } from '@/lib/sort';
 import { spaceBySlug, shortSpaceName } from '@/lib/display';
 
 export default async function MyTasksPage({
@@ -20,6 +21,10 @@ export default async function MyTasksPage({
   await requireUser();
   const query = await searchParams;
   const filters = parseFilters(query);
+  // Ordering comes from the URL's own params, never a page's derived
+  // filters, so a header link reproduces exactly the view it sits on.
+  const sortBy = parseFilters(query);
+  const sorting = sortingFor('/', sortBy);
   const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
   const db = await getDb();
 
@@ -70,9 +75,9 @@ export default async function MyTasksPage({
         />
       }
     >
-      <SectionCard label="Open" count={rows.length} showSpace={!only}>
+      <SectionCard sorting={sorting} label="Open" count={rows.length} showSpace={!only}>
         <TaskList
-          rows={rows}
+          rows={sortRows(rows, sortBy, assigneeLabels())}
           showSpace={!only}
           empty="Nothing open. Capture something with /task in Slack."
           assigneeLabels={assigneeLabels()}
@@ -82,14 +87,14 @@ export default async function MyTasksPage({
       </SectionCard>
 
       {/* Below Open, with the columns that say what each task is stuck on. */}
-      <SectionCard
+      <SectionCard sorting={sorting}
         label="Waiting"
         count={waiting.length}
         showSpace={!only}
         showWaiting
       >
         <TaskList
-          rows={waiting}
+          rows={sortRows(waiting, sortBy, assigneeLabels())}
           showSpace={!only}
           showWaiting
           empty="Nothing waiting."
