@@ -80,3 +80,38 @@ describe('the development bypass', () => {
     }))).toBe(true);
   });
 });
+
+describe('the year-long session', () => {
+  /**
+   * A one-year session is only defensible because access is re-checked on
+   * every request rather than baked into the token. These two assertions are
+   * the pair: the session is long, AND removing an id revokes immediately.
+   */
+  it('is a year, and is wired into the session config', async () => {
+    // Read as source, not imported: auth.ts pulls in next-auth, which needs
+    // the Next runtime that vitest does not provide.
+    const { readFile } = await import('node:fs/promises');
+    const src = await readFile('apps/web/src/auth.ts', 'utf8');
+    expect(src).toContain('SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 365');
+    expect(src).toContain("session: { strategy: 'jwt', maxAge: SESSION_MAX_AGE_SECONDS }");
+  });
+
+  it('pins the workspace so Slack never asks which one', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const src = await readFile('apps/web/src/auth.ts', 'utf8');
+    expect(src).toContain('params: { team: process.env.SLACK_TEAM_ID.trim() }');
+    // Sent only when set. Slack rejects an empty `team=`, which would break
+    // sign-in entirely rather than merely showing the picker.
+    expect(src).toContain('process.env.SLACK_TEAM_ID?.trim()');
+    expect(src).toContain(': undefined');
+  });
+
+  it('grants nothing once the id leaves the allowlist', () => {
+    const listed = { AUTHORIZED_SLACK_USER_IDS: 'U_JOSH,U_RACHAEL' } as never;
+    expect(authorizeSlackUser('U_RACHAEL', listed)).toBe(true);
+
+    // Same still-valid session, id removed from the environment.
+    const revoked = { AUTHORIZED_SLACK_USER_IDS: 'U_JOSH' } as never;
+    expect(authorizeSlackUser('U_RACHAEL', revoked)).toBe(false);
+  });
+});
