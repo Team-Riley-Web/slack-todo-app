@@ -48,7 +48,6 @@ export default async function MyTasksPage({
     <Shell
       current="/"
       spaces={railSpaces}
-      railPath="/"
       activeSlug={filters.space ?? null}
       searchPath="/"
       searchParams={query}

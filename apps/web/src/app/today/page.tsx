@@ -49,7 +49,6 @@ export default async function TodayPage({
     <Shell
       current="/today"
       spaces={summary.map(({ space, open, waiting }) => ({ space, open, waiting }))}
-      railPath="/today"
       activeSlug={filters.space ?? null}
       searchPath="/today"
       searchParams={query}

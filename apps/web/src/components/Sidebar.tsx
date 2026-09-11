@@ -19,15 +19,22 @@ export interface SidebarSpace {
  * `createSpace` does not add the prefix for you — the prefix is the signal.
  */
 export function Sidebar({
-  spaces, activeSlug, current, path,
+  spaces, activeSlug, current,
 }: {
   spaces: SidebarSpace[];
   activeSlug: string | null;
   current: string;
-  path: string;
 }) {
+  /*
+   * A Space link always opens My tasks for that Space.
+   *
+   * It used to keep whichever report you were on, so clicking Agency from
+   * Waiting opened Waiting-in-Agency: empty, beside a rail that said Agency
+   * had six tasks. Choosing a Space is choosing where to look, not narrowing
+   * the report you happened to be reading.
+   */
   const spaceHref = (slug: string | null) =>
-    slug === null ? path : `${path}?space=${encodeURIComponent(slug)}`;
+    slug === null ? '/' : `/?space=${encodeURIComponent(slug)}`;
 
   const navItem = (href: string, label: string, icon: IconName) => (
     <li key={href}>
@@ -110,7 +117,12 @@ export function Sidebar({
       {railGroup('Spaces', (
         <ul className="group space-list">
           <li>
-            <Link href={spaceHref(null)} aria-current={activeSlug === null ? 'page' : undefined}>
+            {/* Current only on My tasks itself: it links there, so lighting it
+                up on Waiting or Completed claimed a view you were not on. */}
+            <Link
+              href={spaceHref(null)}
+              aria-current={current === '/' && activeSlug === null ? 'page' : undefined}
+            >
               <Icon name="space" />
               <span className="label">All spaces</span>
               {total > 0 ? <span className="count">{total}</span> : null}

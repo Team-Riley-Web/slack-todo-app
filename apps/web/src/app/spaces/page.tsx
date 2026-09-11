@@ -48,7 +48,6 @@ export default async function SpacesPage({
     <Shell
       current="/spaces"
       spaces={rows.map(({ space, open, waiting }) => ({ space, open, waiting }))}
-      railPath="/"
       activeSlug={null}
       title="Spaces"
       toolbar={
