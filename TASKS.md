@@ -190,3 +190,88 @@ unchecked task unless you are starting it.
 - [x] Web UI: the per-Space count in the rail should include waiting tasks, not just open
   - Done 2026-09-10: each Space and All spaces now count open + waiting. Milltown Cabinets went from no number to 1; All spaces from 20 to 21. The counts now agree with My tasks, which lists both since the task before last.
 - [ ] Web UI: add a New Task button in the top right of all views, as detailed in brand-spec.md
+- [ ] Web UI: give the "Wait" button an outline in its non-hovered state too, not only on hover
+- [ ] Web UI: give the task list column header bar more visual distinction - darker background
+- [ ] Web UI: reorder the due pills to Today, This week, Overdue, No date
+- [ ] Web UI: the edit task pane should animate smoothly in on open and out on save
+- [ ] Web UI: the search box needs the icon on the right and the border-within-a-border fixed
+- [ ] Launch a production version ###productiontask and Aside browser
+- [ ] Need to add Rachael as an Assignee U0BT6HDBYBC
+- [ ] Make alternating row color lighter - background: oklch(0.99 0 0 / 1)
+- [ ] make "This Week" pill green; capitalize Week
+
+
+## Reference
+
+Pasted into TASKS.md from another session's terminal while this one was
+offline. It is background for the production task above, not a task itself.
+The D1 brief below was answered **A** in that transcript.
+
+### Productiontask
+```
+No—an HTTP deployment does not need a keep-alive bot.
+
+The flow becomes:
+
+Slack command → Vercel function starts → verifies request → immediately acknowledges →
+creates task → function ends
+
+There is no persistent socket to maintain. Vercel may scale the function to zero, but it
+invokes it again when Slack sends a request. Artificial pings don’t guarantee the same
+instance remains warm and only waste invocations. Vercel Functions lifecycle
+
+We should instead ensure:
+
+- ack() happens before database or Slack API work; Slack allows three seconds. Slack
+  acknowledgment guidance
+
+- Database migrations run during deployment, never during a Slack request.
+- Fluid Compute is enabled to reduce cold starts.
+- The function runs near the Supabase region.
+- We record acknowledgment latency and errors.
+
+If cold starts cause measured failures on Vercel Hobby, the reliable remedies are a paid
+pre-warmed function or an always-on host—not a ping bot. Vercel’s paid production
+environments support pre-warmed instances. Vercel compute documentation
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+› ok proceed to set it up
+
+• I’ll wire the Slack app into the existing Vercel deployment as an HTTP endpoint, preserve
+the current local Socket Mode workflow, update the Slack manifest/setup instructions, and
+verify the serverless request path. I’m using the deployment-setup workflow plus current
+Vercel and Bolt documentation because this changes runtime and request-handling behavior.
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+### D1 — Authorize the production dashboard changes
+
+  Project/branch/task: Deploy the current master workspace to Vercel and switch the Slack app
+  from local Socket Mode to the verified HTTP endpoint.
+
+  ELI10: Aside is connected, but Vercel and Slack are real accounts. I need explicit approval
+  before creating a project, deploying code, or changing Slack’s delivery settings. You will
+  handle any sign-in, CAPTCHA, or secret-entry screen yourself.
+
+  Stakes if we pick wrong: Slack commands could temporarily stop working if Socket Mode is
+  disabled before the live endpoint passes its health check.
+
+  Recommendation: A, because it completes the production cutover while preserving the local
+  bot until verification succeeds.
+
+  A) Complete the Vercel and Slack setup (recommended). Completeness: 10/10. I’ll create or
+  link the Vercel project, set apps/web as its root, guide you through protected environment-
+  variable entry, trigger the production deployment, and verify its health. Only after it
+  passes will I update /task, /tasks, /space, /import, and Interactivity in Slack, then
+  disable Socket Mode.
+
+  B) Configure Vercel only. Completeness: 7/10. I’ll create, configure, deploy, and verify the
+  Vercel project, while leaving every Slack setting unchanged. This preserves the current
+  connection but does not solve mobile task creation until the later Slack cutover.
+
+  C) Read-only inspection. Completeness: 3/10. I’ll inspect the Vercel and Slack dashboards
+  and report their current state without submitting changes. This carries the least account
+  risk but leaves deployment and the socket-disconnection problem unresolved.
+
+  Net: A completes the fix; B stages it safely; C only diagnoses.
+
+  Reply with A, B, or C.
