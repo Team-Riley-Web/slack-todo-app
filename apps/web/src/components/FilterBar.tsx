@@ -32,8 +32,12 @@ const DUE_OPTIONS: Array<{
   { value: 'today', label: 'Today', tone: 'today' },
   { value: 'week', label: 'This Week', tone: 'week' },
   { value: 'overdue', label: 'Overdue', tone: 'overdue' },
-  { value: 'none', label: 'No date', tone: 'none' },
 ];
+/*
+ * "No date" was removed on 2026-09-11 as unused. The `none` bucket itself
+ * stays in `parseFilters` and in `listTasks`, so an existing `?due=none` URL
+ * still works and the API keeps the filter -- only the pill is gone.
+ */
 
 /**
  * The filter row: due buckets as pills, assignee as a dropdown.
@@ -124,7 +128,8 @@ export function FilterBar({
          * its own form without JavaScript and this app ships none. Picking a
          * name and then having to press Apply is one click too many for a
          * filter, so the options are links instead: choosing one navigates,
-         * and the list is filtered on arrival.
+         * and the list is filtered on arrival. The menu closes itself via the
+         * key on the checkbox below -- see the note there.
          *
          * The open state is a checkbox rather than `details`/`summary`. A
          * `details` has no light dismiss: clicking away leaves it hanging
@@ -137,9 +142,26 @@ export function FilterBar({
          * would collide, and the label/checkbox pairing is by id.
          */
         <>
-          <span className="filter-label">Assignee</span>
+          {/*
+            No "Assignee" label. The button already reads "Anyone" or a name,
+            which says what it filters; the word beside it was naming a control
+            that names itself. The accessible name lives on the checkbox.
+          */}
           <span className="menu">
             <input
+              /*
+               * Remounts on every filter change, which is what closes the menu
+               * after you choose a name.
+               *
+               * The comment above used to say choosing a name closed it,
+               * because "following a link re-renders the page". Under the App
+               * Router it does not: a Link navigates on the client, React
+               * reuses this very input, and a checked box stays checked -- so
+               * the menu hung open over the list it had just filtered. A key
+               * tied to the current filters forces a fresh element, and a
+               * fresh checkbox is unchecked.
+               */
+              key={JSON.stringify(filters)}
               type="checkbox"
               id={MENU_ID}
               className="menu-state"
@@ -151,9 +173,15 @@ export function FilterBar({
             <label className="menu-backdrop" htmlFor={MENU_ID} aria-hidden="true" />
             <label className="menu-button" htmlFor={MENU_ID}>
               <span className="menu-value">
+                {/*
+                  "Assignee" when nothing is chosen, not "Anyone". The word
+                  now has to name the control as well as its value, because
+                  the label beside it is gone. A chosen person still shows
+                  their own name, which is the state worth seeing.
+                */}
                 {filters.assignee
                   ? assigneeLabels?.[filters.assignee] ?? filters.assignee
-                  : 'Anyone'}
+                  : 'Assignee'}
               </span>
               <span className="chevron" aria-hidden="true" />
             </label>

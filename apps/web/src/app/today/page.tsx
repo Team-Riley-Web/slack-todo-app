@@ -58,7 +58,7 @@ export default async function TodayPage({
       activeSlug={filters.space ?? null}
       searchPath="/today"
       searchParams={query}
-      title={only ? shortSpaceName(only) : "Due today"}
+      title={only ? shortSpaceName(only) : "Due Today"}
       toolbar={
         <FilterBar
           path="/today"
@@ -69,7 +69,7 @@ export default async function TodayPage({
         />
       }
     >
-      <SectionCard sorting={sorting} label="Due today" count={rows.length} showSpace={!only}>
+      <SectionCard sorting={sorting} label="Due Today" count={rows.length} showSpace={!only}>
         <TaskList
           rows={sortRows(rows, sortBy, assigneeLabels())}
           showSpace={!only}

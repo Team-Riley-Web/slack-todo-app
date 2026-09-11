@@ -56,7 +56,7 @@ export default async function WaitingPage({
       activeSlug={filters.space ?? null}
       searchPath="/waiting"
       searchParams={query}
-      title={only ? shortSpaceName(only) : "Waiting / blocked"}
+      title={only ? shortSpaceName(only) : "Waiting / Blocked"}
       toolbar={
         <FilterBar
           path="/waiting"
