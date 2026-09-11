@@ -5,6 +5,7 @@ export {
   type DeleteSpaceResult, type CreateSpaceResult, type SetSpaceNameResult,
 } from './spaces.js';
 export { parseCapture, type Capture, type CaptureOptions } from './capture.js';
+export { parseAssigneeLabels, assigneeChoices } from './assignees.js';
 export {
   findTimeInText, resolveCaptureTime,
   type FoundTime, type ResolveTimeOptions,

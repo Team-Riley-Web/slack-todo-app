@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { assigneeChoices } from '@tr/task-core';
 import { withFilter, type TaskFilters } from '@/data/filters';
 import { filterHref } from '@/lib/display';
 
@@ -52,6 +53,13 @@ export function FilterBar({
   path, filters, assignees, assigneeLabels, show,
 }: FilterBarProps) {
   const visible = show ?? ['due', 'assignee'];
+  /*
+   * Everyone configured, plus anyone actually assigned a task. Ids in use
+   * alone would hide a new teammate until someone had already given them
+   * work, which is the wrong way round -- you filter to them BEFORE
+   * assigning, to see what they have.
+   */
+  const people = assigneeChoices(assigneeLabels ?? {}, assignees ?? []);
 
   const chip = (
     key: keyof TaskFilters, value: string | undefined, label: string
@@ -105,7 +113,7 @@ export function FilterBar({
 
       <span className="filter-spacer" />
 
-      {visible.includes('assignee') && assignees && assignees.length > 0 && (
+      {visible.includes('assignee') && people.length > 0 && (
         /*
          * A dropdown whose options are links, not a select in a form.
          *
@@ -137,13 +145,13 @@ export function FilterBar({
                   Anyone
                 </Link>
               </li>
-              {assignees.map((id) => (
+              {people.map(([id, label]) => (
                 <li key={id}>
                   <Link
                     href={filterHref(path, withFilter(filters, 'assignee', id))}
                     aria-current={filters.assignee === id}
                   >
-                    {assigneeLabels?.[id] ?? id}
+                    {label}
                   </Link>
                 </li>
               ))}

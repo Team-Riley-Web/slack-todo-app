@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Db } from '@tr/db';
-import { getTask, listSpaces, type Space } from '@tr/task-core';
+import { getTask, listSpaces, assigneeChoices, type Space } from '@tr/task-core';
 import { editTaskFormVoid } from '@/actions/tasks';
 import { closeEditHref } from '@/lib/display';
 import { SpaceSelect } from '@/components/SpaceSelect';
@@ -41,7 +41,11 @@ export async function EditPane({
    * "U0BU0V0850Q" off a form and having to know it is you is not a thing to
    * ask of anyone. Ids stay the stored value; only the label is shown.
    */
-  const knownAssignees = Object.entries(assigneeLabels);
+  // Sorted by name, and including the task's own assignee even when nobody
+  // configured a label for them, so saving cannot silently reassign it.
+  const knownAssignees = assigneeChoices(
+    assigneeLabels, task.assignee_id ? [task.assignee_id] : []
+  );
 
   return (
     <>
@@ -95,10 +99,6 @@ export async function EditPane({
               {knownAssignees.map(([id, label]) => (
                 <option key={id} value={id}>{label}</option>
               ))}
-              {/* An id with no label still has to round-trip unchanged. */}
-              {task.assignee_id && !assigneeLabels[task.assignee_id] ? (
-                <option value={task.assignee_id}>{task.assignee_id}</option>
-              ) : null}
             </select>
           </label>
 
