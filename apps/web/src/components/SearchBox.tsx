@@ -25,8 +25,8 @@ export function SearchBox({
       {carry.map(([key, value]) => (
         <input key={key} type="hidden" name={key} value={value} />
       ))}
+      {/* Icon after the input, so it sits on the trailing edge. */}
       <span className="search-field">
-        <Icon name="search" />
         <input
           type="search"
           name="q"
@@ -34,6 +34,7 @@ export function SearchBox({
           placeholder="Search tasks"
           aria-label="Search task titles"
         />
+        <Icon name="search" />
       </span>
     </form>
   );

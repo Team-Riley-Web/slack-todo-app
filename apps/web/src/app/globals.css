@@ -134,9 +134,26 @@ form.search { margin: 0; flex: none; }
   border-radius: var(--radius); padding: 0 10px;
 }
 .search-field .icon { width: 15px; height: 15px; color: var(--muted); flex: none; }
-.search-field input {
-  border: 0; background: none; padding: 7px 0; width: 210px; font: inherit;
-  color: var(--fg);
+/*
+ * `.search-field input` and the global `input[type="search"]` rule have the
+ * same specificity, and the global one comes later in the file -- so it won
+ * and put its own border and background back inside this box, which is the
+ * border-within-a-border. `:where()` cannot raise specificity, so the fix is
+ * to name the type here and beat it on specificity rather than order.
+ *
+ * appearance: none also removes WebKit's own search decorations, which draw
+ * a second inset field of their own.
+ */
+.search-field input[type="search"] {
+  appearance: none; -webkit-appearance: none;
+  border: 0; background: none; box-shadow: none;
+  padding: 7px 0; width: 210px; font: inherit; color: var(--fg);
+  border-radius: 0;
+}
+.search-field input[type="search"]::-webkit-search-decoration,
+.search-field input[type="search"]::-webkit-search-cancel-button,
+.search-field input[type="search"]::-webkit-search-results-button {
+  appearance: none; -webkit-appearance: none;
 }
 .search-field input:focus { outline: none; }
 .search-field:focus-within { border-color: var(--accent); }
@@ -616,10 +633,29 @@ button.danger:hover { border-color: var(--danger); }
  * dialog: the backdrop is a link back to the list, so closing needs no script
  * and the URL stays linkable.
  */
+/*
+ * The pane arrives animated: the backdrop fades up and the panel slides in
+ * from the edge it is docked to. Keyframes rather than a transition, because
+ * the element is mounted by a navigation -- there is no previous state for a
+ * transition to run from.
+ *
+ * Leaving is NOT animated, and cannot be from CSS alone: the pane is removed
+ * from the tree when the query parameter goes, and nothing gets the chance
+ * to animate an element that no longer exists. Doing it properly needs the
+ * navigation wrapped in a view transition, which needs client JavaScript --
+ * a deliberate absence here (see WEB.md).
+ */
+@keyframes pane-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pane-in {
+  from { transform: translateX(16px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 .pane-backdrop {
   position: fixed; inset: 0; z-index: 4;
   background: rgba(0, 0, 0, .38);
   display: block;
+  animation: pane-backdrop-in 160ms ease-out both;
 }
 .pane {
   position: fixed; z-index: 5; top: 0; right: 0; bottom: 0;
@@ -628,6 +664,11 @@ button.danger:hover { border-color: var(--danger); }
   padding: 16px 20px 40px;
   overflow-y: auto;
   box-shadow: -8px 0 24px rgba(0, 0, 0, .12);
+  animation: pane-in 200ms cubic-bezier(.2, .7, .3, 1) both;
+}
+/* Movement is the part that can make someone ill; the fade is not. */
+@media (prefers-reduced-motion: reduce) {
+  .pane { animation: pane-backdrop-in 120ms ease-out both; }
 }
 .pane-head {
   display: flex; align-items: center; gap: 12px;
