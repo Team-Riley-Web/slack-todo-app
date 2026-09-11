@@ -11,6 +11,7 @@ import { EditPane } from '@/components/EditPane';
 import { SectionCard } from '@/components/SectionCard';
 import { NewTaskForm } from '@/components/NewTaskForm';
 import { assigneeLabels } from '@/lib/env';
+import { sortRows, sortingFor } from '@/lib/sort';
 import { shortSpaceName } from '@/lib/display';
 
 /**
@@ -39,6 +40,10 @@ export default async function SpacePage({
   const query = await searchParams;
   // The URL slug wins over any space filter in the query string.
   const base = { ...parseFilters(query), space: slug };
+  // Ordering comes from the URL's own params, never a page's derived
+  // filters, so a header link reproduces exactly the view it sits on.
+  const sortBy = parseFilters(query);
+  const sorting = sortingFor(`/spaces/${slug}`, sortBy);
   const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
 
   // Three queries rather than one filtered client-side, so each section counts
@@ -61,7 +66,7 @@ export default async function SpacePage({
        a task's blocker is invisible. */
     showWaiting = false
   ) => (
-    <SectionCard
+    <SectionCard sorting={sorting}
       key={label}
       label={label}
       count={rows.length}
@@ -72,7 +77,7 @@ export default async function SpacePage({
     >
       {/* The heading names the Space; the rows do not repeat it. */}
       <TaskList
-        rows={rows}
+        rows={sortRows(rows, sortBy, assigneeLabels())}
         empty={empty}
         showSpace={false}
         showWaiting={showWaiting}

@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import type { SortKey } from '@/data/filters';
+import type { Sorting } from '@/lib/sort';
 
 /**
  * One section of a task list, as a card.
@@ -13,7 +15,7 @@ import Link from 'next/link';
  */
 export function SectionCard({
   label, count, startOpen = true, createHref, columns = 'tasks',
-  showSpace = true, showWaiting = false, children,
+  showSpace = true, showWaiting = false, sorting, children,
 }: {
   label: string;
   count: number;
@@ -31,6 +33,8 @@ export function SectionCard({
   showSpace?: boolean;
   /** Must match the rows' `showWaiting`, for the same reason. */
   showWaiting?: boolean;
+  /** When given, column labels become links that order the list. */
+  sorting?: Sorting;
   children: React.ReactNode;
 }) {
   return (
@@ -58,19 +62,22 @@ export function SectionCard({
               showSpace ? null : 'nospace',
               showWaiting ? 'haswait' : null,
             ].filter(Boolean).join(' ')}
-            aria-hidden="true"
+            /* Plain labels are hidden from screen readers -- read out of a
+               grid that is not a real table they are noise. Sort links are
+               controls, and a link inside aria-hidden is unreachable. */
+            aria-hidden={sorting ? undefined : true}
           >
             <span className="tick" />
-            <span className="title">Task</span>
-            {showSpace ? <span className="space">Space</span> : null}
+            {column('title', 'title', 'Task', sorting)}
+            {showSpace ? column('space', 'space', 'Space', sorting) : null}
             {showWaiting ? (
               <>
-                <span className="waiting-on">Waiting on</span>
-                <span className="age">Age</span>
+                {column('waiting-on', 'waiting', 'Waiting on', sorting)}
+                {column('age', 'age', 'Age', sorting)}
               </>
             ) : null}
-            <span className="assignee">Assignee</span>
-            <span className="due">Due date</span>
+            {column('assignee', 'assignee', 'Assignee', sorting)}
+            {column('due', 'due', 'Due date', sorting)}
           </div>
         ) : null}
         {columns === 'spaces' && count > 0 ? (
@@ -90,5 +97,40 @@ export function SectionCard({
         ) : null}
       </div>
     </details>
+  );
+}
+
+/**
+ * One column label: plain text, or a link that orders the list by it.
+ *
+ * A link rather than a button, so each ordering is a URL -- linkable, and the
+ * back button undoes a re-sort -- and it needs no JavaScript. The arrow shows
+ * on the active column only; every label is clickable, which the hover colour
+ * and pointer say without putting a glyph on every column.
+ */
+function column(
+  className: string, key: SortKey, text: string, sorting: Sorting | undefined
+) {
+  if (!sorting) return <span className={className}>{text}</span>;
+
+  const active = sorting.sort === key;
+  const descending = active && sorting.dir === 'desc';
+  return (
+    <span className={className}>
+      <Link
+        href={sorting.href(key)}
+        className={active ? 'sort active' : 'sort'}
+        aria-label={
+          active
+            ? `${text}, sorted ${descending ? 'descending' : 'ascending'}. Reverse the order`
+            : `Sort by ${text}`
+        }
+      >
+        {text}
+        {active ? (
+          <span className="arrow" aria-hidden="true">{descending ? '↓' : '↑'}</span>
+        ) : null}
+      </Link>
+    </span>
   );
 }
