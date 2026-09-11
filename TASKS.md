@@ -193,7 +193,8 @@ unchecked task unless you are starting it.
   - Done 2026-09-10: already built in another session -- "+ New task" top right of every view, opening a NewTaskPane at ?newTask=1. Verified rendering, not just present in the source.
 - [x] Web UI: give the "Wait" button an outline in its non-hovered state too, not only on hover
   - Done 2026-09-10: the border was `transparent` until the row was hovered, so the label read as text and the only way to find out it was a control was to mouse over it. Outlined at rest now; hover deepens the border and fills it. On a striped row the button drops its white fill and keeps the outline, or it read as a white patch. Also gained a focus ring, which it never had.
-- [ ] Web UI: give the task list column header bar more visual distinction - darker background
+- [x] Web UI: give the task list column header bar more visual distinction - darker background
+  - Done 2026-09-10: the header had been sharing --surface-alt with the zebra stripes, which capped how distinct it could get -- any darker and every second row darkened with it. It has its own --header-bg now, 4.5% down from the surface (oklch 0.955) against the stripe's 2.4%. Picked by rendering four strengths beside the lighter stripe from the next task; 0.945 read heavy, 0.955 reads as a header. Labels stay --fg at 13.3:1.
 - [ ] Web UI: reorder the due pills to Today, This week, Overdue, No date
 - [ ] Web UI: the edit task pane should animate smoothly in on open and out on save
 - [ ] Web UI: the search box needs the icon on the right and the border-within-a-border fixed
