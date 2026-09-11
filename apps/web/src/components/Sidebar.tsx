@@ -111,16 +111,43 @@ export function Sidebar({
      */
     <>
       <input
+        /*
+         * Remounts whenever the route changes, which is what closes the drawer
+         * after you pick a Space.
+         *
+         * The old assumption -- "every page is a fresh server render, so the
+         * checkbox starts unchecked" -- is false under the App Router. A Link
+         * navigates on the CLIENT: the DOM is kept, React reconciles the same
+         * input element, and a checked box stays checked. So the drawer sat
+         * open over the page you had just navigated to.
+         *
+         * A key tied to the route forces a new element instead of a reused
+         * one, and a new checkbox is unchecked. Still no JavaScript of ours,
+         * and client-side navigation is preserved -- plain <a> links would
+         * also have fixed it, at the cost of a full reload every time.
+         */
+        key={`${current}:${activeSlug ?? ''}`}
         type="checkbox"
         id={RAIL_STATE_ID}
         className="rail-state"
         aria-label="Navigation menu"
+        /* Safari and Firefox restore checkbox state on a back navigation,
+           which would reopen the drawer behind the page you just went back
+           to. The drawer must always start closed. */
+        autoComplete="off"
       />
       {/* A mouse and touch affordance; Escape and Tab already serve the
           keyboard, so it is hidden from screen readers. */}
       <label className="rail-backdrop" htmlFor={RAIL_STATE_ID} aria-hidden="true" />
+      {/*
+        One control in two states, not two controls. Both glyphs render and CSS
+        shows whichever matches the checkbox, so the button that opens the
+        drawer is the same button that closes it -- and it keeps its position,
+        its focus ring and its accessible name across the change.
+      */}
       <label className="rail-button" htmlFor={RAIL_STATE_ID}>
-        <Icon name="menu" />
+        <span className="when-closed"><Icon name="menu" /></span>
+        <span className="when-open"><Icon name="close" /></span>
         <span className="sr-only">Navigation menu</span>
       </label>
 
@@ -146,8 +173,8 @@ export function Sidebar({
       */}
       {railGroup('Reports', (
         <ul className="group">
-          {navItem('/', 'My tasks', 'inbox')}
-          {navItem('/today', 'Due today', 'calendar')}
+          {navItem('/', 'My Tasks', 'inbox')}
+          {navItem('/today', 'Due Today', 'calendar')}
           {navItem('/waiting', 'Waiting', 'paused')}
           {navItem('/history', 'Completed', 'done')}
         </ul>

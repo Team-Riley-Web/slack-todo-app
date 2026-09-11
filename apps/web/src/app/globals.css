@@ -127,7 +127,17 @@ a { color: var(--accent-strong); }
 .page-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .page-actions > .btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; }
 .page-actions > .btn .icon { width: 15px; height: 15px; }
-.toolbar { padding: 12px 0 4px; }
+/*
+ * The single toolbar row: filters on the left, search and the New task button
+ * on the right. `.filters` grows so its own trailing spacer can push the
+ * assignee control to the boundary between the two halves.
+ */
+.toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 12px 0 4px;
+}
+.toolbar .filters { flex: 1 1 auto; }
+.toolbar .page-actions { flex: none; }
 
 /* Search, top right. */
 form.search { margin: 0; flex: none; }
@@ -150,7 +160,9 @@ form.search { margin: 0; flex: none; }
 .search-field input[type="search"] {
   appearance: none; -webkit-appearance: none;
   border: 0; background: none; box-shadow: none;
-  padding: 7px 0; width: 210px; font: inherit; color: var(--fg);
+  /* 150px, down from 210. The box is a filter, not the subject of the page,
+     and the placeholder still fits. */
+  padding: 7px 0; width: 150px; font: inherit; color: var(--fg);
   border-radius: 0;
 }
 .search-field input[type="search"]::-webkit-search-decoration,
@@ -171,6 +183,11 @@ form.search { margin: 0; flex: none; }
  * the bottom of this file.
  */
 .rail-state, .rail-backdrop, .rail-button { display: none; }
+.search-state, .search-button { display: none; }
+/* The rail shows the mark on a desktop; the header only needs it on a phone. */
+.head-logo { display: none; }
+/* Only one of the two glyphs is ever shown; see the narrow-screen block. */
+.rail-button .when-open { display: none; }
 
 /* Visible to a screen reader, invisible on screen. The hamburger is an icon
    with no text, and a control with no accessible name is a control nobody
@@ -265,7 +282,21 @@ details.card > summary {
   align-items: center;
   padding: 12px 16px; cursor: pointer; list-style: none;
   font-weight: 650; font-size: 15px;
+  /*
+   * The same --header-bg the column band uses. On All spaces the title row was
+   * white on a white card, so eleven cards ran together as one long sheet and
+   * the Space name was the only thing separating them. A filled title row
+   * gives each card a top edge you can see.
+   *
+   * Rounded to match the card's own corners: an unrounded fill would square
+   * off the top of a rounded box. The Open/Waiting tones below override this
+   * on a Space page, where the summary carries the group's colour instead.
+   */
+  background: var(--header-bg);
+  border-radius: 7px 7px 0 0;
 }
+/* Collapsed, the title row IS the whole card, so it rounds on all four. */
+details.card:not([open]) > summary { border-radius: 7px; }
 /*
  * The Spaces list has no tick column -- its first cell IS the name -- so its
  * summary keeps the old flex line. Giving it the tick track would push the
@@ -330,6 +361,13 @@ ul.rows li.row:last-child { border-bottom: 0; }
  * striping it would be decoration rather than help.
  */
 ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
+
+/*
+ * Every list now sits under its own band, so each one starts counting from the
+ * same place and the default striping above is correct for all of them. The
+ * overrides that used to re-flip a second list are gone with the reason for
+ * them.
+ */
 .row.head {
   /*
    * --fg, not --muted: the spec asks for the values to read quieter than the
@@ -369,6 +407,35 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
  * colour, labels louder than values as the brand spec asks.
  */
 .row.head > span { color: var(--fg); }
+
+/*
+ * A band that names its group -- OPEN or WAITING -- rather than its first
+ * column. Uppercase with letter spacing, the treatment the old Waiting
+ * subheading used, so the group reads as a heading and the remaining cells
+ * still read as sortable column labels.
+ */
+.row.head.head-group .title,
+.row.head.head-group .title a {
+  text-transform: uppercase; letter-spacing: 0; font-size: 11px;
+}
+
+/*
+ * Open and Waiting each get their own tint, so a group is identifiable before
+ * the word under it is read.
+ *
+ * One recipe for both: a saturated colour laid on at 9% alpha rather than a
+ * pre-mixed light value. Translucent means the tint sits correctly on the card
+ * and on a zebra stripe without a second variant for each, and it stays faint
+ * enough that the label keeps the contrast it had on white.
+ *
+ * Waiting's exact value was specified. Open takes the same recipe on the
+ * app's own accent hue, so the pair are a family rather than two unrelated
+ * choices.
+ */
+.row.head.head-open,
+.card > summary.summary-open { background: oklch(0.56 0.26 266 / 0.09); }
+.row.head.head-waiting,
+.card > summary.summary-waiting { background: oklch(0.56 0.26 279.32 / 0.09); }
 
 /* Sortable column labels. They keep the label's own weight and colour, so a
    header reads the same whether or not it can sort; hover says it can. */
@@ -495,6 +562,19 @@ h2 { font-size: 15px; margin: 26px 0 8px; }
 }
 
 .filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/*
+ * Pushes the assignee control to the right edge while the due pills stay left.
+ * A flexible spacer rather than `margin-left: auto` on the control itself, so
+ * the rule holds wherever the control sits in the row.
+ *
+ * It collapses to nothing when the row wraps on a phone -- a spacer that kept
+ * growing there would strand the control on a line of its own.
+ */
+.filters .filter-spacer { flex: 1 1 0; min-width: 0; }
+/*
+ * The spacer grows at every width, so the assignee control sits at the right
+ * edge opposite the due pills on a phone as well as a desktop.
+ */
 .filters form { display: flex; gap: 6px; align-items: center; margin: 0; }
 /*
  * One height for every control in a toolbar row. They were vertically centred
@@ -781,14 +861,89 @@ button.danger:hover { border-color: var(--danger); }
     margin: 0; opacity: 0; pointer-events: none;
   }
 
-  .rail-button {
+  /*
+   * A real top bar: the section name and the menu button on one line, stuck to
+   * the top of the screen.
+   *
+   * The name used to sit BELOW the button, on its own line, which read as two
+   * unrelated pieces of chrome stacked up. The bar is 56px and the button is
+   * 40px inset 8px, so the two are optically centred on the same line.
+   *
+   * `.page-head` keeps the name in normal flow and goes sticky; the button
+   * stays fixed because it has to be a sibling of the checkbox that drives the
+   * drawer, and that lives outside <main>. Right padding on the bar reserves
+   * the button's lane so a long Space name never runs under it.
+   */
+  /*
+   * The whole bar is dark, not just the button sitting on it.
+   *
+   * It uses the rail's own tokens rather than new ones, so the top bar and the
+   * drawer it opens are visibly the same surface -- the drawer slides out of
+   * the bar rather than appearing from somewhere unrelated. The button loses
+   * its own fill for the same reason: on a dark bar a dark chip was a square
+   * of near-identical colour, so the icon alone now carries it.
+   */
+  .page-head {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; min-height: 56px;
+    margin: 0 -14px; padding: 0 104px 0 14px; gap: 10px;
+    background: var(--rail-bg);
+    border-bottom: 1px solid var(--rail-line);
+  }
+  .head-logo { display: block; border-radius: 6px; flex: none; }
+  .page-head h1 { font-size: 18px; color: #fff; }
+  .page-head .sub { color: var(--rail-muted); }
+
+  /*
+   * Two icon buttons at the right of the bar: search, then the menu. Both get
+   * a hairline box so they read as controls on a dark surface rather than as
+   * loose glyphs, and so the pair looks like one set.
+   */
+  .search-state {
+    display: block; position: fixed; width: 1px; height: 1px;
+    margin: 0; opacity: 0; pointer-events: none;
+  }
+  .search-button {
     display: inline-flex; align-items: center; justify-content: center;
-    position: fixed; top: 8px; left: 8px; z-index: 60;
+    position: fixed; top: 8px; right: 56px; z-index: 60;
     width: 40px; height: 40px; border-radius: var(--radius);
-    background: var(--rail-bg); color: var(--rail-fg);
+    border: 1px solid var(--rail-line);
+    background: none; color: var(--rail-fg); cursor: pointer;
+  }
+  .search-button .icon { width: 18px; height: 18px; }
+  .search-state:focus-visible ~ .search-button,
+  .search-button:hover { color: #fff; }
+  .search-state:checked ~ .search-button {
+    background: var(--rail-line); color: #fff;
+  }
+
+  /*
+   * The field drops out of the bar into the toolbar, full width, and is not
+   * rendered at all until asked for.
+   */
+  .toolbar .page-actions form.search { display: none; }
+  body:has(.search-state:checked) .toolbar .page-actions form.search {
+    display: flex; flex: 1 1 100%;
+  }
+
+  .rail-button {
+    border: 1px solid var(--rail-line);
+    display: inline-flex; align-items: center; justify-content: center;
+    /* Right-hand corner. The drawer opens from the same side, so the button
+       that opens it is exactly where the one that closes it will be. */
+    position: fixed; top: 8px; right: 8px; left: auto; z-index: 60;
+    width: 40px; height: 40px; border-radius: var(--radius);
+    background: none; color: var(--rail-fg);
     cursor: pointer;
   }
+  .rail-button:hover { color: #fff; }
   .rail-button .icon { width: 20px; height: 20px; }
+  .rail-button .when-closed, .rail-button .when-open {
+    display: inline-flex; align-items: center;
+  }
+  .rail-button .when-open { display: none; }
+  .rail-state:checked ~ .rail-button .when-closed { display: none; }
+  .rail-state:checked ~ .rail-button .when-open { display: inline-flex; }
   /* The ring belongs on the thing you can see, not the off-screen input. */
   .rail-state:focus-visible ~ .rail-button {
     outline: 2px solid var(--accent); outline-offset: 2px;
@@ -802,10 +957,12 @@ button.danger:hover { border-color: var(--danger); }
   }
   .rail-state:checked ~ .rail-backdrop { display: block; opacity: 1; pointer-events: auto; }
 
+  /* Opens from the RIGHT, the side the button is on. A drawer that flew in
+     from the opposite edge to its own control reads as a different thing. */
   nav.rail {
-    position: fixed; inset: 0 auto 0 0; z-index: 58;
+    position: fixed; inset: 0 0 0 auto; z-index: 58;
     width: min(82vw, 300px); height: 100vh;
-    transform: translateX(-100%);
+    transform: translateX(100%);
     transition: transform .18s ease;
   }
   .rail-state:checked ~ nav.rail { transform: none; }
@@ -817,7 +974,7 @@ button.danger:hover { border-color: var(--danger); }
    * have taken away from keyboard users. The drawer's own header just steps
    * aside: without this the button sat squarely on the workspace logo.
    */
-  nav.rail a.workspace { padding-left: 56px; }
+  nav.rail a.workspace { padding-right: 56px; }
 
   /*
    * The page behind an open drawer must not scroll. `:has()` rather than a
@@ -826,8 +983,13 @@ button.danger:hover { border-color: var(--danger); }
    */
   body:has(.rail-state:checked) { overflow: hidden; }
 
-  /* Clear of the fixed hamburger, so a page heading never sits under it. */
-  .main { padding: 52px 14px 40px; }
+  /*
+   * No top padding: `.page-head` IS the top bar now, and it reserves the
+   * button's lane with its own right padding. The 52px that used to push the
+   * content clear of a floating button is what kept the section name a line
+   * below it.
+   */
+  .main { padding: 0 14px 40px; }
   /*
    * Assignee, due date and age drop out. The Space keeps a narrow column:
    * there is no sub-line to fall back on any more, so hiding it would leave
@@ -851,6 +1013,69 @@ button.danger:hover { border-color: var(--danger); }
   .row.head .assignee, .row.head .due,
   .row.head .age, .row.head .waiting-on,
   .row.head .priority { display: none; }
+
+  /*
+   * The Wait / Unblock button goes too.
+   *
+   * It is the least-used control on the row and the widest thing competing
+   * with the title, which on a phone was already wrapping to three lines. The
+   * tick still completes a task, and status is still changeable from the edit
+   * pane. The cell leaves the template with it, or every column after it
+   * shifts.
+   */
+  /*
+   * Search and New task wrap onto their own line under the pills, and share
+   * it. The search box was sized for a desktop toolbar, so at 390px it ran the
+   * full width and pushed New task onto a third row of its own.
+   */
+  /*
+   * One line: Today, This Week, Overdue, then Assignee and New task pushed
+   * right. It was two lines because the search field claimed a whole row; the
+   * field is behind the header's magnifier now, so the row is free.
+   *
+   * New task loses its words to make the fit. At 390px the labelled button
+   * plus three pills and the assignee control came to ~438px of content in a
+   * ~362px box; the icon alone buys back the difference.
+   */
+  .toolbar { gap: 8px; }
+  /*
+   * The due pills come off the phone entirely.
+   *
+   * Three pills plus the assignee control plus New task could not share a
+   * 362px row, and New task is the one that matters most here -- it kept
+   * getting bounced to a line of its own. Dropping the pills leaves one clean
+   * row: Assignee at the left, New task at the right, both with their full
+   * labels. The same filtering is a tap away in the Due today and Waiting
+   * views in the drawer.
+   */
+  .filters a.chip { display: none; }
+  /* With the pills gone there is nothing to push away from, so the spacer
+     stops growing and the assignee control sits at the left edge. */
+  .filters .filter-spacer { display: none; }
+  .toolbar .filters { flex: 1 1 auto; min-width: 0; }
+  .toolbar .page-actions { flex: 0 0 auto; display: flex; gap: 6px; }
+  .toolbar .page-actions > .btn { flex: none; }
+  .toolbar .page-actions .search-field { width: 100%; }
+  .toolbar .page-actions .search-field input[type="search"] {
+    width: 100%; min-width: 0;
+  }
+  /*
+   * Opened, the search field takes a whole row of its own beneath the filters,
+   * sharing it with New task. Without this the field competed for width on the
+   * filter line and squeezed the pills into a vertical column.
+   */
+  body:has(.search-state:checked) .toolbar .page-actions {
+    flex: 1 1 100%;
+  }
+  body:has(.search-state:checked) .toolbar .page-actions form.search {
+    flex: 1 1 auto; min-width: 0;
+  }
+
+  .row .rowactions, .row.head .rowactions { display: none; }
+  .row, .row.haswait { grid-template-columns: var(--tick-w) minmax(0, 1fr) 84px; }
+  .row.nospace, .row.nospace.haswait {
+    grid-template-columns: var(--tick-w) minmax(0, 1fr);
+  }
 }
 
 /* --- edit pane --- */
@@ -1015,13 +1240,9 @@ a.iconbtn .icon { width: 15px; height: 15px; }
   .row.spacerow .num ~ .num { display: none; }
   /* No hover on a touch screen, so give them full contrast. */
   a.iconbtn { opacity: 1; }
-  .page-head { flex-wrap: wrap; }
-  /* Keep the search and New task action inside the narrow main column. The
-     search used to claim 100% of this flex row before the button was added,
-     so the pair widened a 375px page to 432px. */
-  .page-head .heading { flex-basis: 100%; }
-  .page-actions { width: 100%; min-width: 0; }
-  .page-actions form.search { width: auto; min-width: 0; flex: 1; }
-  .page-actions .search-field { min-width: 0; }
-  .search-field input { width: 100%; }
+  /*
+   * Search and New task moved out of .page-head into the toolbar, so the rules
+   * that used to wrap them under the heading are gone with the layout they
+   * described. The toolbar block above sizes them now.
+   */
 }

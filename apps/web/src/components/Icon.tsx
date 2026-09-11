@@ -13,7 +13,7 @@
  */
 export type IconName =
   | 'inbox' | 'calendar' | 'paused' | 'done' | 'space' | 'client' | 'cog'
-  | 'search' | 'pencil' | 'trash' | 'plus' | 'menu';
+  | 'search' | 'pencil' | 'trash' | 'plus' | 'menu' | 'close';
 
 const PATHS: Record<IconName, string> = {
   /*
@@ -56,6 +56,9 @@ const PATHS: Record<IconName, string> = {
    * one would make it harder to recognise, not more original.
    */
   menu: 'M4.5 6.5h15M4.5 12h15M4.5 17.5h15',
+  /* The X that replaces the hamburger while the drawer is open. Same 24 grid
+     and stroke; it is the same control in its other state, not a new one. */
+  close: 'M6 6l12 12M18 6L6 18',
 };
 
 export function Icon({ name }: { name: IconName }) {
