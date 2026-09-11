@@ -198,7 +198,10 @@ unchecked task unless you are starting it.
 - [x] Web UI: reorder the due pills to Today, This week, Overdue, No date
   - Done 2026-09-10: reordered. The order now reads as a horizon -- today, the week, what slipped, what was never dated -- where Overdue leading put the exception first and today's work third.
 - [ ] Web UI: the edit task pane should animate smoothly in on open and out on save
-- [ ] Web UI: the search box needs the icon on the right and the border-within-a-border fixed
+  - Partly done 2026-09-10: entering is animated -- the backdrop fades and the panel slides in from its docked edge, with movement dropped under prefers-reduced-motion. Keyframes, not a transition, because the pane is mounted BY a navigation and has no previous state to transition from.
+  - Blocked 2026-09-10 on the exit: CSS cannot animate it. The pane leaves the tree when the query parameter goes, and nothing can animate an element that no longer exists. Doing it needs the navigation wrapped in document.startViewTransition, which needs client JavaScript -- this app deliberately ships none (WEB.md has a section on it). It would be ~25 lines, degrade to today's instant close without JS, and touch no mutation path. Waiting on a yes before adding the project's first client component.
+- [x] Web UI: the search box needs the icon on the right and the border-within-a-border fixed
+  - Done 2026-09-10: icon moved after the input. The doubled border was a specificity tie -- `.search-field input` and the global `input[type="search"]` rule score the same, and the global one sits later in the file, so its border and background won and drew a second field inside the first. Fixed by naming the type in the scoped selector to win on specificity rather than order, plus appearance:none to drop WebKit's own inset search decorations.
 - [ ] Launch a production version ###productiontask and Aside browser
 - [ ] Need to add Rachael as an Assignee U0BT6HDBYBC
 - [ ] Make alternating row color lighter - background: oklch(0.99 0 0 / 1)
