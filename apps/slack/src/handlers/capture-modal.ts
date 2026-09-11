@@ -121,6 +121,7 @@ export async function handleCaptureSubmission(
     spaceId,
     assigneeId: parsed.assigneeId ?? config.defaultAssigneeId,
     dueAt: parsed.dueAt,
+    priority: parsed.priority,
     sourcePlatform: 'slack',
     sourceChannelId: parsed.meta.channelId,
     createdBy: auth.userId,

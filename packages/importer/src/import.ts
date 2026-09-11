@@ -68,9 +68,17 @@ export async function importBatch(db: Db, batchId: string): Promise<ImportReport
         continue;
       }
 
-      // task-core owns the write. The title reaches it unchanged from staging.
+      /*
+       * task-core owns the write. The title reaches it unchanged from staging,
+       * and `preserveCase` keeps it that way: an import reproduces records
+       * someone already wrote, so a lowercase opening letter there is history
+       * rather than a typo to tidy. The idempotency key is derived from the
+       * source title, so rewriting it here would also make a re-import look
+       * like a different record.
+       */
       const task = await createTask(tx, {
         title: row.title,
+        preserveCase: true,
         spaceId: row.resolved_space_id!,
         assigneeId: row.resolved_assignee_id,
         dueAt: row.resolved_due_at,

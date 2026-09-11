@@ -285,13 +285,21 @@ Root directory `apps/web`. Build command `pnpm --filter @tr/web build`.
 
 Environment variables: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_SLACK_ID`,
 `AUTH_SLACK_SECRET`, `AUTHORIZED_SLACK_USER_IDS`, `DEFAULT_TIMEZONE`,
-`SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, and `SLACK_TEAM_ID`. The Slack
+`SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, and `SLACK_TEAM_ID`. Add
+`CRON_SECRET` for the scheduled posts (see `SCHEDULED.md`) and
+`TASKS_MCP_TOKEN` for remote MCP (see `MCP_CONTRACT.md`). The Slack
 values serve both card redraws and the production HTTP receiver. Do not set
 `SLACK_APP_TOKEN`: it is only for local Socket Mode. Do not set `WEB_DEV_USER`;
 it is inert in production anyway.
 
 Run `pnpm migrate` against the database before the first deploy. Migrations
 are deliberately **not** on the request path.
+
+This app hosts three non-UI endpoints besides the pages: the Slack receiver at
+`/api/slack/events`, the scheduled-post cron at `/api/cron/scheduled`, and
+remote MCP for Hermes at `/mcp` (with `/mcp/health` for liveness). All three
+are thin adapters — every credential and every piece of logic lives in a
+package, which is what keeps `src/no-secrets.test.ts` passing.
 
 `apps/web/vercel.json` enables Fluid compute. The Slack receiver is a Node
 Route Handler at `/api/slack/events`; `GET` is its deployment health check and

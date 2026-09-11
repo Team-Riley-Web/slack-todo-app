@@ -77,14 +77,14 @@ it('lists waiting tasks with their waiting_on', async () => {
 
 it('orders by due date first, then creation, so undated tasks trail dated ones', async () => {
   await createTask(db, {
-    title: 'later', spaceId: spaceIds['Sales']!, dueAt: new Date('2026-12-01T00:00:00Z'),
+    title: 'Later', spaceId: spaceIds['Sales']!, dueAt: new Date('2026-12-01T00:00:00Z'),
   });
   await createTask(db, {
-    title: 'sooner', spaceId: spaceIds['Sales']!, dueAt: new Date('2026-10-01T00:00:00Z'),
+    title: 'Sooner', spaceId: spaceIds['Sales']!, dueAt: new Date('2026-10-01T00:00:00Z'),
   });
-  await createTask(db, { title: 'undated', spaceId: spaceIds['Sales']! });
+  await createTask(db, { title: 'Undated', spaceId: spaceIds['Sales']! });
   const rows = await listTasks(db, { spaceId: spaceIds['Sales']!, actionableOnly: true });
-  expect(rows.map((t) => t.title)).toEqual(['sooner', 'later', 'undated']);
+  expect(rows.map((t) => t.title)).toEqual(['Sooner', 'Later', 'Undated']);
 });
 
 // Regression: ISSUE-003 — a non-numeric ?limit= became LIMIT NaN and errored

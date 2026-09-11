@@ -1,5 +1,7 @@
 import type { Db } from '@tr/db';
 import type { Task, TaskStatus } from './types.js';
+import { capitalizeFirstLetter } from './capitalize.js';
+import { parsePriority, type Priority } from './priority.js';
 import { assertTaskId, InvalidDueDateError, TaskNotFoundError } from './errors.js';
 
 export interface Actor { id: string | null; source: string }
@@ -13,23 +15,47 @@ export interface CreateTaskInput {
   sourceChannelId?: string | null;
   sourceMessageTs?: string | null;
   createdBy?: string | null;
+  /** P0-P3, or null/absent for Unprioritized. Validated, never coerced. */
+  priority?: Priority | null;
   /** Free-form capture notes. Write-at-create; no update path in Phase 1. */
   details?: string | null;
+  /**
+   * Skips the opening-letter capitalisation. Set by the importer, which is
+   * reproducing records someone else already wrote -- those titles are history,
+   * not new capture, and tidying them would rewrite the source.
+   */
+  preserveCase?: boolean;
 }
 
-const COLS = `id, title, space_id, list_id, assignee_id, status, due_at, waiting_on,
+const COLS = `id, title, space_id, list_id, assignee_id, status, priority, due_at, waiting_on,
               details, created_at, completed_at, source_platform,
               source_channel_id, source_message_ts, created_by,
               source_external_id, import_batch_id`;
 
 /**
- * The title is written exactly as given. No trimming, casing, or normalization
- * happens here — the Slack boundary performs the single permitted outer trim.
+ * The title is written as given, with ONE exception: a lowercase opening letter
+ * is capitalised (see capitalize.ts, which declines whenever that would be a
+ * guess). Requested 2026-09-11; before it, the rule was every byte preserved.
+ *
+ * Applied here rather than at each boundary because there are eight callers --
+ * two Slack surfaces, the web pane, two REST routes, two MCP tools and the
+ * importer -- and seven of them want it. One enforcement point means a surface
+ * added later cannot forget; the importer opts out with `preserveCase`.
+ *
+ * Trimming is still NOT done here: the Slack boundary performs the single
+ * permitted outer trim.
  */
 export async function createTask(db: Db, input: CreateTaskInput): Promise<Task> {
   if (typeof input.title !== 'string' || input.title.length === 0) {
     throw new Error('title is required');
   }
+  const title = input.preserveCase
+    ? input.title
+    : capitalizeFirstLetter(input.title);
+  // Throws on anything that is not P0-P3 or empty. A typo'd "P7" must not
+  // reach storage as "no priority", which would be indistinguishable from a
+  // task nobody prioritised.
+  const priority = parsePriority(input.priority);
   // Guarded here rather than in each adapter: REST, MCP, and Slack all route
   // through createTask, and an Invalid Date reaches Postgres as a type error.
   if (input.dueAt != null && Number.isNaN(input.dueAt.getTime())) {
@@ -37,14 +63,15 @@ export async function createTask(db: Db, input: CreateTaskInput): Promise<Task> 
   }
   const { rows } = await db.query<Task>(
     `INSERT INTO tasks (title, space_id, assignee_id, due_at, source_platform,
-                        source_channel_id, source_message_ts, created_by, details)
-     VALUES ($1, $2, $3, $4, COALESCE($5, 'slack'), $6, $7, $8, $9)
+                        source_channel_id, source_message_ts, created_by, details,
+                        priority)
+     VALUES ($1, $2, $3, $4, COALESCE($5, 'slack'), $6, $7, $8, $9, $10)
      RETURNING ${COLS}`,
     [
-      input.title, input.spaceId, input.assigneeId ?? null, input.dueAt ?? null,
+      title, input.spaceId, input.assigneeId ?? null, input.dueAt ?? null,
       input.sourcePlatform ?? null, input.sourceChannelId ?? null,
       input.sourceMessageTs ?? null, input.createdBy ?? null,
-      input.details ?? null,
+      input.details ?? null, priority,
     ]
   );
   const task = rows[0]!;
@@ -172,6 +199,8 @@ export interface EditableFields {
   assigneeId?: string | null;
   dueAt?: Date | null;
   details?: string | null;
+  /** P0-P3, or null to clear it. Absent leaves the current value alone. */
+  priority?: Priority | null;
 }
 
 /**
@@ -206,8 +235,13 @@ export async function editTask(
     throw new Error(`invalid status: ${String(patch.status)}`);
   }
 
-  // Outer trim is the single permitted normalization, exactly as at capture.
-  const nextTitle = patch.title !== undefined ? patch.title.trim() : before.title;
+  // Trimmed and sentence-cased exactly as at capture, so a title does not
+  // depend on which surface last touched it. capitalizeFirstLetter declines on
+  // anything it cannot be sure of, so an edit correcting "IPhone" to "iPhone"
+  // is not undone on save.
+  const nextTitle = patch.title !== undefined
+    ? capitalizeFirstLetter(patch.title.trim())
+    : before.title;
   const nextSpace = patch.spaceId ?? before.space_id;
   const nextStatus = patch.status ?? before.status;
   const nextAssignee =
@@ -221,6 +255,9 @@ export async function editTask(
     nextStatus === 'waiting'
       ? (patch.waitingOn !== undefined ? patch.waitingOn : before.waiting_on)
       : null;
+  // Absent leaves it; null clears it. Validated the same way as at capture.
+  const nextPriority =
+    patch.priority !== undefined ? parsePriority(patch.priority) : before.priority;
 
   const changed: Record<string, { from: unknown; to: unknown }> = {};
   const note = (key: string, from: unknown, to: unknown): void => {
@@ -237,6 +274,7 @@ export async function editTask(
   note('due_at', before.due_at ?? null, nextDue ?? null);
   note('waiting_on', before.waiting_on ?? null, nextWaitingOn);
   note('details', before.details ?? null, nextDetails);
+  note('priority', before.priority ?? null, nextPriority);
 
   // Nothing changed: no write, no audit event.
   if (Object.keys(changed).length === 0) return before;
@@ -244,12 +282,12 @@ export async function editTask(
   await db.query(
     `UPDATE tasks
         SET title = $2, space_id = $3, status = $4, assignee_id = $5,
-            due_at = $6, waiting_on = $7, details = $8,
+            due_at = $6, waiting_on = $7, details = $8, priority = $9,
             completed_at = CASE WHEN $4 = 'completed'
                                 THEN COALESCE(completed_at, now()) ELSE NULL END
       WHERE id = $1`,
     [safe, nextTitle, nextSpace, nextStatus, nextAssignee ?? null,
-     nextDue ?? null, nextWaitingOn, nextDetails]
+     nextDue ?? null, nextWaitingOn, nextDetails, nextPriority]
   );
 
   await logEvent(db, safe, 'edited', actor, { changed });

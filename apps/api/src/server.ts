@@ -6,7 +6,8 @@ import {
   listChannelMap, listSpaces, listTasks, listWaiting, moveTask, reopenTask,
   updateTaskDetails,
   resolveDestinationSpace,
-  InvalidDueDateError, InvalidTaskIdError, TaskNotFoundError, UnknownSpaceError,
+  InvalidDueDateError, InvalidPriorityError, InvalidTaskIdError,
+  TaskNotFoundError, UnknownSpaceError, parsePriority,
   type TaskStatus,
 } from '@tr/task-core';
 
@@ -36,6 +37,11 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof InvalidTaskIdError) return reply.code(400).send({ error: 'invalid_task_id' });
     if (err instanceof InvalidDueDateError) return reply.code(400).send({ error: 'invalid_due_at' });
+    // A bad priority is the caller's mistake, not a server fault. 400, and the
+    // message names the four accepted values without echoing anything else.
+    if (err instanceof InvalidPriorityError) {
+      return reply.code(400).send({ error: 'invalid_priority', message: err.message });
+    }
     if (err instanceof TaskNotFoundError) return reply.code(404).send({ error: 'task_not_found' });
     if (err instanceof UnknownSpaceError) {
       return reply.code(400).send({
@@ -133,6 +139,10 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
       sourceChannelId: channelId,
       createdBy: typeof b.created_by === 'string' ? b.created_by : null,
       details: typeof b.details === 'string' ? b.details : null,
+      // Absent stays unprioritized; an invalid value is a 400, never a
+      // silent null -- an existing client that sends no priority is
+      // unaffected either way.
+      priority: parsePriority(b.priority),
     });
     return reply.code(201).send({ task, space: dest.space, resolved_from: dest.source });
   });
@@ -157,6 +167,10 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
       sourcePlatform: typeof b.source_platform === 'string' ? b.source_platform : 'api',
       createdBy: typeof b.created_by === 'string' ? b.created_by : null,
       details: typeof b.details === 'string' ? b.details : null,
+      // Absent stays unprioritized; an invalid value is a 400, never a
+      // silent null -- an existing client that sends no priority is
+      // unaffected either way.
+      priority: parsePriority(b.priority),
     });
     return reply.code(201).send({ task });
   });

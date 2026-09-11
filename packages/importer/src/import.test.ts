@@ -128,6 +128,22 @@ describe('importing', () => {
     expect(rows.map((r) => r.title).sort()).toEqual([...titles].sort());
   });
 
+  /**
+   * Capture capitalises a lowercase opening letter (2026-09-11). An import must
+   * NOT: it reproduces records someone already wrote, and the idempotency key is
+   * derived from the source title, so tidying it here would make a re-import
+   * look like a different record and duplicate it.
+   */
+  it('does not capitalise imported titles, unlike fresh capture', async () => {
+    await run([row({ title: 'ship it 🚀' }), row({ rowNumber: 2, sourceRecordId: 'r-2', title: 'call neil' })]);
+    const { rows } = await db.query<{ title: string }>(`SELECT title FROM tasks ORDER BY title`);
+    expect(rows.map((r) => r.title)).toEqual(['call neil', 'ship it 🚀']);
+
+    // The same two strings typed fresh DO get capitalised.
+    const fresh = await createTask(db, { title: 'call neil', spaceId: marketingId });
+    expect(fresh.title).toBe('Call neil');
+  });
+
   it('stamps provenance on every imported task', async () => {
     const { batchId } = await run([row()]);
     const { rows } = await db.query<{

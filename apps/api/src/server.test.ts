@@ -168,14 +168,17 @@ it('reports an unmapped channel as Inbox and unmapped', async () => {
   expect(r.json().space.name).toBe('Inbox');
 });
 
-it('creates a task for a channel context with a byte-exact title', async () => {
+// Narrowed 2026-09-11: task-core capitalises a lowercase opening letter on
+// every surface. Every other byte still reaches storage exactly as sent.
+it('creates a task for a channel context with an otherwise byte-exact title', async () => {
   await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
   const raw = 'update the contact form';
   const r = await app.inject({
     method: 'POST', url: '/context/C_SECURE/tasks', headers: auth, payload: { title: raw },
   });
   expect(r.statusCode).toBe(201);
-  expect(r.json().task.title).toBe(raw);
+  expect(r.json().task.title).toBe('Update the contact form');
+  expect(r.json().task.title.slice(1)).toBe(raw.slice(1));
   expect(r.json().space.name).toBe('Client - Secure Logic');
   expect(r.json().resolved_from).toBe('channel');
   expect(r.json().task.source_channel_id).toBe('C_SECURE');
@@ -385,4 +388,58 @@ it('still has no route that can change a title, details route included', async (
     payload: { details: 'notes', title: 'AI-REWRITTEN' },
   });
   expect(r.json().task.title).toBe('Exact original title');
+});
+
+// --- priority, 2026-09-11 ---
+
+it('accepts a priority on create and returns it on the task', async () => {
+  const r = await app.inject({
+    method: 'POST', url: '/tasks', headers: auth,
+    payload: { title: 'Fix Stripe checkout', space_id: spaceId, priority: 'P0' },
+  });
+  expect(r.statusCode).toBe(201);
+  expect(r.json().task.priority).toBe('P0');
+});
+
+it('leaves priority null for a client that sends none', async () => {
+  // The compatibility guarantee: an existing consumer keeps working untouched.
+  const r = await app.inject({
+    method: 'POST', url: '/tasks', headers: auth,
+    payload: { title: 'No priority', space_id: spaceId },
+  });
+  expect(r.statusCode).toBe(201);
+  expect(r.json().task.priority).toBeNull();
+});
+
+it('rejects an invalid priority as a 400, not a 500 and not a silent null', async () => {
+  const r = await app.inject({
+    method: 'POST', url: '/tasks', headers: auth,
+    payload: { title: 'Bad', space_id: spaceId, priority: 'P7' },
+  });
+  expect(r.statusCode).toBe(400);
+  expect(r.json().error).toBe('invalid_priority');
+});
+
+it('accepts a priority on the channel-context route too', async () => {
+  await mapChannel('C_SECURE', '#client-secure-logic', 'Client - Secure Logic');
+  const r = await app.inject({
+    method: 'POST', url: '/context/C_SECURE/tasks', headers: auth,
+    payload: { title: 'Urgent client fix', priority: 'P1' },
+  });
+  expect(r.statusCode).toBe(201);
+  expect(r.json().task.priority).toBe('P1');
+  expect(r.json().resolved_from).toBe('channel');
+});
+
+it('lists tasks in priority order', async () => {
+  for (const [title, priority] of [
+    ['None', undefined], ['Low', 'P3'], ['Critical', 'P0'],
+  ] as const) {
+    await app.inject({
+      method: 'POST', url: '/tasks', headers: auth,
+      payload: { title, space_id: spaceId, ...(priority ? { priority } : {}) },
+    });
+  }
+  const r = await app.inject({ method: 'GET', url: '/tasks?status=open', headers: auth });
+  expect(r.json().tasks.map((t: any) => t.title)).toEqual(['Critical', 'Low', 'None']);
 });

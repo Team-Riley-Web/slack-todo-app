@@ -10,7 +10,8 @@ const opts = { timeZone: 'America/Chicago', assigneeLabels: { U_JOSH: 'Joshua' }
 const task = (over: Partial<Task> = {}): Task => ({
   id: '11111111-1111-4111-8111-111111111111',
   title: 'Call Neil', space_id: 's', list_id: null, assignee_id: null,
-  status: 'open', due_at: null, waiting_on: null, details: null, created_at: new Date(),
+  status: 'open', priority: null, due_at: null, waiting_on: null, details: null,
+  created_at: new Date(),
   completed_at: null, source_platform: 'slack', source_channel_id: null,
   source_message_ts: null, created_by: null,
   source_external_id: null, import_batch_id: null, ...over,

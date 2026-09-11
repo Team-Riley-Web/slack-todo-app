@@ -4,6 +4,9 @@ import type { Space } from '@tr/task-core';
 import { shortSpaceName, isClientSpace } from '@/lib/display';
 import { Icon, type IconName } from './Icon';
 
+/** The checkbox the drawer's open state lives in. One per page. */
+const RAIL_STATE_ID = 'rail-state';
+
 export interface SidebarSpace {
   space: Space;
   open: number;
@@ -93,7 +96,35 @@ export function Sidebar({
   const total = spaces.reduce((n, s) => n + s.open + s.waiting, 0);
 
   return (
-    <nav className="rail" aria-label="Navigation">
+    /*
+     * The rail, plus the three elements that turn it into a drawer on a phone.
+     *
+     * They are siblings of <nav>, not children, because the CSS that opens the
+     * drawer is `#rail-state:checked ~ nav.rail` — a sibling combinator cannot
+     * reach into an element. All three are display:none above the breakpoint,
+     * so the desktop grid is exactly what it was.
+     *
+     * Same no-JavaScript mechanism as the assignee menu: a checkbox holds the
+     * open state, a label opens it, and a full-viewport label behind the drawer
+     * closes it from a tap anywhere outside. Navigating closes it for free —
+     * every page is a fresh server render, so the checkbox starts unchecked.
+     */
+    <>
+      <input
+        type="checkbox"
+        id={RAIL_STATE_ID}
+        className="rail-state"
+        aria-label="Navigation menu"
+      />
+      {/* A mouse and touch affordance; Escape and Tab already serve the
+          keyboard, so it is hidden from screen readers. */}
+      <label className="rail-backdrop" htmlFor={RAIL_STATE_ID} aria-hidden="true" />
+      <label className="rail-button" htmlFor={RAIL_STATE_ID}>
+        <Icon name="menu" />
+        <span className="sr-only">Navigation menu</span>
+      </label>
+
+      <nav className="rail" aria-label="Navigation">
       <Link className="workspace" href="/">
         <Image src="/tasks-logo.png" alt="" width={30} height={30} priority />
         {/*
@@ -151,6 +182,7 @@ export function Sidebar({
         {navItem('/spaces', 'Spaces', 'space')}
         {navItem('/settings', 'Settings', 'cog')}
       </ul>
-    </nav>
+      </nav>
+    </>
   );
 }

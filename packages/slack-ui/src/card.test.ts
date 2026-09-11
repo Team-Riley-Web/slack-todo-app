@@ -11,7 +11,7 @@ const opts = { timeZone: 'America/Chicago', assigneeLabels: { U_JOSH: 'Joshua' }
 const task = (over: Partial<Task> = {}): Task => ({
   id: '11111111-1111-4111-8111-111111111111',
   title: 'Offer Neil Instagram and Facebook package for $100',
-  space_id: 's', list_id: null, assignee_id: 'U_JOSH', status: 'open',
+  space_id: 's', list_id: null, assignee_id: 'U_JOSH', status: 'open', priority: null,
   due_at: null, waiting_on: null, details: null, created_at: new Date(), completed_at: null,
   source_platform: 'slack', source_channel_id: null, source_message_ts: null,
   created_by: null, source_external_id: null, import_batch_id: null, ...over,
@@ -411,5 +411,79 @@ describe('a grouped list', () => {
     const blocks = taskCardBlocks([{ task: task(), space }], opts) as any[];
     const option = blocks.find((b) => b.type === 'actions').elements[0].options[0];
     expect(option.description.text).toBe('Nazareth Law');
+  });
+});
+
+// --- priority on the row, 2026-09-11 ---
+
+describe('priority in a rendered task', () => {
+  const opts = { timeZone: 'America/Chicago' };
+
+  it('tags the label, keeping the native checkbox', () => {
+    const el = checkbox(taskCardBlocks(
+      [{ task: task({ title: 'Fix Stripe checkout', priority: 'P0' }), space }], opts
+    ));
+    expect(el.options[0].text.text).toBe('[P0] Fix Stripe checkout');
+    expect(el.action_id).toBe('task_checkbox');
+    expect(el.type).toBe('checkboxes');
+  });
+
+  it('shows nothing at all for an unprioritized task', () => {
+    const el = checkbox(taskCardBlocks(
+      [{ task: task({ title: 'Update footer links' }), space }], opts
+    ));
+    expect(el.options[0].text.text).toBe('Update footer links');
+  });
+
+  it('renders the example list from the brief', () => {
+    const el = checkbox(taskCardBlocks([
+      { task: task({ id: 'a', title: 'Fix Stripe checkout', priority: 'P0' }), space },
+      { task: task({ id: 'b', title: 'Finish client homepage', priority: 'P1' }), space },
+      { task: task({ id: 'c', title: 'Update footer links' }), space },
+    ], opts));
+    expect(el.options.map((o: any) => o.text.text)).toEqual([
+      '[P0] Fix Stripe checkout',
+      '[P1] Finish client homepage',
+      'Update footer links',
+    ]);
+  });
+
+  it('keeps a completed task readable as a priority, striking only the title', () => {
+    const el = checkbox(taskCardBlocks(
+      [{ task: task({ title: 'Done thing', priority: 'P2', status: 'completed' }), space }],
+      opts
+    ));
+    expect(el.options[0].text.text).toBe('[P2] ~Done thing~');
+  });
+
+  /**
+   * Slack rejects the entire message if an option label runs past 75
+   * characters, so the tag has to come out of the title's allowance rather
+   * than be added on top of it.
+   */
+  it('never lets the tag push a label past Slack’s 75-character limit', () => {
+    const long = 'x'.repeat(200);
+    for (const priority of [null, 'P0'] as const) {
+      const el = checkbox(taskCardBlocks(
+        [{ task: task({ title: long, priority }), space }], opts
+      ));
+      expect([...el.options[0].text.text].length).toBeLessThanOrEqual(75);
+    }
+  });
+
+  it('still offers the full title when the tag caused the clipping', () => {
+    const long = 'y'.repeat(70);
+    const blocks = taskCardBlocks(
+      [{ task: task({ title: long, priority: 'P0' }), space }], opts
+    );
+    // 70 chars fits alone but not once "[P0] " takes five of the budget.
+    expect(JSON.stringify(blocks)).toContain(`Full title: ${long}`);
+  });
+
+  it('carries the tag into the notification fallback too', () => {
+    expect(taskCardFallback([
+      { task: task({ id: 'a', title: 'Fix Stripe checkout', priority: 'P0' }), space },
+      { task: task({ id: 'b', title: 'Update footer links' }), space },
+    ])).toBe('[ ] [P0] Fix Stripe checkout\n[ ] Update footer links');
   });
 });

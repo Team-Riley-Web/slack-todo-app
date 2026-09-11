@@ -11,7 +11,7 @@ const space = (name: string): Space => ({
 
 const task = (over: Partial<Task>): Task => ({
   id: 'T', title: 'x', space_id: 's', list_id: null, assignee_id: null,
-  status: 'open', due_at: null, waiting_on: null, details: null,
+  status: 'open', priority: null, due_at: null, waiting_on: null, details: null,
   created_at: new Date('2026-09-01T00:00:00Z'), completed_at: null,
   source_platform: 'web', source_channel_id: null, source_message_ts: null,
   created_by: null, source_external_id: null, import_batch_id: null,
@@ -133,5 +133,31 @@ describe('sort in the URL', () => {
 
   it('treats any direction other than desc as ascending', () => {
     expect(parseFilters({ sort: 'title', dir: 'sideways' }).dir).toBe('asc');
+  });
+});
+
+
+describe('sorting by the priority column', () => {
+  const rows = [
+    { task: task({ id: 'none', priority: null }), space: space('S') },
+    { task: task({ id: 'p3', priority: 'P3' }), space: space('S') },
+    { task: task({ id: 'p0', priority: 'P0' }), space: space('S') },
+    { task: task({ id: 'p1', priority: 'P1' }), space: space('S') },
+  ];
+
+  const ids = (dir: 'asc' | 'desc') =>
+    sortRows(rows, { sort: 'priority', dir }, {}, NOW).map((r) => r.task.id);
+
+  it('puts the most critical first ascending', () => {
+    expect(ids('asc')).toEqual(['p0', 'p1', 'p3', 'none']);
+  });
+
+  /**
+   * The rule every column here follows: empty sorts last in BOTH directions.
+   * Sorting the raw label would have dragged every unprioritized task to the
+   * top on the reverse pass, which is the opposite of useful.
+   */
+  it('keeps unprioritized last descending, not first', () => {
+    expect(ids('desc')).toEqual(['p3', 'p1', 'p0', 'none']);
   });
 });

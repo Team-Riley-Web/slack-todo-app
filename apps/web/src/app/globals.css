@@ -164,6 +164,22 @@ form.search { margin: 0; flex: none; }
 
 /* --- the rail --- */
 
+/*
+ * The mobile drawer controls. Above the breakpoint they are not rendered at
+ * all, so `.app`'s two-column grid sees exactly the two children it always
+ * did. Everything that makes them work lives in the narrow-screen block at
+ * the bottom of this file.
+ */
+.rail-state, .rail-backdrop, .rail-button { display: none; }
+
+/* Visible to a screen reader, invisible on screen. The hamburger is an icon
+   with no text, and a control with no accessible name is a control nobody
+   using a reader can identify. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
 nav.rail {
   display: flex; flex-direction: column;
   background: var(--rail-bg); color: var(--rail-fg);
@@ -293,8 +309,8 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
  */
 .row {
   display: grid;
-  /* tick | title | space | assignee | due | actions */
-  grid-template-columns: var(--tick-w) minmax(0, 1fr) 128px 110px 92px 78px;
+  /* tick | title | priority | space | assignee | due | actions */
+  grid-template-columns: var(--tick-w) minmax(0, 1fr) 64px 128px 110px 92px 78px;
   /* Four templates, because four combinations of cells actually get rendered.
      A cell that is absent must leave the template too, or every column after
      it shifts left. */
@@ -330,15 +346,15 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
 .row .title a:hover { color: var(--accent-strong); }
 /* A Space page names its Space in the heading, so those rows carry no Space
    cell and need the template without the track. */
-.row.nospace { grid-template-columns: var(--tick-w) minmax(0, 1fr) 110px 92px 78px; }
+.row.nospace { grid-template-columns: var(--tick-w) minmax(0, 1fr) 64px 110px 92px 78px; }
 /* A list that can hold blocked tasks gains "Waiting on" and "Age". */
 .row.haswait {
   grid-template-columns:
-    var(--tick-w) minmax(0, 1fr) 128px 130px 58px 110px 92px 78px;
+    var(--tick-w) minmax(0, 1fr) 64px 128px 130px 58px 110px 92px 78px;
 }
 .row.nospace.haswait {
   grid-template-columns:
-    var(--tick-w) minmax(0, 1fr) 130px 58px 110px 92px 78px;
+    var(--tick-w) minmax(0, 1fr) 64px 130px 58px 110px 92px 78px;
 }
 .row .waiting-on, .row .age {
   color: var(--muted); font-size: 13px;
@@ -369,6 +385,48 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
 .row .space, .row .assignee, .row .due {
   color: var(--muted); font-size: 13px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/*
+ * Priority pills.
+ *
+ * P1-P3 follow the house chip recipe exactly -- fill L 0.955, label L 0.46,
+ * border L 0.92, all on ONE hue -- which lands each pair near 6.3:1, well past
+ * the 4.5:1 floor. Hues are taken from tokens that already exist rather than
+ * invented: --overdue (21.1) for P0, --soon (43.0) for P1, --accent (266) for
+ * P2, and the neutral (264.4) for P3. The app gains no new colours, only new
+ * uses of the four it has.
+ *
+ * P0 breaks the pattern deliberately: it is FILLED rather than tinted, because
+ * "critical" has to outrank "high" at a glance and four tints of increasing
+ * chroma all read as the same weight in a scanned column. White on its fill
+ * measures 6.02:1.
+ *
+ * Tabular figures so a column of pills does not jitter, and no wrapping: the
+ * label is two characters and must stay on one line at any width.
+ */
+.row .priority { color: var(--muted); font-size: 13px; }
+.row .prio {
+  display: inline-block; min-width: 26px; text-align: center;
+  padding: 1px 6px; border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px; font-weight: 600; line-height: 16px;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.row .prio-p0 {
+  background: oklch(0.52 0.17 21.1); color: #fff;
+  border-color: oklch(0.52 0.17 21.1);
+}
+.row .prio-p1 {
+  background: oklch(0.955 0.03 43); color: oklch(0.46 0.14 43);
+  border-color: oklch(0.92 0.045 43);
+}
+.row .prio-p2 {
+  background: oklch(0.955 0.03 266); color: oklch(0.46 0.14 266);
+  border-color: oklch(0.92 0.045 266);
+}
+.row .prio-p3 {
+  background: oklch(0.955 0.012 264.4); color: oklch(0.46 0.01 264.4);
+  border-color: oklch(0.92 0.012 264.4);
 }
 .row .due.overdue { color: var(--overdue); font-weight: 500; }
 .row .due.soon { color: var(--soon); }
@@ -492,8 +550,12 @@ a.chip, .filters .chip {
 a.chip.tone-overdue { background: oklch(0.955 0.03 21.1); color: oklch(0.46 0.14 21.1); border-color: oklch(0.92 0.045 21.1); }
 a.chip.tone-today   { background: oklch(0.955 0.03 266); color: oklch(0.46 0.14 266); border-color: oklch(0.92 0.045 266); }
 /* Green, on the hue of --done (#35ca8c), so the app has one green rather
-   than a second one invented for a pill. Label 5.6:1 on its own fill. */
-a.chip.tone-week    { background: oklch(0.955 0.03 160.5); color: oklch(0.46 0.14 160.5); border-color: oklch(0.92 0.045 160.5); }
+   than a second one invented for a pill.
+   The fill is translucent, asked for at this exact value on 2026-09-11: it
+   sits softer than the other tones without changing hue. Label measures
+   5.97:1 over the card and 5.90:1 over a zebra stripe -- slightly BETTER than
+   the 5.64:1 the opaque fill gave, so the alpha costs no legibility. */
+a.chip.tone-week    { background: oklch(0.96 0.03 160.5 / 0.6); color: oklch(0.46 0.14 160.5); border-color: oklch(0.92 0.045 160.5); }
 a.chip.tone-none    { background: oklch(0.955 0.012 264.4); color: oklch(0.46 0.01 264.4); border-color: oklch(0.92 0.012 264.4); }
 a.chip.tone-overdue:hover { background: oklch(0.925 0.045 21.1); }
 a.chip.tone-today:hover   { background: oklch(0.925 0.045 266); }
@@ -693,28 +755,102 @@ button.danger {
 }
 button.danger:hover { border-color: var(--danger); }
 
+/* Someone who asked for less motion gets the drawer without the slide. */
+@media (prefers-reduced-motion: reduce) {
+  nav.rail, .rail-backdrop { transition: none; }
+}
+
 /* --- narrow screens --- */
 
 @media (max-width: 860px) {
   /* Narrower tick column here, and the card summary follows it for free. */
   :root { --tick-w: 30px; }
-  /* The rail stops being a column and becomes a strip above the content. */
+  /*
+   * The rail becomes a drawer behind a hamburger.
+   *
+   * It used to become a full-width strip ABOVE the content, which meant every
+   * page on a phone opened with the entire navigation — Reports, Spaces,
+   * Clients, footer — and you scrolled past all of it to reach your tasks.
+   * Off-canvas costs one tap to open and gives the whole screen to the work.
+   */
   .app { grid-template-columns: 1fr; }
-  nav.rail { position: static; height: auto; }
-  
-  .main { padding: 0 14px 40px; }
+
+  .rail-state { /* Off-screen, NOT display:none: a hidden input cannot be
+       focused, and the menu has to stay operable from the keyboard. */
+    display: block; position: fixed; width: 1px; height: 1px;
+    margin: 0; opacity: 0; pointer-events: none;
+  }
+
+  .rail-button {
+    display: inline-flex; align-items: center; justify-content: center;
+    position: fixed; top: 8px; left: 8px; z-index: 60;
+    width: 40px; height: 40px; border-radius: var(--radius);
+    background: var(--rail-bg); color: var(--rail-fg);
+    cursor: pointer;
+  }
+  .rail-button .icon { width: 20px; height: 20px; }
+  /* The ring belongs on the thing you can see, not the off-screen input. */
+  .rail-state:focus-visible ~ .rail-button {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  .rail-backdrop {
+    position: fixed; inset: 0; z-index: 55;
+    background: rgba(0, 0, 0, .45);
+    opacity: 0; pointer-events: none;
+    transition: opacity .18s ease;
+  }
+  .rail-state:checked ~ .rail-backdrop { display: block; opacity: 1; pointer-events: auto; }
+
+  nav.rail {
+    position: fixed; inset: 0 auto 0 0; z-index: 58;
+    width: min(82vw, 300px); height: 100vh;
+    transform: translateX(-100%);
+    transition: transform .18s ease;
+  }
+  .rail-state:checked ~ nav.rail { transform: none; }
+
+  /*
+   * The hamburger stays ON TOP of the open drawer and becomes its close
+   * control, so the one control that opened the menu is the one that shuts it
+   * — and it keeps its focus ring, which hiding it behind the drawer would
+   * have taken away from keyboard users. The drawer's own header just steps
+   * aside: without this the button sat squarely on the workspace logo.
+   */
+  nav.rail a.workspace { padding-left: 56px; }
+
+  /*
+   * The page behind an open drawer must not scroll. `:has()` rather than a
+   * class toggled by script — the checkbox is already the source of truth and
+   * this is the one selector that can read it from an ancestor.
+   */
+  body:has(.rail-state:checked) { overflow: hidden; }
+
+  /* Clear of the fixed hamburger, so a page heading never sits under it. */
+  .main { padding: 52px 14px 40px; }
   /*
    * Assignee, due date and age drop out. The Space keeps a narrow column:
    * there is no sub-line to fall back on any more, so hiding it would leave
    * the phone unable to say which Space a task belongs to.
+   *
+   * Priority drops out too, which looks like losing the most important signal
+   * and is not: the list is ordered priority-first everywhere, so on a phone
+   * the top row IS the critical one and the pill only repeats what position
+   * already says. Keeping it cost 44px off a title column that was already
+   * wrapping titles to six lines at 375px, and "Priority" is too long a word
+   * to label a 44px track -- it collided with "Space" in the header.
    */
-  .row, .row.haswait { grid-template-columns: var(--tick-w) minmax(0, 1fr) 84px 66px; }
+  .row, .row.haswait {
+    grid-template-columns: var(--tick-w) minmax(0, 1fr) 84px 66px;
+  }
   .row.nospace, .row.nospace.haswait {
     grid-template-columns: var(--tick-w) minmax(0, 1fr) 66px;
   }
-  .row .assignee, .row .due, .row .age, .row .waiting-on { display: none; }
+  .row .assignee, .row .due, .row .age, .row .waiting-on,
+  .row .priority { display: none; }
   .row.head .assignee, .row.head .due,
-  .row.head .age, .row.head .waiting-on { display: none; }
+  .row.head .age, .row.head .waiting-on,
+  .row.head .priority { display: none; }
 }
 
 /* --- edit pane --- */

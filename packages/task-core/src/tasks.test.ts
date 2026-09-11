@@ -131,6 +131,39 @@ it('throws TaskNotFoundError for a well-formed unknown id', async () => {
   ).rejects.toThrow(TaskNotFoundError);
 });
 
+// --- opening-letter capitalisation, requested 2026-09-11 ---
+
+it('capitalises a lowercase opening letter at capture', async () => {
+  const t = await make('call neil about the amp');
+  expect(t.title).toBe('Call neil about the amp');
+  expect((await getTask(db, t.id))!.title).toBe('Call neil about the amp');
+});
+
+it('changes nothing but that one character', async () => {
+  const raw = 'fix *urgent* bug_now~ish~ `code` — Milltown’s reply 🚀';
+  const t = await make(raw);
+  expect(t.title.slice(1)).toBe(raw.slice(1));
+});
+
+it('leaves a title alone when capitalising would be a guess', async () => {
+  for (const raw of [
+    'iPhone screen repair',
+    'eBay listing for the amp',
+    'src/index.ts needs a fix',
+    '3 quotes for the barn',
+    'Already capitalised',
+  ]) {
+    expect((await make(raw)).title).toBe(raw);
+  }
+});
+
+it('honours preserveCase, which is how the importer keeps history intact', async () => {
+  const t = await createTask(db, {
+    title: 'call neil about the amp', spaceId, preserveCase: true,
+  });
+  expect(t.title).toBe('call neil about the amp');
+});
+
 // Required test 18
 it('exposes no title-mutating function', async () => {
   const mod = await import('./index.js');

@@ -4,7 +4,7 @@ const STATUSES: TaskStatus[] = ['open', 'waiting', 'completed'];
 const DUE_BUCKETS: DueBucket[] = ['overdue', 'today', 'week', 'none'];
 
 /** The columns a task list can be ordered by. */
-export const SORT_KEYS = ['title', 'space', 'waiting', 'age', 'assignee', 'due'] as const;
+export const SORT_KEYS = ['title', 'priority', 'space', 'waiting', 'age', 'assignee', 'due'] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 export type SortDir = 'asc' | 'desc';
 

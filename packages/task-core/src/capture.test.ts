@@ -74,3 +74,79 @@ describe('strict due: suffix grammar', () => {
     expect(parseCapture('due:today', opts).dueAt).toBeNull();
   });
 });
+
+// --- leading priority token, 2026-09-11 ---
+
+describe('a priority written into the capture text', () => {
+  const cap = (raw: string) =>
+    parseCapture(raw, { now: new Date('2026-09-11T12:00:00Z'), timeZone: 'America/Chicago' });
+
+  it('lifts P0 out of the title and stores it structurally', () => {
+    const r = cap('P0 Fix Stripe checkout');
+    expect(r.title).toBe('Fix Stripe checkout');
+    expect(r.priority).toBe('P0');
+  });
+
+  it('accepts every level, in any case', () => {
+    expect(cap('p1 Finish client homepage').priority).toBe('P1');
+    expect(cap('P2 Review the brief').priority).toBe('P2');
+    expect(cap('p3 Tidy the shelf').priority).toBe('P3');
+    expect(cap('p1 Finish client homepage').title).toBe('Finish client homepage');
+  });
+
+  it('leaves a task with no priority exactly as it was', () => {
+    const r = cap('Update footer links');
+    expect(r.title).toBe('Update footer links');
+    expect(r.priority).toBeNull();
+  });
+
+  /**
+   * The cases that make this leading-only and whitespace-delimited. Each of
+   * these would have had a word silently deleted from the title by a looser
+   * parser.
+   */
+  it('does not mistake P01, P4, or a bare P for a priority', () => {
+    for (const raw of ['P01 something', 'P4 something', 'P something', 'PO something']) {
+      expect(cap(raw).priority).toBeNull();
+      expect(cap(raw).title).toBe(raw);
+    }
+  });
+
+  it('does not touch a priority-looking token anywhere but the front', () => {
+    for (const raw of [
+      'Order 20 P2 cable ties',
+      'Chase the P1 visa application',
+      'Replace the P3 bracket on the trailer',
+      'Deploy to P0',
+    ]) {
+      expect(cap(raw).priority).toBeNull();
+      expect(cap(raw).title).toBe(raw);
+    }
+  });
+
+  it('never consumes the whole input', () => {
+    // `/task P0` is a task called "P0", not a priority with nothing to apply to.
+    expect(cap('P0').title).toBe('P0');
+    expect(cap('P0').priority).toBeNull();
+    expect(cap('  P0   ').title).toBe('P0');
+  });
+
+  it('composes with a trailing due: token', () => {
+    const r = cap('P1 Send the proposal due:2026-09-18');
+    expect(r.title).toBe('Send the proposal');
+    expect(r.priority).toBe('P1');
+    expect(r.dueAt).toBeInstanceOf(Date);
+  });
+
+  it('composes with a clock time, which still never alters the title', () => {
+    const r = cap('P0 Call Andre at 3:30');
+    expect(r.title).toBe('Call Andre at 3:30');
+    expect(r.priority).toBe('P0');
+    expect(r.dueFromTitleTime).toBe(true);
+  });
+
+  it('keeps every other byte of the title', () => {
+    const r = cap('P2 Offer Neil *$100* — Milltown’s reply 🚀');
+    expect(r.title).toBe('Offer Neil *$100* — Milltown’s reply 🚀');
+  });
+});

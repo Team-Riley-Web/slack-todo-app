@@ -1,7 +1,8 @@
 import type { Db } from '@tr/db';
+import { parsePriority, type Priority } from './priority.js';
 import type { Task, TaskStatus } from './types.js';
 
-const COLS = `id, title, space_id, list_id, assignee_id, status, due_at, waiting_on,
+const COLS = `id, title, space_id, list_id, assignee_id, status, priority, due_at, waiting_on,
               details, created_at, completed_at, source_platform,
               source_channel_id, source_message_ts, created_by,
               source_external_id, import_batch_id`;
@@ -33,8 +34,24 @@ export interface ListTasksFilter {
   titleContains?: string;
   /** Bucketed due date, resolved in SQL against now(). */
   due?: DueBucket;
+  /** Exactly this priority. `null` selects Unprioritized tasks. */
+  priority?: Priority | null;
   limit?: number;
 }
+
+/**
+ * The default ordering for every task list in the system.
+ *
+ * Priority first, then the ordering that was here before it -- due date, then
+ * creation. Declared once and used by every query rather than repeated per
+ * surface, so Slack, the daily digests, the web lists, the REST API and MCP
+ * cannot disagree about what "first" means.
+ *
+ * `NULLS LAST` is what puts Unprioritized below P3: 'P0' < 'P1' < 'P2' < 'P3'
+ * already sorts lexically in rank order, so no CASE expression is needed.
+ */
+export const TASK_ORDER_BY =
+  `ORDER BY priority ASC NULLS LAST, due_at ASC NULLS LAST, created_at ASC`;
 
 /** `%`, `_`, and `\` are LIKE metacharacters and must be literal in a search. */
 function escapeLike(value: string): string {
@@ -71,11 +88,24 @@ export async function listTasks(db: Db, filter: ListTasksFilter = {}): Promise<T
     where.push(`due_at IS NOT NULL AND due_at < now() + interval '7 days'`);
   }
 
+  // `priority` is a key of the filter object, so "not mentioned" and
+  // "explicitly null" are different questions: the first means every priority,
+  // the second means only the unprioritised ones.
+  if ('priority' in filter) {
+    const wanted = parsePriority(filter.priority);
+    if (wanted === null) {
+      where.push(`priority IS NULL`);
+    } else {
+      params.push(wanted);
+      where.push(`priority = $${params.length}`);
+    }
+  }
+
   params.push(sanitizeLimit(filter.limit));
   const { rows } = await db.query<Task>(
     `SELECT ${COLS} FROM tasks
       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-      ORDER BY due_at ASC NULLS LAST, created_at ASC
+      ${TASK_ORDER_BY}
       LIMIT $${params.length}`,
     params
   );

@@ -85,7 +85,7 @@ describe('no page reads a secret from the environment', () => {
   const FORBIDDEN = [
     'SLACK_BOT_TOKEN', 'SLACK_APP_TOKEN', 'SLACK_SIGNING_SECRET',
     'AUTH_SLACK_SECRET', 'AUTH_SECRET', 'API_TOKEN', 'DATABASE_URL',
-    'WEB_DEV_USER',
+    'WEB_DEV_USER', 'CRON_SECRET',
   ];
 
   const walk = async (dir: string): Promise<string[]> => {
@@ -139,6 +139,11 @@ describe('no page reads a secret from the environment', () => {
     //   actions/tasks.ts  needs the bot token to redraw a Slack card
     //   session.ts        needs WEB_DEV_USER for the fail-closed local bypass
     //   db.ts             checks DATABASE_URL is Postgres before connecting
+    //
+    // Both route handlers under src/app stay off this list by delegating:
+    // /api/slack/events to @tr/slack-app/http, and /api/cron/scheduled to
+    // @tr/scheduler. A route that read its own token would be a route that
+    // could return one.
     expect(readers.sort()).toEqual([
       'apps/web/src/actions/tasks.ts',
       'apps/web/src/db.ts',

@@ -1,7 +1,7 @@
 import type { Db } from '@tr/db';
 import {
-  findSpaceByQuery, getSpaceForChannel, getTaskCounts, listSpaces, listTasks,
-  listWaiting, type Space, type Task,
+  findSpaceByQuery, getSpaceForChannel, getTaskCounts, listOpenTasksBySpace,
+  listSpaces, listTasks, listWaiting, type Space, type Task,
 } from '@tr/task-core';
 import {
   taskListBlocks, taskCardFallback, summaryBlocks,
@@ -98,19 +98,16 @@ export async function handleTasksCommand(
    * for asking to see your tasks.
    */
   if (!scope || scope === 'all') {
-    const tasks = await listTasks(db, { actionableOnly: true });
-    const entries = toEntries(tasks);
-
-    // Grouped by Space, in the order listSpaces returns, so the same Space
-    // never appears twice and the ordering is stable between runs.
-    const groups: CardGroup[] = [];
-    for (const space of spaces.values()) {
-      const inSpace = entries.filter((e) => e.space.id === space.id);
-      if (inSpace.length > 0) {
-        groups.push({ heading: space.name.toUpperCase(), entries: inSpace });
-      }
-    }
-
+    /*
+     * Grouped by Space, in the order listSpaces returns, so the same Space
+     * never appears twice and the ordering is stable between runs.
+     *
+     * `listOpenTasksBySpace` is that query and that grouping, lifted into
+     * task-core so the scheduled daily digests run exactly this and not a
+     * second copy of it. `/tasks all` and the 8am posts must never disagree
+     * about what is open.
+     */
+    const { entries, groups } = await listOpenTasksBySpace(db);
     await postGroups(deps, command, 'MY TASKS', groups, entries, 'all');
     return { scope: 'all', count: entries.length };
   }

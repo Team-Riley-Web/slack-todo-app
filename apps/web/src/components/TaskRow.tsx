@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Space, Task } from '@tr/task-core';
+import { PRIORITY_LABELS, type Priority, type Space, type Task } from '@tr/task-core';
 import { completeTaskAction, reopenTaskAction, moveTaskAction } from '@/actions/tasks';
 import { ageLabel, dueLabel, shortSpaceName, taskEditHref } from '@/lib/display';
 
@@ -21,6 +21,32 @@ export interface TaskRowProps {
   basePath?: string;
   params?: Record<string, string | string[] | undefined>;
   assigneeLabels?: Record<string, string>;
+}
+
+/**
+ * The priority cell: a compact tinted pill, or an em dash.
+ *
+ * An em dash for unprioritized rather than a "None" pill, because the assignee,
+ * due and waiting-on cells in this same row already use one for "nothing
+ * recorded" — a fourth way of saying empty would be a fourth thing to learn.
+ * It also keeps a mostly-unprioritized list quiet, which is the point: a pill
+ * that appears on every row stops meaning anything.
+ *
+ * The label is the bare "P0"; the level's name rides in `title` so the column
+ * stays narrow without the meaning being lost.
+ */
+export function PriorityPill({ priority }: { priority: Priority | null }) {
+  if (!priority) return <span className="priority">—</span>;
+  return (
+    <span className="priority">
+      <span
+        className={`prio prio-${priority.toLowerCase()}`}
+        title={`${priority} — ${PRIORITY_LABELS[priority]}`}
+      >
+        {priority}
+      </span>
+    </span>
+  );
 }
 
 function assigneeName(
@@ -99,6 +125,10 @@ export function TaskRow({
         {/* Rendered as text, never as markup. */}
         <Link href={taskEditHref(task, basePath, params)}>{task.title}</Link>
       </span>
+
+      {/* Immediately beside the title, so an eye running down the list of
+          titles catches a P0 without crossing the row. */}
+      <PriorityPill priority={task.priority} />
 
       {showSpace ? (
         <span className="space">{shortSpaceName(space)}</span>

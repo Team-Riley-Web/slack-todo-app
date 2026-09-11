@@ -56,7 +56,7 @@ export async function handleTaskCommand(
   }
 
   // The single permitted normalization: one outer trim of the raw command text.
-  const { title, dueAt, dueFromTitleTime } = parseCapture(command.text ?? '', {
+  const { title, dueAt, priority, dueFromTitleTime } = parseCapture(command.text ?? '', {
     now: new Date(), timeZone: config.timeZone,
   });
   /**
@@ -86,6 +86,9 @@ export async function handleTaskCommand(
     spaceId: space.id,
     assigneeId: config.defaultAssigneeId,
     dueAt,
+    // Lifted out of the text by parseCapture, so `/task P0 Fix checkout` stores
+    // a P0 task called "Fix checkout" rather than a title starting with "P0".
+    priority,
     sourcePlatform: 'slack',
     sourceChannelId: command.channel_id,
     createdBy: command.user_id,
