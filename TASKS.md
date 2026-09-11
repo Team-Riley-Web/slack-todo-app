@@ -182,6 +182,7 @@ unchecked task unless you are starting it.
   - Dropped "from slack" on /history rather than giving it a column: it was the same text on every row, and the edit pane's History table already records the source. Phone keeps the Space as an 84px column, since there is no sub-line left to fall back on.
 - [x] Web UI: clicking a Space in the rail while on a report (e.g. Waiting) keeps that report selected, so a Space with 6 open tasks shows nothing - switching to a Space from a report should go to My tasks for that Space
   - Done 2026-09-10: Space links always open /?space=<slug>. The per-page railPath that steered them existed for nothing else, so it is gone from Shell and six pages. "All spaces" is now current only on My tasks itself -- it had lit up on every report with no Space filter, next to the report's own highlight, while linking away from that report. Verified on all four reports.
-- [ ] Web UI: My tasks should show Open AND Waiting on the same screen, with Waiting below
+- [x] Web UI: My tasks should show Open AND Waiting on the same screen, with Waiting below
+  - Done 2026-09-10: a Waiting card below Open, with the Waiting on / Age columns. Both halves come from the same query with an explicit status each, so the due chips, assignee, search and Space narrow them identically -- waitingTasks() ignores the due filter, so using it would have let "Overdue" narrow Open while leaving Waiting untouched. Verified: all 20 open + 1 waiting; Milltown 0 open + 1 waiting (it showed nothing before); Overdue 0 + 0.
 - [ ] Web UI: make the task list columns sortable
 - [ ] Web UI: the per-Space count in the rail should include waiting tasks, not just open

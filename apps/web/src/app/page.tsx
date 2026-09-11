@@ -23,8 +23,16 @@ export default async function MyTasksPage({
   const editing = Array.isArray(query.edit) ? query.edit[0] : query.edit;
   const db = await getDb();
 
-  const [rows, spaces, assignees] = await Promise.all([
-    myTasks(db, filters),
+  /*
+   * Open and Waiting, both on this page, through the same query with an
+   * explicit status each -- so the due chips, the assignee, search and the
+   * Space narrow both halves identically. waitingTasks() was not used for the
+   * second half because it ignores the due filter: choosing "Overdue" would
+   * have narrowed Open and left Waiting untouched beneath it.
+   */
+  const [rows, waiting, spaces, assignees] = await Promise.all([
+    myTasks(db, { ...filters, status: 'open' }),
+    myTasks(db, { ...filters, status: 'waiting' }),
     listSpaces(db),
     knownAssignees(db),
   ]);
@@ -67,6 +75,24 @@ export default async function MyTasksPage({
           rows={rows}
           showSpace={!only}
           empty="Nothing open. Capture something with /task in Slack."
+          assigneeLabels={assigneeLabels()}
+          basePath="/"
+          params={query}
+        />
+      </SectionCard>
+
+      {/* Below Open, with the columns that say what each task is stuck on. */}
+      <SectionCard
+        label="Waiting"
+        count={waiting.length}
+        showSpace={!only}
+        showWaiting
+      >
+        <TaskList
+          rows={waiting}
+          showSpace={!only}
+          showWaiting
+          empty="Nothing waiting."
           assigneeLabels={assigneeLabels()}
           basePath="/"
           params={query}
