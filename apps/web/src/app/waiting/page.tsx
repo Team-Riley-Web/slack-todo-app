@@ -60,12 +60,17 @@ export default async function WaitingPage({
         />
       }
     >
-      <SectionCard label="Waiting" count={rows.length} showSpace={!only}>
+      <SectionCard
+        label="Waiting"
+        count={rows.length}
+        showSpace={!only}
+        showWaiting
+      >
         <TaskList
           rows={rows}
           showSpace={!only}
           empty="Nothing is waiting."
-          showAge
+          showWaiting
           assigneeLabels={assigneeLabels()}
           basePath="/waiting"
           params={query}

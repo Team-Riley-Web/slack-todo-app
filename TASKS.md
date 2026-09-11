@@ -177,3 +177,8 @@ unchecked task unless you are starting it.
 - [x] Web UI: remove the Apply button - selecting an assignee should update the list on its own
   - Done 2026-09-10: a <select> cannot submit its own form without JavaScript, which is why the Apply was there. Replaced it with a details/summary dropdown whose options are LINKS -- picking one navigates and the list arrives filtered, no Apply and still no script. It closes itself, since following a link re-renders the page. Verified 20 rows -> 14 on picking Joshua, with the button reading Joshua and Clear appearing.
   - The Apply on /history stays: it submits the From/To date inputs, which cannot self-submit either, and it is a different control pair from the one in the screenshot.
+- [ ] Web UI: move the task sub-line metadata (waiting, age, source) into its own column - no metadata under the task title at all
+- [ ] Web UI: clicking a Space in the rail while on a report (e.g. Waiting) keeps that report selected, so a Space with 6 open tasks shows nothing - switching to a Space from a report should go to My tasks for that Space
+- [ ] Web UI: My tasks should show Open AND Waiting on the same screen, with Waiting below
+- [ ] Web UI: make the task list columns sortable
+- [ ] Web UI: the per-Space count in the rail should include waiting tasks, not just open

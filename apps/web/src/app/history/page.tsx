@@ -69,7 +69,6 @@ export default async function HistoryPage({
           rows={rows}
           showSpace={!only}
           empty="Nothing completed in this range."
-          showProvenance
           assigneeLabels={assigneeLabels()}
           basePath="/history"
           params={query}

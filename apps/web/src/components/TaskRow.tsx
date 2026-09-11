@@ -6,10 +6,12 @@ import { ageLabel, dueLabel, shortSpaceName, taskEditHref } from '@/lib/display'
 export interface TaskRowProps {
   task: Task;
   space: Space;
-  /** The waiting view shows age and what a task is blocked on. */
-  showAge?: boolean;
-  /** History shows where a task came from and when it finished. */
-  showProvenance?: boolean;
+  /**
+   * Adds the "Waiting on" and "Age" columns, for any list that can contain a
+   * blocked task. The two travel together: what a task is stuck on and how
+   * long it has been stuck are the same question.
+   */
+  showWaiting?: boolean;
   /**
    * False on a Space page, where the heading already names the Space and
    * repeating it on every row is the same noise the Slack card had.
@@ -39,7 +41,7 @@ function assigneeName(
  * page cannot be triggered by a stray click in a list.
  */
 export function TaskRow({
-  task, space, showAge, showProvenance, showSpace = true, assigneeLabels,
+  task, space, showWaiting, showSpace = true, assigneeLabels,
   basePath = '/', params = {},
 }: TaskRowProps) {
   const done = task.status === 'completed';
@@ -54,31 +56,17 @@ export function TaskRow({
   const due = dueLabel(task);
   const who = assigneeName(task, assigneeLabels);
 
-  // Space, assignee and due date all have their own columns now, so none of
-  // them is repeated in the sub-line under the title. What is left there is
-  // the per-view detail no column carries.
-  const meta: React.ReactNode[] = [];
-  if (task.status === 'waiting') {
-    meta.push(
-      <span key="waiting">
-        {task.waiting_on ? `waiting on ${task.waiting_on}` : 'waiting'}
-      </span>
-    );
-  }
-  if (showAge) meta.push(<span key="age">{ageLabel(task)} old</span>);
-  if (showProvenance) {
-    meta.push(<span key="src">from {task.source_platform}</span>);
-  }
-
   return (
     <li
       className={
         [
           'row', 'task',
           done ? 'done' : null,
-          // Positional grid: with no Space cell the row needs the template
-          // that has no Space track, and so does the header above it.
+          // Positional grid: a cell that is not rendered has to come off the
+          // template too, or every column after it shifts left. The header
+          // above carries the same classes for the same reason.
           showSpace ? null : 'nospace',
+          showWaiting ? 'haswait' : null,
         ].filter(Boolean).join(' ')
       }
     >
@@ -102,34 +90,28 @@ export function TaskRow({
         </button>
       </form>
 
+      {/*
+        The title, and nothing under it. Everything that used to ride in a
+        grey sub-line here -- the Space, what a task waits on, its age, where
+        it came from -- is a column now, or gone.
+      */}
       <span className="title">
         {/* Rendered as text, never as markup. */}
         <Link href={taskEditHref(task, basePath, params)}>{task.title}</Link>
-        {showSpace || meta.length > 0 ? (
-          <span className="meta">
-            {/*
-              The Space appears twice on purpose, and CSS shows exactly one:
-              the column below on a wide screen, this sub-line on a phone.
-              A phone has no room for a Space track without squeezing titles
-              to four lines, and hiding the column outright would make the
-              phone the one screen that cannot tell you which Space a task is
-              in. The separator lives inside this span so it disappears with
-              it -- otherwise the desktop would show a leading " · ".
-            */}
-            {showSpace ? (
-              <span className="space-inline">
-                {shortSpaceName(space)}{meta.length > 0 ? ' · ' : ''}
-              </span>
-            ) : null}
-            {meta.map((node, i) => (
-              <span key={i}>{i > 0 ? ' · ' : ''}{node}</span>
-            ))}
-          </span>
-        ) : null}
       </span>
 
       {showSpace ? (
         <span className="space">{shortSpaceName(space)}</span>
+      ) : null}
+
+      {showWaiting ? (
+        <>
+          {/* Every row in a list that shows this column is waiting, so an
+              em dash here means "nothing recorded", the same as it does in
+              the assignee and due cells. */}
+          <span className="waiting-on">{task.waiting_on ?? '—'}</span>
+          <span className="age">{ageLabel(task)}</span>
+        </>
       ) : null}
 
       <span className="assignee">{who ?? '—'}</span>
@@ -173,8 +155,7 @@ export function TaskRow({
 export function TaskList(props: {
   rows: Array<{ task: Task; space: Space }>;
   empty: string;
-  showAge?: boolean;
-  showProvenance?: boolean;
+  showWaiting?: boolean;
   showSpace?: boolean;
   basePath?: string;
   params?: Record<string, string | string[] | undefined>;
@@ -190,8 +171,7 @@ export function TaskList(props: {
           key={task.id}
           task={task}
           space={space}
-          showAge={props.showAge}
-          showProvenance={props.showProvenance}
+          showWaiting={props.showWaiting}
           showSpace={props.showSpace}
           basePath={props.basePath}
           params={props.params}

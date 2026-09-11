@@ -55,7 +55,11 @@ export default async function SpacePage({
     label: string,
     rows: typeof open,
     empty: string,
-    startOpen: boolean
+    startOpen: boolean,
+    /* The Waiting section holds blocked tasks, so it wants the same two
+       columns the /waiting page shows. Without this it would be the one place
+       a task's blocker is invisible. */
+    showWaiting = false
   ) => (
     <SectionCard
       key={label}
@@ -64,12 +68,14 @@ export default async function SpacePage({
       startOpen={startOpen}
       createHref={`/spaces/${space.slug}`}
       showSpace={false}
+      showWaiting={showWaiting}
     >
       {/* The heading names the Space; the rows do not repeat it. */}
       <TaskList
         rows={rows}
         empty={empty}
         showSpace={false}
+        showWaiting={showWaiting}
         basePath={`/spaces/${space.slug}`}
         params={query}
         assigneeLabels={assigneeLabels()}
@@ -109,7 +115,7 @@ export default async function SpacePage({
     >
 
       {section('Open', open, 'Nothing open.', true)}
-      {section('Waiting', waiting, 'Nothing waiting.', true)}
+      {section('Waiting', waiting, 'Nothing waiting.', true, true)}
       {section('Completed', completed, 'Nothing completed yet.', false)}
 
       {editing ? (
