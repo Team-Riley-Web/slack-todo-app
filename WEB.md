@@ -95,10 +95,15 @@ no values for it. `#35ca8c` for the completed check and `#ea4954` for overdue
 also stay: the spec reserves blue for selection and the primary action, which
 says nothing about the status hues.
 
-Type is three stacks: `--font-display` (Iowan Old Style, Charter, Georgia) on
-the page heading, the pane heading and the team name in the rail;
-`--font-body` on everything else; `--font-mono` wherever a literal is shown —
-a slash command, a slug, a channel id.
+Type is two stacks: `--font-body` on everything, and `--font-mono` wherever a
+literal is shown — a slash command, a slug, a channel id.
+
+The spec's third stack, a display serif, is **deliberately not used**. It was
+applied to the page heading, the pane heading and the team name in the rail,
+and rejected on sight: "I don't like these serif fonts, just use the sans
+serif font." The token is gone rather than left unused, so nothing reads it
+back out of the spec by accident. This is the one place the implementation
+overrides `docs/brand-spec.md` outright.
 
 **This is a structural match, not a pixel-perfect one**, and it cannot be from
 screenshots alone: font metrics, the exact spacing scale, and precise region
