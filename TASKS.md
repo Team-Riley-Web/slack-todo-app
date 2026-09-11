@@ -187,5 +187,6 @@ unchecked task unless you are starting it.
 - [x] Web UI: make the task list columns sortable
   - Done 2026-09-10: every column label on every task list is a link that orders by it; clicking the active one reverses it. Sort rides in the URL (?sort=&dir=) like every other filter, so a sorted view is linkable, the back button undoes it, and it needs no JavaScript. The rule lives in lib/sort.ts with 15 tests: displayed values (a Space without "Client - ", an assignee's name), empties last in BOTH directions, stable ties, and a completed task sorts by the completion date its column shows. Search and the history date form carry the sort; it does not summon the Clear chip, since it narrows nothing.
   - Also fixed: header labels were two colours -- Space/Assignee/Due date grey, Task/Waiting on/Age dark -- because the value colour rules outranked the header's. All labels --fg now.
-- [ ] Web UI: the per-Space count in the rail should include waiting tasks, not just open
+- [x] Web UI: the per-Space count in the rail should include waiting tasks, not just open
+  - Done 2026-09-10: each Space and All spaces now count open + waiting. Milltown Cabinets went from no number to 1; All spaces from 20 to 21. The counts now agree with My tasks, which lists both since the task before last.
 - [ ] Web UI: add a New Task button in the top right of all views, as detailed in brand-spec.md

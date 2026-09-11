@@ -46,8 +46,15 @@ export function Sidebar({
   );
 
   const spaceItem = (
-    { space, open }: SidebarSpace, icon: IconName
-  ) => (
+    { space, open, waiting }: SidebarSpace, icon: IconName
+  ) => {
+    /*
+     * Open plus waiting: everything still on your plate in that Space. Open
+     * alone read as "nothing here" for a Space whose only task was blocked,
+     * and it disagreed with My tasks, which now lists both.
+     */
+    const live = open + waiting;
+    return (
     <li key={space.id}>
       <Link
         href={spaceHref(space.slug)}
@@ -55,10 +62,11 @@ export function Sidebar({
       >
         <Icon name={icon} />
         <span className="label">{shortSpaceName(space)}</span>
-        {open > 0 ? <span className="count">{open}</span> : null}
+        {live > 0 ? <span className="count">{live}</span> : null}
       </Link>
     </li>
-  );
+    );
+  };
 
   /**
    * A collapsible rail group.
@@ -82,7 +90,7 @@ export function Sidebar({
 
   const clients = spaces.filter((s) => isClientSpace(s.space));
   const internal = spaces.filter((s) => !isClientSpace(s.space));
-  const total = spaces.reduce((n, s) => n + s.open, 0);
+  const total = spaces.reduce((n, s) => n + s.open + s.waiting, 0);
 
   return (
     <nav className="rail" aria-label="Navigation">
