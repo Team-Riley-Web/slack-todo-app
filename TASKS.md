@@ -210,7 +210,10 @@ unchecked task unless you are starting it.
   - Done 2026-09-10: --surface-alt set to the exact value asked for. It is a neutral grey rather than the faintly blue tint it replaced, and 1% down from the surface where the old one was 2.4%. That works now only because --header-bg was split off in the earlier task and carries the job of looking distinct; the stripe just has to separate a row from its neighbour.
 - [x] make "This Week" pill green; capitalize Week
   - Done 2026-09-10: label capitalised, tone moved from amber to green on hue 160.5 -- the hue of --done (#35ca8c), so the app has one green rather than a second invented for a pill. Label measures 5.6:1 on its own fill. The comment explaining the tones was rewritten: it claimed amber meant "coming up soon", which is no longer why that pill is the colour it is.
-
+- [x] Web UI: verify the New Task flow is set up properly - open the pane, create a task end to end, check every field and the error paths
+  - Done 2026-09-10: verified by using it, not by reading it. Button and pane on all 8 views including /settings and /spaces; the active Space is preselected (/spaces/agency -> agency) and closing returns to the filtered view it was opened over. Created a task with title "ZZ probe — Neil's *$100* check-in": stored byte-exact through the em dash, curly apostrophe and *$100*, right Space, due 15:30 local written as 21:30Z. Empty title reopens the pane over the same filtered view with "A task needs a title." and keeps the Space. Probes deleted afterwards.
+  - Found and fixed a real divergence: the pane had NO assignee field, so it sent nothing and every web-captured task came out unassigned -- while the identical task typed as `/task` in Slack was assigned to the default. Where you typed it decided who owned it. The action already read assigneeId; only the field was missing. Added, preselected with the default, which also makes Rachael reachable from the web -- verified by creating a task assigned to her.
+  - Still missing next to the Slack modal, deliberately NOT added unasked: Details, and a status choice (Slack offers waiting at capture). Say the word if you want either.
 
 ## Reference
 

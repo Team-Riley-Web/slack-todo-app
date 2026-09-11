@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Space } from '@tr/task-core';
+import { assigneeChoices, type Space } from '@tr/task-core';
 import { createTaskFormVoid } from '@/actions/tasks';
 import { closeNewTaskHref } from '@/lib/display';
 import { SpaceSelect } from '@/components/SpaceSelect';
@@ -7,13 +7,19 @@ import { SpaceSelect } from '@/components/SpaceSelect';
 /** New-task capture in the same URL-driven right pane used for editing. */
 export function NewTaskPane({
   spaces, defaultSpaceSlug, basePath, params,
+  assigneeLabels = {}, defaultAssigneeId,
 }: {
   spaces: Space[];
   defaultSpaceSlug?: string;
   basePath: string;
   params: Record<string, string | string[] | undefined>;
+  /** Who can be assigned, by name. */
+  assigneeLabels?: Record<string, string>;
+  /** Preselected, matching what the Slack command assigns. */
+  defaultAssigneeId?: string | null;
 }) {
   const back = closeNewTaskHref(basePath, params);
+  const people = assigneeChoices(assigneeLabels);
   const error = Array.isArray(params.error) ? params.error[0] : params.error;
 
   return (
@@ -54,6 +60,30 @@ export function NewTaskPane({
               ariaLabel="Space"
             />
           </label>
+
+          {/*
+            Assignee, preselected with the default. Without this field the
+            form sent nothing and every web-captured task came out
+            unassigned, while the identical task typed as `/task` in Slack
+            was assigned to the default -- so where you typed it decided who
+            owned it. It is also the only way to capture a task FOR someone
+            else from the web.
+          */}
+          {people.length > 0 ? (
+            <label>
+              Assignee
+              <select
+                name="assigneeId"
+                defaultValue={defaultAssigneeId ?? ''}
+                aria-label="Assignee"
+              >
+                <option value="">Unassigned</option>
+                {people.map(([id, label]) => (
+                  <option key={id} value={id}>{label}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           <label>
             Due
