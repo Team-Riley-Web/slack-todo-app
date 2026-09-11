@@ -13,7 +13,7 @@ import Link from 'next/link';
  */
 export function SectionCard({
   label, count, startOpen = true, createHref, columns = 'tasks',
-  showSpace = true, children,
+  showSpace = true, showWaiting = false, children,
 }: {
   label: string;
   count: number;
@@ -29,6 +29,8 @@ export function SectionCard({
    * header at all.
    */
   showSpace?: boolean;
+  /** Must match the rows' `showWaiting`, for the same reason. */
+  showWaiting?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -51,12 +53,22 @@ export function SectionCard({
         */}
         {columns === 'tasks' && count > 0 ? (
           <div
-            className={showSpace ? 'row head' : 'row head nospace'}
+            className={[
+              'row', 'head',
+              showSpace ? null : 'nospace',
+              showWaiting ? 'haswait' : null,
+            ].filter(Boolean).join(' ')}
             aria-hidden="true"
           >
             <span className="tick" />
             <span className="title">Task</span>
             {showSpace ? <span className="space">Space</span> : null}
+            {showWaiting ? (
+              <>
+                <span className="waiting-on">Waiting on</span>
+                <span className="age">Age</span>
+              </>
+            ) : null}
             <span className="assignee">Assignee</span>
             <span className="due">Due date</span>
           </div>

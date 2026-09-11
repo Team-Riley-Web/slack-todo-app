@@ -265,6 +265,9 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
   display: grid;
   /* tick | title | space | assignee | due | actions */
   grid-template-columns: var(--tick-w) minmax(0, 1fr) 128px 110px 92px 78px;
+  /* Four templates, because four combinations of cells actually get rendered.
+     A cell that is absent must leave the template too, or every column after
+     it shifts left. */
   align-items: center;
   padding: 0 16px; min-height: 42px;
   border-bottom: 1px solid var(--border);
@@ -283,11 +286,11 @@ ul.rows li.row:last-child { border-bottom: 0; }
 ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
 .row.head {
   /*
-   * --fg, not --muted: the spec asks for secondary metadata to read quieter
-   * than the column labels, and both were --muted, so there was no hierarchy
-   * to read. Darkening the label is the direction that works -- the sub-line
-   * is already at 4.83:1 on white, so making IT quieter would have taken it
-   * under the 4.5:1 floor.
+   * --fg, not --muted: the spec asks for the values to read quieter than the
+   * column labels, and both were --muted, so there was no hierarchy. The
+   * labels darken rather than the values lightening -- a value at --muted is
+   * already 4.83:1 on white, so making it quieter would cross the 4.5:1
+   * floor.
    */
   min-height: 34px; color: var(--fg); font-size: 12px; font-weight: 600;
   background: var(--surface-alt); border-bottom: 1px solid var(--border);
@@ -295,12 +298,24 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
 .row .title { min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-right: 12px; }
 .row .title a { color: var(--fg); text-decoration: none; word-break: break-word; }
 .row .title a:hover { color: var(--accent-strong); }
-.row .meta { color: var(--muted); font-size: 12px; }
-/* The Space has its own column at this width, so the sub-line copy is off. */
-.row .space-inline { display: none; }
 /* A Space page names its Space in the heading, so those rows carry no Space
    cell and need the template without the track. */
 .row.nospace { grid-template-columns: var(--tick-w) minmax(0, 1fr) 110px 92px 78px; }
+/* A list that can hold blocked tasks gains "Waiting on" and "Age". */
+.row.haswait {
+  grid-template-columns:
+    var(--tick-w) minmax(0, 1fr) 128px 130px 58px 110px 92px 78px;
+}
+.row.nospace.haswait {
+  grid-template-columns:
+    var(--tick-w) minmax(0, 1fr) 130px 58px 110px 92px 78px;
+}
+.row .waiting-on, .row .age {
+  color: var(--muted); font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding-right: 12px;
+}
+.row.head .waiting-on, .row.head .age { color: var(--fg); }
 .row .space, .row .assignee, .row .due {
   color: var(--muted); font-size: 13px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -536,13 +551,18 @@ button.danger:hover { border-color: var(--danger); }
   nav.rail { position: static; height: auto; }
   
   .main { padding: 0 14px 40px; }
-  /* Assignee and due date drop out, and so does the Space COLUMN -- a
-     128px track here wraps titles to four lines. The Space moves to the
-     title's sub-line instead, which costs no width. */
-  .row, .row.nospace { grid-template-columns: var(--tick-w) minmax(0, 1fr) 66px; }
-  .row > .space, .row .assignee, .row .due { display: none; }
-  .row.head > .space, .row.head .assignee, .row.head .due { display: none; }
-  .row .space-inline { display: inline; }
+  /*
+   * Assignee, due date and age drop out. The Space keeps a narrow column:
+   * there is no sub-line to fall back on any more, so hiding it would leave
+   * the phone unable to say which Space a task belongs to.
+   */
+  .row, .row.haswait { grid-template-columns: var(--tick-w) minmax(0, 1fr) 84px 66px; }
+  .row.nospace, .row.nospace.haswait {
+    grid-template-columns: var(--tick-w) minmax(0, 1fr) 66px;
+  }
+  .row .assignee, .row .due, .row .age, .row .waiting-on { display: none; }
+  .row.head .assignee, .row.head .due,
+  .row.head .age, .row.head .waiting-on { display: none; }
 }
 
 /* --- edit pane --- */
