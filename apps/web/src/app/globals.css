@@ -521,50 +521,74 @@ a.chip.tone-none[aria-current="true"] {
 }
 
 /*
- * A dropdown built from details/summary, used for the assignee filter.
+ * The assignee dropdown.
  *
  * Its options are links, so choosing one navigates and filters immediately --
  * no Apply, and no JavaScript, which a self-submitting <select> would have
- * required. It closes by itself: following a link re-renders the page and a
- * fresh details starts shut.
+ * required. Following a link re-renders the page, and a fresh checkbox starts
+ * unchecked, so it also closes itself on choosing.
+ *
+ * Open state is a checkbox, not a `details`. A details has no light dismiss:
+ * only its own summary can close it, so clicking away left it hanging open.
+ * Any label pointing at a checkbox can uncheck it, so the full-viewport
+ * backdrop label below closes this from a click anywhere outside.
  */
-.filters details.menu { position: relative; }
-.filters details.menu > summary {
+.filters span.menu { position: relative; display: inline-flex; }
+
+/* Off-screen rather than `hidden`, because a hidden input cannot be focused
+   and the menu has to stay operable from the keyboard: Tab to it, Space to
+   open, Tab into the links, Space again to close. */
+.filters .menu-state {
+  position: absolute; width: 1px; height: 1px; margin: 0;
+  opacity: 0; pointer-events: none;
+}
+
+.filters .menu-button {
   display: inline-flex; align-items: center; gap: 8px; height: 34px;
   padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--surface); color: var(--fg); font-size: 13px;
-  cursor: pointer; list-style: none; white-space: nowrap;
+  cursor: pointer; white-space: nowrap;
 }
-.filters details.menu > summary::-webkit-details-marker { display: none; }
-.filters details.menu > summary::marker { content: ''; }
-.filters details.menu > summary:hover { background: #f3f4f6; }
-.filters details.menu > summary:focus-visible {
+.filters .menu-button:hover { background: #f3f4f6; }
+/* The focus ring belongs on the thing you can see, not the off-screen input. */
+.filters .menu-state:focus-visible ~ .menu-button {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
+
 /*
  * This chevron points DOWN when closed, like a select's caret, and up when
  * open. The shared one points right when closed, which is right for a
  * disclosure -- "there is more below" -- but wrong for a menu button, where
  * down means "there is a list behind this".
  */
-.filters details.menu .chevron {
+.filters .menu .chevron {
   width: 6px; height: 6px; margin: 0 0 3px;
   border-right-color: var(--muted); border-bottom-color: var(--muted);
+  transform: rotate(45deg);
 }
-.filters details.menu > summary .chevron { transform: rotate(45deg); }
-.filters details.menu[open] > summary .chevron { transform: rotate(225deg); }
-.filters details.menu ul.menu-list {
+.filters .menu-state:checked ~ .menu-button .chevron { transform: rotate(225deg); }
+
+/* Covers the viewport only while the menu is open, so a click anywhere else
+   lands on it and unchecks the box. Under the list, over everything else. */
+.filters .menu-backdrop { display: none; }
+.filters .menu-state:checked ~ .menu-backdrop {
+  display: block; position: fixed; inset: 0; z-index: 4; cursor: default;
+}
+
+.filters ul.menu-list {
+  display: none;
   position: absolute; z-index: 5; top: calc(100% + 4px); left: 0;
   min-width: 100%; margin: 0; padding: 4px; list-style: none;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); box-shadow: 0 6px 20px rgba(16, 24, 40, .12);
 }
-.filters details.menu ul.menu-list a {
+.filters .menu-state:checked ~ ul.menu-list { display: block; }
+.filters ul.menu-list a {
   display: block; padding: 6px 10px; border-radius: 4px;
   color: var(--fg); text-decoration: none; font-size: 13px; white-space: nowrap;
 }
-.filters details.menu ul.menu-list a:hover { background: #f3f4f6; }
-.filters details.menu ul.menu-list a[aria-current="true"] {
+.filters ul.menu-list a:hover { background: #f3f4f6; }
+.filters ul.menu-list a[aria-current="true"] {
   background: var(--accent-strong); color: #fff;
 }
 
