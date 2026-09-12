@@ -140,7 +140,12 @@ export function NewTaskPane({
             <textarea name="details" aria-label="Details" />
           </label>
 
-          <div className="filters">
+          {/*
+            Its own class, not `filters`. This row is the form's actions, not a
+            toolbar, and it is pinned to the bottom of the pane -- borrowing the
+            toolbar's class meant borrowing rules written for a different job.
+          */}
+          <div className="pane-actions">
             <button type="submit" className="primary">Create task</button>
             <Link className="btn" href={back} data-pane-close>Cancel</Link>
           </div>

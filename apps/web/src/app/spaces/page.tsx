@@ -53,10 +53,17 @@ export default async function SpacesPage({
       activeSlug={null}
       searchParams={query}
       title="Spaces"
-      toolbar={
-        <div className="filters">
-          <Link className="btn primary" href="/spaces?new=1">Add Space</Link>
-        </div>
+      newTask={false}
+      pageAction={
+        /* Right end of the toolbar, where New task sits everywhere else, and
+           wearing the same plus. This page's one adding action should not be
+           somewhere different just because what it adds is a Space. */
+        <Link className="btn primary" href="/spaces?new=1">
+          <Icon name="plus" />
+          {/* The words drop on a phone, exactly as New task's do. */}
+          <span className="btn-label">Add Space</span>
+          <span className="sr-only">Add Space</span>
+        </Link>
       }
     >
       {error ? <p className="error">{String(error)}</p> : null}

@@ -6,13 +6,19 @@ import {
   type Space, UnknownSpaceError,
 } from '@tr/task-core';
 import { listBatches, type ImportBatch } from '@tr/importer';
-import { authorizedUserIds, timeZone } from '@/lib/env';
+import { assigneeLabels, authorizedUserIds, timeZone } from '@/lib/env';
 import type { OperationResult } from './tasks.js';
 
 export interface SettingsView {
   channels: Array<{ channelId: string; channelName: string | null; spaceName: string }>;
   spaces: Space[];
   authorizedUserIds: string[];
+  /**
+   * Slack id to person, for the authorized list. The same ASSIGNEE_LABELS map
+   * the assignee column reads, so a person is named the same way everywhere
+   * rather than by a second list that could drift out of step with it.
+   */
+  userNames: Record<string, string>;
   defaultSpaceName: string;
   timeZone: string;
   batches: ImportBatch[];
@@ -37,6 +43,7 @@ export async function settingsView(db: Db): Promise<SettingsView> {
     channels,
     spaces,
     authorizedUserIds: authorizedUserIds(),
+    userNames: assigneeLabels(),
     defaultSpaceName: inbox.name,
     timeZone: timeZone(),
     batches,

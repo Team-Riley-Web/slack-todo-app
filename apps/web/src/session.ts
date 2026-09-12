@@ -44,5 +44,11 @@ export function devUser(env: NodeJS.ProcessEnv = process.env): WebUser | null {
   if (env.NODE_ENV === 'production') return null;
   const id = env.WEB_DEV_USER?.trim();
   if (!id) return null;
-  return { slackUserId: id, name: 'Local development user' };
+  /*
+   * No name. The bypass knows an id and nothing else, and a placeholder here
+   * is a fake fact: the settings page names each authorized user, and with a
+   * string in this field it introduced you as "Local development user".
+   * Null lets the caller fall back to the name the app really does have.
+   */
+  return { slackUserId: id, name: null };
 }

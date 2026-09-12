@@ -50,7 +50,7 @@ describe('authorizeSlackUser', () => {
 describe('the development bypass', () => {
   it('supplies a user in development when the variable is set', () => {
     expect(devUser(env({ WEB_DEV_USER: 'U_JOSH', NODE_ENV: 'development' })))
-      .toEqual({ slackUserId: 'U_JOSH', name: 'Local development user' });
+      .toEqual({ slackUserId: 'U_JOSH', name: null });
   });
 
   it('is INERT in production even when the variable is set', () => {

@@ -7,6 +7,7 @@ import {
 } from '@/actions/settings';
 import { Shell } from '@/components/Shell';
 import { SpaceSelect } from '@/components/SpaceSelect';
+import { Icon } from '@/components/Icon';
 
 export default async function SettingsPage({
   searchParams,
@@ -29,6 +30,7 @@ export default async function SettingsPage({
       spaces={railSpaces}
       searchParams={query}
       title="Settings"
+      newTask={false}
     >
       <p className="muted small">
         No tokens or keys are shown here, or read by this page at all.
@@ -42,7 +44,7 @@ export default async function SettingsPage({
         reference, and reference that is always expanded is just a long page.
       */}
       <details className="panel" open>
-        <summary><span className="chevron" aria-hidden="true" />Slack channel to Space</summary>
+        <summary><span className="chevron" aria-hidden="true" />Map Slack channel to space</summary>
       <p className="muted small">
         A task captured with <code>/task</code> lands in the Space its channel
         maps to. An unmapped channel goes to <strong>{view.defaultSpaceName}</strong>.
@@ -73,6 +75,19 @@ export default async function SettingsPage({
         </table>
       </div>
 
+      {/*
+        The form is behind an Add channel button now.
+        
+        Three empty fields and a Save button sat permanently under the table,
+        so the section's resting state was a form rather than the mapping list
+        it exists to show. A details/summary dressed as a button does it with
+        no script, which is the same mechanism the panels themselves use.
+      */}
+      <details className="reveal">
+        <summary>
+          <Icon name="plus" />
+          Add channel
+        </summary>
       <form className="fields" action={setChannelMappingFormVoid}>
         <label className="small">
           Channel ID
@@ -102,6 +117,7 @@ export default async function SettingsPage({
         <button type="submit" className="primary">Save mapping</button>
       </form>
       </details>
+      </details>
 
       <details className="panel">
         <summary><span className="chevron" aria-hidden="true" />Who can use this</summary>
@@ -109,14 +125,28 @@ export default async function SettingsPage({
         Set with <code>AUTHORIZED_SLACK_USER_IDS</code>. An empty list denies
         everyone, including in Slack.
       </p>
+      {/*
+        Each id is named, rather than only your own being marked "(you)".
+        A column of raw Slack ids with one of them flagged tells you who you
+        are, which you knew, and nothing about who else is on the list.
+
+        Your own row prefers the name Slack itself gave the session -- the full
+        one, "Joshua Riley" -- over the short label the assignee column uses;
+        everyone else takes the label, which is the only name the app has for
+        them. An id with no name at all shows bare rather than inventing one.
+      */}
       <ul>
         {view.authorizedUserIds.length === 0 ? (
           <li className="error">
             Nobody is authorized. Set AUTHORIZED_SLACK_USER_IDS.
           </li>
-        ) : view.authorizedUserIds.map((id) => (
-          <li key={id}><code>{id}</code>{id === user.slackUserId ? ' (you)' : ''}</li>
-        ))}
+        ) : view.authorizedUserIds.map((id) => {
+          const name = (id === user.slackUserId ? user.name : null)
+            ?? view.userNames[id] ?? null;
+          return (
+            <li key={id}><code>{id}</code>{name ? ` (${name})` : ''}</li>
+          );
+        })}
       </ul>
       </details>
 

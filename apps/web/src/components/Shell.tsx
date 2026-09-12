@@ -27,10 +27,25 @@ export function Shell(props: {
   searchParams?: Record<string, string | string[] | undefined>;
   /** Filters, under the header. */
   toolbar?: React.ReactNode;
+  /**
+   * This page's own primary action, rendered where New task sits on a list
+   * page -- the right end of the toolbar. A page has one or the other, never
+   * both: the action furthest right is always "the thing that adds to this
+   * view", so it must be in the same place whatever the view is.
+   */
+  pageAction?: React.ReactNode;
+  /**
+   * False on a page that is not a list of tasks. Settings and Spaces both
+   * offered New task, which captured a task into a view that would never show
+   * it — the pane opened over a page with no list to return to.
+   */
+  newTask?: boolean;
   children: React.ReactNode;
 }) {
   const query = props.searchParams ?? {};
-  const creating = query.newTask !== undefined;
+  const showNewTask = props.newTask !== false;
+  /* The pane only opens where the button that opens it exists. */
+  const creating = showNewTask && query.newTask !== undefined;
   const spaces = props.spaces.map(({ space }) => space);
   const selectedSpace = newTaskSpace(spaces, props.activeSlug);
 
@@ -104,21 +119,34 @@ export function Shell(props: {
           The pills stay left because they are the control you reach for most;
           the action sits furthest from them so it is never hit by accident.
         */}
+        {/* No toolbar at all on a page with no filters and no actions -- an
+            empty one still drew a 16px strip between the heading and the
+            content. */}
+        {props.toolbar || props.searchPath || showNewTask || props.pageAction ? (
         <div className="toolbar">
           {props.toolbar}
-          <div className="page-actions">
-            {props.searchPath ? (
-              <SearchBox path={props.searchPath} params={query} />
-            ) : null}
-            <Link className="btn primary" href={newTaskHref(props.path, query)}>
-              <Icon name="plus" />
-              {/* The words drop on a phone so the whole filter row fits one
-                  line; the plus and the accessible name carry it there. */}
-              <span className="btn-label">New task</span>
-              <span className="sr-only">New task</span>
-            </Link>
-          </div>
+          {/* Rendered only when it would hold something: an empty flex item
+              still takes the row's gap, so the filters sat 8px short of the
+              edge on a page with neither control. */}
+          {props.searchPath || showNewTask || props.pageAction ? (
+            <div className="page-actions">
+              {props.searchPath ? (
+                <SearchBox path={props.searchPath} params={query} />
+              ) : null}
+              {showNewTask ? (
+                <Link className="btn primary" href={newTaskHref(props.path, query)}>
+                  <Icon name="plus" />
+                  {/* The words drop on a phone so the whole filter row fits one
+                      line; the plus and the accessible name carry it there. */}
+                  <span className="btn-label">New task</span>
+                  <span className="sr-only">New task</span>
+                </Link>
+              ) : null}
+              {props.pageAction}
+            </div>
+          ) : null}
         </div>
+        ) : null}
         <div className="content">{props.children}</div>
         {creating ? (
           <NewTaskPane
