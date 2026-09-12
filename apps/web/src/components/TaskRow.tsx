@@ -24,29 +24,35 @@ export interface TaskRowProps {
 }
 
 /**
- * The priority cell: a compact tinted pill, or an em dash.
+ * Priority rides in the tick circle, not in a column of its own.
  *
- * An em dash for unprioritized rather than a "None" pill, because the assignee,
- * due and waiting-on cells in this same row already use one for "nothing
- * recorded" — a fourth way of saying empty would be a fourth thing to learn.
- * It also keeps a mostly-unprioritized list quiet, which is the point: a pill
- * that appears on every row stops meaning anything.
+ * A list is scanned left to right, and the leftmost thing on a row was a blank
+ * circle while the one signal worth catching first — how urgent this is — sat
+ * in the fourth column, past the title. The circle was carrying no information
+ * at all, so it is where the priority goes: the ring takes the level's colour
+ * and the level's own digit sits inside it.
  *
- * The label is the bare "P0"; the level's name rides in `title` so the column
- * stays narrow without the meaning being lost.
+ * Hover and completion both take the circle back: the digit gives way to the
+ * check, because the control's job is still to complete the task, and what it
+ * is about to do outranks what it is telling you.
+ *
+ * Nothing is lost by dropping the column. The full "P0 — Critical" is in the
+ * button's title and its accessible name, and the level is still sortable from
+ * the "P" in the header above the circles.
  */
-export function PriorityPill({ priority }: { priority: Priority | null }) {
-  if (!priority) return <span className="priority">—</span>;
-  return (
-    <span className="priority">
-      <span
-        className={`prio prio-${priority.toLowerCase()}`}
-        title={`${priority} — ${PRIORITY_LABELS[priority]}`}
-      >
-        {priority}
-      </span>
-    </span>
-  );
+function priorityMark(priority: Priority | null): {
+  className: string; digit: string | null; label: string | null;
+} {
+  /* A class even for "none", so a rule can name the plain circle without
+     spelling out every level it is not. */
+  if (!priority) return { className: 'prio-none', digit: null, label: null };
+  return {
+    className: `prio-${priority.toLowerCase()}`,
+    // "P0" without its P: at 19px the ring holds one glyph, and the colour and
+    // the column header both already say which scale this is.
+    digit: priority.slice(1),
+    label: `${priority} — ${PRIORITY_LABELS[priority]}`,
+  };
 }
 
 function assigneeName(
@@ -81,6 +87,18 @@ export function TaskRow({
   };
   const due = dueLabel(task);
   const who = assigneeName(task, assigneeLabels);
+  const mark = priorityMark(task.priority);
+  /*
+   * Is THIS the row whose task is open in the edit pane?
+   *
+   * The pane is a URL, `?edit=<id>`, and the row already receives that URL's
+   * own params so it can build its link -- so the selected state needs no new
+   * prop threaded through five pages and two components. `taskEditHref` drops
+   * `edit` when it rebuilds the query, which is why the value survives here
+   * unread.
+   */
+  const editing = Array.isArray(params.edit) ? params.edit[0] : params.edit;
+  const selected = editing === task.id;
 
   return (
     <li
@@ -88,6 +106,7 @@ export function TaskRow({
         [
           'row', 'task',
           done ? 'done' : null,
+          selected ? 'selected' : null,
           // Positional grid: a cell that is not rendered has to come off the
           // template too, or every column after it shifts left. The header
           // above carries the same classes for the same reason.
@@ -105,12 +124,43 @@ export function TaskRow({
       <form className="tick" action={done ? reopenHere : completeHere}>
         <button
           type="submit"
-          className={done ? 'circle done' : 'circle'}
-          aria-label={done ? `Reopen ${task.title}` : `Complete ${task.title}`}
-          title={done ? 'Reopen' : 'Complete'}
+          className={
+            ['circle', done ? 'done' : mark.className].filter(Boolean).join(' ')
+          }
+          /*
+           * The priority rides in the accessible name as well as in the ring,
+           * because the ring is a colour and a digit inside a graphic. A
+           * reader hears "Complete Buy milk, P0 — Critical", which is the
+           * action and the state the column used to carry.
+           *
+           * Not on a completed row: the digit is not drawn there either, the
+           * circle having become the green check.
+           */
+          aria-label={
+            done
+              ? `Reopen ${task.title}`
+              : `Complete ${task.title}${mark.label ? `, ${mark.label}` : ''}`
+          }
+          title={
+            done ? 'Reopen' : mark.label ? `${mark.label}. Complete` : 'Complete'
+          }
         >
           <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
             <circle cx="10" cy="10" r="8.5" />
+            {/* Before the check in document order, so the check paints over it
+                during the moment both are fading. */}
+            {/*
+              y is a BASELINE, not a centre. At 11px the cap height is about
+              7.9 units of this 20-unit box, so the baseline has to sit half a
+              cap below the middle for the digit to look centred: 10 + 3.9.
+              `dominant-baseline: central` would say the same thing in one
+              word and is the reason this looked high at first -- it is not
+              reliable enough across browsers to trust with a glyph this
+              small.
+            */}
+            {!done && mark.digit ? (
+              <text className="rank" x="10" y="13.9">{mark.digit}</text>
+            ) : null}
             <path d="M6 10.4l2.6 2.6L14.2 7.4" />
           </svg>
         </button>
@@ -126,15 +176,20 @@ export function TaskRow({
         pane shows all of it in a field.
       */}
       <span className="title">
-        {/* Rendered as text, never as markup. */}
-        <Link href={taskEditHref(task, basePath, params)} title={task.title}>
+        {/* Rendered as text, never as markup.
+            aria-current on the open one, so the selected row is not announced
+            by its tint alone -- a reader says "current page" on the task the
+            pane beside it is showing. */}
+        <Link
+          href={taskEditHref(task, basePath, params)}
+          title={task.title}
+          aria-current={selected ? 'page' : undefined}
+        >
           {task.title}
         </Link>
       </span>
 
-      {/* Immediately beside the title, so an eye running down the list of
-          titles catches a P0 without crossing the row. */}
-      <PriorityPill priority={task.priority} />
+      {/* No priority cell. It is the tick circle now -- see priorityMark. */}
 
       {showSpace ? (
         <span className="space">{shortSpaceName(space)}</span>
