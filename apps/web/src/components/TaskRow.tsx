@@ -120,10 +120,16 @@ export function TaskRow({
         The title, and nothing under it. Everything that used to ride in a
         grey sub-line here -- the Space, what a task waits on, its age, where
         it came from -- is a column now, or gone.
+
+        One line, clipped: the row stays a fixed height so the tick beside it
+        never moves. `title` carries the full text for a hover, and the edit
+        pane shows all of it in a field.
       */}
       <span className="title">
         {/* Rendered as text, never as markup. */}
-        <Link href={taskEditHref(task, basePath, params)}>{task.title}</Link>
+        <Link href={taskEditHref(task, basePath, params)} title={task.title}>
+          {task.title}
+        </Link>
       </span>
 
       {/* Immediately beside the title, so an eye running down the list of

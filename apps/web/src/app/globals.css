@@ -137,7 +137,18 @@ a { color: var(--accent-strong); }
   padding: 12px 0 4px;
 }
 .toolbar .filters { flex: 1 1 auto; }
-.toolbar .page-actions { flex: none; }
+/*
+ * `margin-left: auto` as well as `flex: none`, so the actions sit at the right
+ * edge of whichever line they end up on.
+ *
+ * The row wraps, and on a tablet it does: the filters keep the first line and
+ * search plus New task drop to a second one. Being `flex: none` they then sat
+ * at the LEFT of that line -- New task mid-row under the pills, with the
+ * assignee control still pushed hard right above it, which read as two
+ * unrelated rows rather than one wrapped toolbar. The auto margin puts them
+ * on the right whether they share the filters' line or take their own.
+ */
+.toolbar .page-actions { flex: none; margin-left: auto; }
 
 /* Search, top right. */
 form.search { margin: 0; flex: none; }
@@ -203,8 +214,30 @@ nav.rail {
   padding: 0 0 16px;
   position: sticky; top: 0; align-self: start;
   height: 100vh; overflow-y: auto;
+  /*
+   * dvh, with vh above it as the fallback for anything that does not know the
+   * unit. On iOS, 100vh is the LARGE viewport -- the height the page would
+   * have if Safari's toolbars were hidden -- so a 100vh drawer runs underneath
+   * the toolbar that is actually on screen, and its last few rows can never be
+   * reached however far you scroll. 100dvh is the height you can really see.
+   */
+  height: 100dvh;
 }
 nav.rail .grow { flex: 1; }
+/*
+ * Spaces and Settings stay on screen.
+ *
+ * They sit at the BOTTOM of a list that is far taller than a phone -- four
+ * reports, nine spaces, six clients -- so on a phone they were simply below
+ * the fold of the drawer, and the one of them you want (Settings) is the one
+ * furthest down. `.grow` puts them at the end on a tall screen; sticky keeps
+ * them at the end of the VISIBLE box on a short one, with the list scrolling
+ * underneath. Its own background is what stops the rows showing through.
+ */
+nav.rail ul.group.foot {
+  position: sticky; bottom: 0; z-index: 1;
+  background: var(--rail-bg); padding-bottom: 8px;
+}
 
 nav.rail a.workspace {
   display: flex; align-items: center; gap: 10px;
@@ -345,8 +378,20 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
   /* Four templates, because four combinations of cells actually get rendered.
      A cell that is absent must leave the template too, or every column after
      it shifts left. */
+  /*
+   * Centred is safe again now that every cell on the row is a single
+   * non-wrapping line: the row is always exactly one line tall, so the tick
+   * sits at the same height on every row instead of sliding down beside a
+   * title that had wrapped to three.
+   */
   align-items: center;
-  padding: 0 16px; min-height: 42px;
+  /*
+   * Real space above and below the line, rather than a min-height doing the
+   * job on its own. The old `padding: 0 16px` meant a row that outgrew its
+   * 42px minimum -- a wrapped title, a tall cell -- had its text flush against
+   * the hairlines above and below it.
+   */
+  padding: 10px 16px; min-height: 42px;
   border-bottom: 1px solid var(--border);
 }
 ul.rows li.row:last-child { border-bottom: 0; }
@@ -378,9 +423,23 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
    */
   min-height: 34px; color: var(--fg); font-size: 12px; font-weight: 600;
   background: var(--header-bg); border-bottom: 1px solid var(--border);
+  /* Tighter than a task row: the header is one short line that never wraps. */
+  padding: 7px 16px;
 }
-.row .title { min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-right: 12px; }
-.row .title a { color: var(--fg); text-decoration: none; word-break: break-word; }
+.row .title { min-width: 0; display: block; padding-right: 12px; }
+/*
+ * One line, clipped with an ellipsis -- the same treatment the Waiting on and
+ * Age cells already use.
+ *
+ * A title that wrapped took the whole row with it: three lines at 390px, the
+ * tick pushed off the first line, and the rows either side of it no longer
+ * the same height. The list is for scanning; the full title is a tap away in
+ * the edit pane, and stays in the link's tooltip here.
+ */
+.row .title a {
+  display: block; color: var(--fg); text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .row .title a:hover { color: var(--accent-strong); }
 /* A Space page names its Space in the heading, so those rows carry no Space
    cell and need the template without the track. */
@@ -599,6 +658,7 @@ input[type="datetime-local"], select, textarea {
   border-radius: var(--radius); background: var(--surface); color: var(--fg);
 }
 textarea { min-height: 90px; }
+
 button, .btn {
   font: inherit; padding: 6px 12px; border: 1px solid var(--border);
   border-radius: var(--radius); background: var(--surface); color: var(--fg);
@@ -961,7 +1021,7 @@ button.danger:hover { border-color: var(--danger); }
      from the opposite edge to its own control reads as a different thing. */
   nav.rail {
     position: fixed; inset: 0 0 0 auto; z-index: 58;
-    width: min(82vw, 300px); height: 100vh;
+    width: min(82vw, 300px); height: 100vh; height: 100dvh;
     transform: translateX(100%);
     transition: transform .18s ease;
   }
@@ -1135,9 +1195,22 @@ button.danger:hover { border-color: var(--danger); }
 }
 .pane {
   position: fixed; z-index: 5; top: 0; right: 0; bottom: 0;
+  /*
+   * dvh as well as `bottom: 0`, for the same reason the rail carries it: on
+   * iOS a fixed box's bottom edge is the LARGE viewport's, which sits under
+   * Safari's toolbar, so the last stretch of the pane was off screen behind
+   * the browser's own chrome.
+   */
+  height: 100dvh;
   width: min(560px, 100%);
   background: var(--bg); border-left: 1px solid var(--border);
-  padding: 16px 20px 40px;
+  /*
+   * No bottom padding. `position: sticky; bottom: 0` pins to the scrollport's
+   * PADDING box, so 40px of padding here parked the action row 40px up and
+   * left a strip of the form visible below it. The breathing room moves onto
+   * the last child instead, where it does not move anything.
+   */
+  padding: 16px 20px 0;
   overflow-y: auto;
   box-shadow: -8px 0 24px rgba(0, 0, 0, .12);
   animation: pane-in 200ms cubic-bezier(.2, .7, .3, 1) both;
@@ -1161,6 +1234,29 @@ a.pane-close {
   border-radius: var(--radius);
 }
 a.pane-close:hover { background: var(--border); color: var(--fg); }
+.pane > :last-child { margin-bottom: 32px; }
+
+/*
+ * Save / Create task, always on screen.
+ *
+ * The pane scrolls, and the form is eight fields long -- longer than a phone
+ * -- so the submit button was simply off the bottom of it, and on iOS the
+ * bottom of a fixed pane is under Safari's toolbar as well. Pinned to the
+ * bottom edge the way `.pane-head` is pinned to the top, it is reachable
+ * whatever the field count and wherever you have scrolled to.
+ *
+ * Its own background and top rule are what let the fields scroll underneath
+ * it without the two sets of text overlapping.
+ */
+.pane-actions {
+  position: sticky; bottom: 0; z-index: 1;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 4px 0 0; padding: 12px 0 4px;
+  background: var(--bg); border-top: 1px solid var(--border);
+}
+.pane-actions button, .pane-actions .btn {
+  height: 34px; display: inline-flex; align-items: center;
+}
 
 @media (max-width: 620px) {
   /* Full width on a phone: a 560px pane on a 390px screen is just a page. */
@@ -1205,6 +1301,32 @@ form.fields {
 form.fields label { display: grid; gap: 4px; color: var(--muted); font-size: 13px; }
 form.fields button { justify-self: start; margin-top: 2px; }
 
+/*
+ * A disclosure dressed as a button: "Add channel" on the settings page.
+ *
+ * `details`/`summary` rather than a checkbox, because it is the mechanism the
+ * panels around it already use and it needs no script either way. The summary
+ * takes the plain button recipe verbatim -- the same height, border and hover
+ * as a real one -- so it reads as the control it behaves like. Its content
+ * only appears once it is clicked.
+ */
+details.reveal { margin: 14px 16px; }
+details.reveal > summary {
+  display: inline-flex; align-items: center; gap: 6px; width: max-content;
+  list-style: none; cursor: pointer;
+  font: inherit; height: 34px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--fg);
+}
+details.reveal > summary::-webkit-details-marker { display: none; }
+details.reveal > summary:hover { background: #f3f4f6; }
+details.reveal > summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+details.reveal > summary .icon { width: 15px; height: 15px; }
+/* The form is already inside the panel's own margins, so it drops its. */
+details.reveal form.fields { margin: 12px 0 0; }
+
 /* --- the Spaces list --- */
 
 .row.spacerow {
@@ -1245,4 +1367,48 @@ a.iconbtn .icon { width: 15px; height: 15px; }
    * that used to wrap them under the heading are gone with the layout they
    * described. The toolbar block above sizes them now.
    */
+}
+
+/* --- touch devices --- */
+
+/*
+ * No zoom-on-focus.
+ *
+ * iOS Safari zooms the whole page in when you focus a control whose text is
+ * smaller than 16px, and it does not zoom back out afterwards. Every field in
+ * this app inherits the body's 14px -- some inherit a label's 13px -- so every
+ * tap on a field did it, and left you scrolled sideways in a page that no
+ * longer fit.
+ *
+ * 16px is the fix Safari actually honours. The other one, `maximum-scale=1`
+ * on the viewport meta, works by disabling pinch-zoom entirely: it trades a
+ * layout annoyance for a real accessibility loss, so it is not used here.
+ *
+ * `pointer: coarse` is the condition that matters -- a touch device, at any
+ * width, including a tablet in landscape. The width clause rides along so the
+ * rule is reachable in a desktop browser narrowed to phone size, which is
+ * where it gets checked.
+ */
+@media (pointer: coarse), (max-width: 860px) {
+  /*
+   * The same selector list the base rule uses, not a bare `input`. The base
+   * sets `font: inherit` on the typed selectors, and a shorthand at higher
+   * specificity beats a longhand at lower -- so a bare `input { font-size }`
+   * lost to it, and the text fields stayed at the 13px they inherited from
+   * their label while the selects and textareas moved.
+   */
+  input[type="text"], input[type="search"], input[type="date"],
+  input[type="datetime-local"], input[type="email"], input[type="number"],
+  input[type="password"], input[type="tel"], input[type="url"],
+  select, textarea,
+  .search-field input[type="search"] { font-size: 16px; }
+  /*
+   * The toolbar's one-height rule has to move with the text it wraps: 16px in
+   * a 34px box clips. 40px also happens to be the touch target the controls
+   * should have had on a phone anyway.
+   */
+  .filters > a.chip, .filters .chip,
+  .filters button, .filters .btn, .filters select, .filters input { height: 40px; }
+  .page-actions > .btn, .filters .menu-button { height: 40px; }
+  .pane-actions button, .pane-actions .btn { height: 40px; }
 }
