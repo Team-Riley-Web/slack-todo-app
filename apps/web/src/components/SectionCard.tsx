@@ -174,9 +174,15 @@ export function ColumnHead({
          link inside aria-hidden is unreachable. */
       aria-hidden={sorting ? undefined : true}
     >
+      {/*
+        The tick column's header stays empty. It briefly held a "P" -- the
+        priority sort, over the circles that now carry the level -- and one
+        stray letter at the left edge of every band was more noise than the
+        sort was worth. Ordering by priority is still a URL (`?sort=priority`),
+        it simply has no control of its own any more.
+      */}
       <span className="tick" />
       {column('title', 'title', label ?? 'Task', sorting)}
-      {column('priority', 'priority', 'Priority', sorting)}
       {showSpace ? column('space', 'space', 'Space', sorting) : null}
       {showWaiting ? (
         <>

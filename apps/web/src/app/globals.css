@@ -3,75 +3,124 @@
  * light main column, and task lists grouped into white surfaces with a table
  * header. The layout is the part that makes it read the same.
  *
- * Colours and type come from docs/brand-spec.md. Each brand token is declared
+ * Colours and type come from docs/brand-spec.md. Each core token is declared
  * twice: a hex fallback first, then the spec's own oklch, which any browser
- * that does not parse oklch simply ignores. Five of the six spec values
- * converted to exactly the hex already in use here -- the spec was sampled
- * from this interface -- so the oklch is the authority and the hex is a
- * faithful sRGB rendering of it, not a second opinion.
+ * that does not parse oklch simply ignores. Every one of the spec's oklch
+ * values converts to exactly the hex above it, so the oklch is the authority
+ * and the hex is a faithful sRGB rendering of it, not a second opinion.
+ *
+ * The palette gives each family one job, and that is the rule to hold when
+ * adding to this file:
+ *
+ *   grey      separates the canvas, the cards, and a space-group header
+ *   lavender  is table-column scaffolding -- the header strip and nothing else
+ *   cobalt    is selected navigation and the single primary action
+ *   semantic  red / amber / green / neutral say how much time is left, and
+ *             live only in the pills and the due column
+ *
+ * Task rows themselves stay white and take no tint at all; the pale blue
+ * hover is their only feedback.
  */
 
 :root {
-  /* --- rail: the graphite navigation column. No spec values; sampled. --- */
-  --rail-bg: #1e2432;
-  --rail-fg: #c4c5cb;
-  --rail-muted: #7d8188;
-  --rail-line: #2b3242;
+  /* --- rail: the graphite navigation column --- */
+  --rail-bg: #1c2230;
+  --rail-bg: oklch(0.2527 0.0281 266.45);
+  --rail-fg: #c7cdd8;
+  --rail-fg: oklch(0.8470 0.0166 262.75);
+  --rail-muted: #8992a3;
+  --rail-muted: oklch(0.6583 0.0274 263.26);
+  /* No spec value: the hairline inside the rail, one step up from the rail's
+     own background on the rail's own hue. */
+  --rail-line: #2b3140;
 
-  /* --- brand tokens, docs/brand-spec.md --- */
-  --bg: #fcfcfd;
-  --bg: oklch(0.9913 0.0013 286.38);
+  /* --- canvas, surface, text, hairline --- */
+  --bg: #f7f8fc;
+  --bg: oklch(0.9795 0.0054 274.97);
   --surface: #ffffff;
   --surface: oklch(1 0 89.88);
-  --fg: #22262e;
-  --fg: oklch(0.2681 0.016 264.26);
-  --muted: #6b7280;
-  --muted: oklch(0.551 0.0234 264.36);
-  --border: #e6e8eb;
-  --border: oklch(0.9303 0.0046 258.33);
+  --fg: #202533;
+  --fg: oklch(0.2660 0.0273 269.25);
+  --muted: #667085;
+  --muted: oklch(0.5444 0.0350 265.11);
   /*
-   * The alternate row tone, for zebra striping. Asked for at this exact
-   * value. It is a neutral grey rather than the faintly blue tint it
-   * replaced, and much lighter -- 1% down from the surface where the old one
-   * was 2.4% -- which works now that --header-bg carries the job of looking
-   * distinct. The stripe only has to separate a row from its neighbour.
+   * Secondary text where it sits on a tinted surface rather than on white.
+   * --muted measures 4.32:1 on --header-bg, under the 4.5:1 floor, so the
+   * card counts and the sign-in note take this step instead -- 6.5:1 there.
+   * It is not a new colour: it is the "No date" pill's own label.
    */
-  --surface-alt: #fcfcfc;
-  --surface-alt: oklch(0.99 0 0);
+  --muted-strong: #4b5565;
+  --border: #dde1ea;
+  --border: oklch(0.9093 0.0130 266.69);
+  /* The same hairline a step darker, for a control under the pointer. */
+  --border-strong: #c6cdda;
 
   /*
-   * The column header bar. It used to share --surface-alt with the stripes,
-   * which capped how distinct it could be: any darker and every second row
-   * went with it. Its own token now, 4.5% down from the surface, so the bar
-   * reads as a header rather than as one more row. Labels stay at --fg and
-   * measure 13.3:1 on it.
+   * Grey: the canvas is separated from the cards, and a card's own title row
+   * -- the space-group header -- is separated from the rows beneath it. It is
+   * also the hover fill for any plain control, since a plain control is
+   * structure rather than meaning.
    */
-  --header-bg: #eef0f4;
-  --header-bg: oklch(0.955 0.006 264.54);
+  --header-bg: #eceff4;
 
   /*
-   * The one token the spec actually changes: the accent becomes the same
-   * cornflower as the rail's selected row, so selection is one colour in both
-   * halves of the app. It replaces --rail-active, which held this exact value.
+   * Lavender: table-column scaffolding, and nothing else. The header strip
+   * over a list, its labels, and the hairline under it. Wherever this colour
+   * appears it means "these are the columns", which is why the group tints
+   * that used to colour OPEN and WAITING differently are gone -- the words
+   * already say which group a band belongs to.
    */
-  --accent: #5986ff;
-  --accent: oklch(0.6493 0.1862 266.03);
+  --col-bg: #eeefff;
+  --col-fg: #49466a;
+  --col-border: #dadcf5;
 
   /*
-   * White on that accent is 3.34:1. That clears the 3:1 bar for a UI surface,
-   * a border or a focus ring, but not the 4.5:1 one for text -- so a solid
-   * primary button and a link, which ARE text, use this darker companion.
-   * L 0.57 is the lightest point on the spec's own hue and chroma that passes
-   * AA in both directions (4.63:1), so the brand hue is kept rather than
-   * swapped for a different blue.
+   * The two states a task row can take. Rows carry no PERMANENT tint -- no
+   * zebra -- because white against the cool-grey canvas separates them well
+   * enough, and a standing tint would compete with the pills, which are the
+   * things on a row that actually carry meaning. These two are transient:
+   * they say where the pointer is, and which task the pane is showing.
+   *
+   * Hover is the fainter of the two on purpose, so that with a task open you
+   * can run the pointer down the list without ever losing which row you are
+   * editing.
    */
-  --accent-strong: #436de3;
-  --accent-strong: oklch(0.57 0.1862 266.03);
+  --row-hover: #f5f7ff;
+  --row-selected: #e8f0ff;
 
-  --danger: #b42318;
+  /*
+   * Cobalt: selected navigation and the one primary action, the same value in
+   * both places, so "this is on" and "press this" are recognisably one
+   * colour. White on it measures 4.85:1, so it carries a button label as well
+   * as a fill -- which the old accent, at 3.34:1, could not.
+   */
+  --accent: #4169e1;
+  --accent: oklch(0.5598 0.1882 266.40);
+  /*
+   * The same cobalt a step down, for blue used AS text on a light surface --
+   * a link, a hover -- and for the primary button's hover, which has to
+   * darken rather than lighten under a white label. 6.3:1 on white.
+   */
+  --accent-strong: #3156cc;
+  /*
+   * Two steps down again: the navy a task title takes under the pointer. It
+   * has to read as blue without reading as a bright link in a list of forty
+   * near-black titles, so it sits at 8.1:1 on the hover fill -- only a little
+   * quieter than the #202533 it replaces for that moment. Not a new colour:
+   * it is the selected Today pill's own hover.
+   */
+  --accent-deep: #1d4899;
+
+  /*
+   * Red is overdue and urgent, and nothing else -- not a delete, not an
+   * error's text, not a fourth pill. One value for both jobs, replacing an
+   * --overdue that sat at 3.9:1 on white.
+   */
+  --danger: #b4232a;
+  --overdue: #b4232a;
   --soon: #b54708;
-  --done: #35ca8c;
-  --overdue: #ea4954;
+  /* One green, shared by the completed check and the This week pill. */
+  --done: #147a50;
 
   /* --- type, docs/brand-spec.md --- */
   /*
@@ -342,7 +391,9 @@ details.card > summary::-webkit-details-marker { display: none; }
 details.card[open] > summary { border-bottom: 1px solid var(--border); }
 details.card > summary .name { flex: 1; }
 details.card > summary .count {
-  color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums;
+  /* On the grey title row, not on white: --muted-strong is the step that
+     clears 4.5:1 there. */
+  color: var(--muted-strong); font-weight: 400; font-variant-numeric: tabular-nums;
 }
 /*
  * A chevron drawn from two borders rather than a filled triangle: at this size
@@ -373,8 +424,8 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
  */
 .row {
   display: grid;
-  /* tick | title | priority | space | assignee | due | actions */
-  grid-template-columns: var(--tick-w) minmax(0, 1fr) 64px 128px 110px 92px 78px;
+  /* tick (priority) | title | space | assignee | due | actions */
+  grid-template-columns: var(--tick-w) minmax(0, 1fr) 128px 110px 92px 78px;
   /* Four templates, because four combinations of cells actually get rendered.
      A cell that is absent must leave the template too, or every column after
      it shifts left. */
@@ -396,16 +447,56 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
 }
 ul.rows li.row:last-child { border-bottom: 0; }
 /*
- * Zebra striping on task rows. A 20-row list of flat white separated only by
- * hairlines is hard to read across: the eye loses the line somewhere between
- * the title on the left and the due date on the right. nth-child works
- * because the column header is a sibling of this list, not a child of it, so
- * the first task row is always odd.
+ * No zebra striping. Every task row is white at rest, and the only tones it
+ * takes say something: the pointer is here, or the pane is showing this one.
  *
- * Task rows only. The Spaces list is short and its rows are mostly counts;
- * striping it would be decoration rather than help.
+ * The stripes were carrying a job the palette now gives elsewhere: the cards
+ * sit on a cool-grey canvas with a grey title row and a lavender column band,
+ * so a list already reads as a list without a second tone alternating down
+ * it. Leaving them in would have meant a row's background sometimes said
+ * "even" and sometimes said "pointer is here", which is one signal too many
+ * on the surface that carries the work.
+ *
+ * `:focus-within` takes the hover tone as well, so tabbing through a list
+ * marks the row and not just the link inside it.
  */
-ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
+ul.rows li.row.task:hover,
+ul.rows li.row.task:focus-within { background: var(--row-hover); }
+
+/*
+ * The row whose task is open in the edit pane.
+ *
+ * Deeper than the hover, and with a cobalt edge down its left side: the pane
+ * covers the right half of the screen, so without this the only way to tell
+ * which of thirty rows you were editing was to read the title in the pane and
+ * find it again. The bar is an inset shadow rather than a border, so it costs
+ * no width and the row does not shift by 3px as it is selected.
+ *
+ * After the hover rule, so a selected row keeps its own colour while the
+ * pointer is on it -- and the cobalt is the same one the rail's selected item
+ * and the primary button use, because this is the same idea: you are here.
+ */
+ul.rows li.row.task.selected,
+ul.rows li.row.task.selected:hover {
+  background: var(--row-selected);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+/*
+ * The quiet cells step up one on that fill. --muted is 4.34:1 on it, under the
+ * floor; --muted-strong is 6.6:1. Same reason the card counts take it.
+ */
+.row.task.selected .space, .row.task.selected .assignee,
+.row.task.selected .due, .row.task.selected .waiting-on,
+.row.task.selected .age { color: var(--muted-strong); }
+/* The empty tick too -- #868fa1 falls to 2.84:1 on this fill. Only the empty
+   one: a circle carrying a priority is already dark enough there (the amber
+   is 4.7:1, the blue 5.9:1, the neutral 6.6:1) and must keep its own colour.
+   Not while it is hovered either, which is green. The Wait / Unblock label is
+   the same story, and hands its hover back the same way. */
+.row.task.selected button.circle.prio-none:not(:hover) { color: var(--muted-strong); }
+.row.task.selected .rowactions button:not(:hover) { color: var(--muted-strong); }
+/* A done row keeps its struck-through, quieted title even when selected. */
+.row.task.selected.done .title a { color: var(--muted-strong); }
 
 /*
  * Every list now sits under its own band, so each one starts counting from the
@@ -415,14 +506,14 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
  */
 .row.head {
   /*
-   * --fg, not --muted: the spec asks for the values to read quieter than the
-   * column labels, and both were --muted, so there was no hierarchy. The
-   * labels darken rather than the values lightening -- a value at --muted is
-   * already 4.83:1 on white, so making it quieter would cross the 4.5:1
-   * floor.
+   * --col-fg, not --muted: the labels have to read louder than the values
+   * under them, and both were --muted, so there was no hierarchy. The labels
+   * darken rather than the values lightening -- a value at --muted is already
+   * 4.97:1 on white, so making it quieter would cross the 4.5:1 floor. On the
+   * lavender band this ink measures 7.8:1.
    */
-  min-height: 34px; color: var(--fg); font-size: 12px; font-weight: 600;
-  background: var(--header-bg); border-bottom: 1px solid var(--border);
+  min-height: 34px; color: var(--col-fg); font-size: 12px; font-weight: 600;
+  background: var(--col-bg); border-bottom: 1px solid var(--col-border);
   /* Tighter than a task row: the header is one short line that never wraps. */
   padding: 7px 16px;
 }
@@ -440,18 +531,29 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
   display: block; color: var(--fg); text-decoration: none;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.row .title a:hover { color: var(--accent-strong); }
+/*
+ * The title under the pointer, and under the keyboard: navy, not cobalt.
+ *
+ * A task title is a link, and saying so on hover is worth having. The reason
+ * to use --accent-deep rather than the cobalt every other link takes is
+ * quietness -- at 8.1:1 on the hover fill it is barely a step down from the
+ * #202533 around it, so one row turning blue in a list of forty does not pull
+ * the eye the way a bright link would. The row tint is still doing most of
+ * the work; this is the part that says the title is clickable.
+ */
+.row.task:not(.done):hover .title a,
+.row.task:not(.done):focus-within .title a { color: var(--accent-deep); }
 /* A Space page names its Space in the heading, so those rows carry no Space
    cell and need the template without the track. */
-.row.nospace { grid-template-columns: var(--tick-w) minmax(0, 1fr) 64px 110px 92px 78px; }
+.row.nospace { grid-template-columns: var(--tick-w) minmax(0, 1fr) 110px 92px 78px; }
 /* A list that can hold blocked tasks gains "Waiting on" and "Age". */
 .row.haswait {
   grid-template-columns:
-    var(--tick-w) minmax(0, 1fr) 64px 128px 130px 58px 110px 92px 78px;
+    var(--tick-w) minmax(0, 1fr) 128px 130px 58px 110px 92px 78px;
 }
 .row.nospace.haswait {
   grid-template-columns:
-    var(--tick-w) minmax(0, 1fr) 64px 130px 58px 110px 92px 78px;
+    var(--tick-w) minmax(0, 1fr) 130px 58px 110px 92px 78px;
 }
 .row .waiting-on, .row .age {
   color: var(--muted); font-size: 13px;
@@ -465,7 +567,7 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
  * "Task" -- and dark "Waiting on" and "Age" once those arrived. One rule, one
  * colour, labels louder than values as the brand spec asks.
  */
-.row.head > span { color: var(--fg); }
+.row.head > span { color: var(--col-fg); }
 
 /*
  * A band that names its group -- OPEN or WAITING -- rather than its first
@@ -479,31 +581,42 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
 }
 
 /*
- * Open and Waiting each get their own tint, so a group is identifiable before
- * the word under it is read.
+ * Open and Waiting bands, told apart by hue.
  *
- * One recipe for both: a saturated colour laid on at 9% alpha rather than a
- * pre-mixed light value. Translucent means the tint sits correctly on the card
- * and on a zebra stripe without a second variant for each, and it stays faint
- * enough that the label keeps the contrast it had on white.
+ * Open keeps the lavender every column band wears. Waiting steps round the
+ * wheel to a violet at the same lightness and chroma -- 305 where the
+ * lavender is 283 -- so the two are plainly different colours sitting one
+ * above the other in a card, without either becoming louder than the other or
+ * louder than the rows beneath them.
  *
- * Waiting's exact value was specified. Open takes the same recipe on the
- * app's own accent hue, so the pair are a family rather than two unrelated
- * choices.
+ * A hue step rather than a value step on purpose: a darker band of the same
+ * colour reads as "more important", which is not what blocked work is. It is
+ * a different KIND of work, so it gets a different colour at the same weight.
+ *
+ * This restores a distinction the colour pass had folded away. The lesson
+ * from folding it: the words OPEN and WAITING are not enough on their own
+ * when eleven cards are stacked down a page and each one can carry both.
+ *
+ * The ink moves with the fill, staying on the band's own hue -- 7.4:1 there,
+ * where the lavender ink is 7.8:1 on lavender, so neither band reads quieter.
  */
-.row.head.head-open,
-.card > summary.summary-open { background: oklch(0.56 0.26 266 / 0.09); }
-.row.head.head-waiting,
-.card > summary.summary-waiting { background: oklch(0.56 0.26 279.32 / 0.09); }
+.row.head.head-waiting {
+  background: #f1e4ff;
+  border-bottom-color: #e3d2f9;
+}
+.row.head.head-waiting > span { color: #56436c; }
 
 /* Sortable column labels. They keep the label's own weight and colour, so a
-   header reads the same whether or not it can sort; hover says it can. */
+   header reads the same whether or not it can sort; hover says it can.
+   Hover and active DARKEN to --fg rather than turning blue: blue on the
+   lavender band would be a lighter text than the label it replaced, and the
+   active column is marked by its arrow, not by its colour alone. */
 .row.head a.sort {
   display: inline-flex; align-items: center; gap: 4px;
   color: inherit; text-decoration: none; cursor: pointer;
 }
-.row.head a.sort:hover { color: var(--accent-strong); }
-.row.head a.sort.active { color: var(--accent-strong); }
+.row.head a.sort:hover { color: var(--fg); }
+.row.head a.sort.active { color: var(--fg); }
 .row.head a.sort .arrow { font-size: 11px; line-height: 1; }
 .row.head a.sort:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px;
@@ -513,47 +626,8 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 /*
- * Priority pills.
- *
- * P1-P3 follow the house chip recipe exactly -- fill L 0.955, label L 0.46,
- * border L 0.92, all on ONE hue -- which lands each pair near 6.3:1, well past
- * the 4.5:1 floor. Hues are taken from tokens that already exist rather than
- * invented: --overdue (21.1) for P0, --soon (43.0) for P1, --accent (266) for
- * P2, and the neutral (264.4) for P3. The app gains no new colours, only new
- * uses of the four it has.
- *
- * P0 breaks the pattern deliberately: it is FILLED rather than tinted, because
- * "critical" has to outrank "high" at a glance and four tints of increasing
- * chroma all read as the same weight in a scanned column. White on its fill
- * measures 6.02:1.
- *
- * Tabular figures so a column of pills does not jitter, and no wrapping: the
- * label is two characters and must stay on one line at any width.
+ * Priority lives in the tick circle; its rules sit with the circle below.
  */
-.row .priority { color: var(--muted); font-size: 13px; }
-.row .prio {
-  display: inline-block; min-width: 26px; text-align: center;
-  padding: 1px 6px; border-radius: 999px;
-  border: 1px solid transparent;
-  font-size: 11px; font-weight: 600; line-height: 16px;
-  font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.row .prio-p0 {
-  background: oklch(0.52 0.17 21.1); color: #fff;
-  border-color: oklch(0.52 0.17 21.1);
-}
-.row .prio-p1 {
-  background: oklch(0.955 0.03 43); color: oklch(0.46 0.14 43);
-  border-color: oklch(0.92 0.045 43);
-}
-.row .prio-p2 {
-  background: oklch(0.955 0.03 266); color: oklch(0.46 0.14 266);
-  border-color: oklch(0.92 0.045 266);
-}
-.row .prio-p3 {
-  background: oklch(0.955 0.012 264.4); color: oklch(0.46 0.01 264.4);
-  border-color: oklch(0.92 0.012 264.4);
-}
 .row .due.overdue { color: var(--overdue); font-weight: 500; }
 .row .due.soon { color: var(--soon); }
 .row.done .title a { text-decoration: line-through; color: var(--muted); }
@@ -570,20 +644,30 @@ ul.rows li.row.task:nth-child(even) { background: var(--surface-alt); }
   background: var(--surface); border: 1px solid var(--border); color: var(--muted);
   border-radius: var(--radius); padding: 3px 8px; font-size: 12px; cursor: pointer;
 }
-.row .rowactions button:hover { color: var(--fg); background: #f3f4f6; border-color: #c9ced6; }
+.row .rowactions button:hover {
+  color: var(--fg); background: var(--header-bg); border-color: var(--border-strong);
+}
 .row .rowactions button:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
-/* On a striped row the button's own --surface would read as a white patch, so
-   it takes the row's colour and keeps only its outline. */
-ul.rows li.row.task:nth-child(even) .rowactions button { background: transparent; }
-ul.rows li.row.task:nth-child(even) .rowactions button:hover { background: #f3f4f6; }
+/* A row at rest is white, so the button's own --surface is already the row's
+   colour. On a tinted row -- hovered, focused, or the one open in the pane --
+   it goes transparent rather than punching a white hole in the tint, and keeps
+   only its outline. */
+ul.rows li.row.task:hover .rowactions button,
+ul.rows li.row.task:focus-within .rowactions button,
+ul.rows li.row.task.selected .rowactions button { background: transparent; }
+ul.rows li.row.task:hover .rowactions button:hover,
+ul.rows li.row.task:focus-within .rowactions button:hover,
+ul.rows li.row.task.selected .rowactions button:hover { background: var(--header-bg); }
 
 /* The circle check. A real submit button, so completing needs no JavaScript. */
 .row form.tick { margin: 0; display: flex; align-items: center; }
 button.circle {
   appearance: none; background: none; border: 0; padding: 0;
-  cursor: pointer; line-height: 0; border-radius: 999px; color: #c9ced6;
+  /* 3.25:1 on white. The empty circle is the row's one control and has to be
+     visible as one; the old #c9ced6 sat at 1.7:1. */
+  cursor: pointer; line-height: 0; border-radius: 999px; color: #868fa1;
 }
 button.circle:hover { color: var(--done); }
 button.circle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -597,6 +681,57 @@ button.circle:hover svg path { opacity: .5; }
 button.circle.done { color: var(--done); }
 button.circle.done svg circle { fill: var(--done); stroke: var(--done); }
 button.circle.done svg path { stroke: #fff; opacity: 1; }
+
+/*
+ * Priority, drawn in the circle rather than in a column.
+ *
+ * The colours are the ones the due pills already use as their INK -- amber,
+ * the Today blue, the No-date neutral -- so nothing new enters the palette,
+ * and the ring's colour is a colour that already means what it means here.
+ * Each is at least 4.5:1 on white and on both row tints, which it has to be:
+ * the digit inside it is text.
+ *
+ * P0 is filled in --danger with a white digit, the treatment the P0 pill had.
+ * "Critical" has to outrank "high" at a glance, and four rings of increasing
+ * chroma all read as the same weight down a scanned column.
+ */
+button.circle svg text.rank {
+  fill: currentColor; stroke: none;
+  font-family: var(--font-body);
+  /* 11px inside a 19px ring. Bold, because at this size a regular weight
+     reads as a smudge rather than as a number -- and on the filled P0 a white
+     hairline digit disappears into the red altogether. */
+  font-size: 11px; font-weight: 700;
+  text-anchor: middle;
+  transition: opacity .1s ease;
+}
+button.circle.prio-p1 { color: var(--soon); }
+button.circle.prio-p2 { color: #2456b8; }
+button.circle.prio-p3 { color: var(--muted-strong); }
+button.circle.prio-p0 { color: var(--danger); }
+button.circle.prio-p0 svg circle { fill: var(--danger); stroke: var(--danger); }
+button.circle.prio-p0 svg text.rank { fill: #fff; }
+/* A ring carrying a digit is a shade heavier, so the number inside it does
+   not out-weigh the circle around it. */
+button.circle.prio-p1 svg circle,
+button.circle.prio-p2 svg circle,
+button.circle.prio-p3 svg circle { stroke-width: 1.8; }
+
+/*
+ * Under the pointer the circle goes back to being the complete button: the
+ * digit gives way to the check. What the control is about to DO outranks what
+ * it is telling you, and a check drawn over a number is neither.
+ *
+ * Green on hover as before -- these rules are more specific than the priority
+ * colours above, which is the whole reason they are spelled out one by one.
+ * P0 keeps its red fill and takes a full-strength white check instead: on a
+ * filled circle the usual half-opacity check is barely there.
+ */
+button.circle:hover svg text.rank { opacity: 0; }
+button.circle.prio-p1:hover,
+button.circle.prio-p2:hover,
+button.circle.prio-p3:hover { color: var(--done); }
+button.circle.prio-p0:hover svg path { stroke: #fff; opacity: 1; }
 
 /* --- forms, filters, misc --- */
 
@@ -616,7 +751,7 @@ h2 { font-size: 15px; margin: 26px 0 8px; }
 }
 .small { font-size: 13px; }
 .error {
-  color: var(--danger); background: #fef3f2; border: 1px solid #fecdca;
+  color: var(--danger); background: #fff0f0; border: 1px solid #f4caca;
   border-radius: var(--radius); padding: 8px 12px; font-size: 13px;
 }
 
@@ -664,57 +799,64 @@ button, .btn {
   border-radius: var(--radius); background: var(--surface); color: var(--fg);
   cursor: pointer; text-decoration: none;
 }
-button:hover, .btn:hover { background: #f3f4f6; }
+button:hover, .btn:hover { background: var(--header-bg); }
 /*
- * The split between --accent and --accent-strong is by surface, not concept.
- * On the graphite rail the cornflower is the selection colour the spec names,
- * and it stays. On the near-white workspace the same fill would put white
- * text at 3.34:1, so anything here that sets white ON blue -- the single
- * primary action, a selected chip -- takes the darker step of the same hue.
+ * One cobalt, both halves of the app: this button and the selected row on the
+ * rail are the same fill, which is what makes "the primary action" and "where
+ * you are" read as one idea. White on it is 4.85:1.
+ *
+ * Hover DARKENS. The old rule brightened the fill, which pushed a white label
+ * the wrong way; --accent-strong takes it to 6.3:1 instead.
  */
 button.primary, .btn.primary {
-  background: var(--accent-strong); border-color: var(--accent-strong); color: #fff;
+  background: var(--accent); border-color: var(--accent); color: #fff;
 }
-button.primary:hover, .btn.primary:hover { background: var(--accent-strong); filter: brightness(1.06); }
+button.primary:hover, .btn.primary:hover {
+  background: var(--accent-strong); border-color: var(--accent-strong);
+}
 a.chip, .filters .chip {
   padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px;
   font-size: 13px; text-decoration: none; color: var(--fg); background: var(--surface);
 }
 /*
- * Pill tones. Each background is L 0.955 and each label L 0.46 on the SAME
- * hue, which lands every pair at roughly 6.4:1 -- well past the 4.5:1 floor,
- * so a tinted pill is no harder to read than the plain one was. Hues come
- * from tokens that already exist: --overdue for overdue, --soon for the week
- * ahead, --accent for today, and the text neutral for no date.
+ * Pill tones: the one place semantic colour lives. Each is a fill, a label
+ * and a border on one hue -- blue for today, green for the week ahead, red
+ * for what has slipped, neutral for what was never dated -- and every pair
+ * clears 4.5:1 on its own fill (5.9, 4.9, 5.9, 6.9). This is how the
+ * interface says "time pressure" without tinting the rows themselves.
  */
-a.chip.tone-overdue { background: oklch(0.955 0.03 21.1); color: oklch(0.46 0.14 21.1); border-color: oklch(0.92 0.045 21.1); }
-a.chip.tone-today   { background: oklch(0.955 0.03 266); color: oklch(0.46 0.14 266); border-color: oklch(0.92 0.045 266); }
-/* Green, on the hue of --done (#35ca8c), so the app has one green rather
-   than a second one invented for a pill.
-   The fill is translucent, asked for at this exact value on 2026-09-11: it
-   sits softer than the other tones without changing hue. Label measures
-   5.97:1 over the card and 5.90:1 over a zebra stripe -- slightly BETTER than
-   the 5.64:1 the opaque fill gave, so the alpha costs no legibility. */
-a.chip.tone-week    { background: oklch(0.96 0.03 160.5 / 0.6); color: oklch(0.46 0.14 160.5); border-color: oklch(0.92 0.045 160.5); }
-a.chip.tone-none    { background: oklch(0.955 0.012 264.4); color: oklch(0.46 0.01 264.4); border-color: oklch(0.92 0.012 264.4); }
-a.chip.tone-overdue:hover { background: oklch(0.925 0.045 21.1); }
-a.chip.tone-today:hover   { background: oklch(0.925 0.045 266); }
-a.chip.tone-week:hover    { background: oklch(0.925 0.045 160.5); }
-a.chip.tone-none:hover    { background: oklch(0.925 0.018 264.4); }
+a.chip.tone-today   { background: #e8f0ff; color: #2456b8; border-color: #c8d9ff; }
+a.chip.tone-week    { background: #eaf8f1; color: #147a50; border-color: #c9ead9; }
+a.chip.tone-overdue { background: #fff0f0; color: #b4232a; border-color: #f4caca; }
+a.chip.tone-none    { background: #f3f4f7; color: #4b5565; border-color: #dde1ea; }
+/* Hover deepens the FILL and leaves the label exactly where it was. Fading
+   the text on hover is the one thing a pill must never do. */
+a.chip.tone-today:hover   { background: #d9e5ff; }
+a.chip.tone-week:hover    { background: #ddf2e6; }
+a.chip.tone-overdue:hover { background: #ffe1e1; }
+a.chip.tone-none:hover    { background: #e9ebf0; }
 
 /*
- * Selected still means blue, whatever the pill's own tone is. The brand spec
- * reserves blue for the selected state, and one colour meaning "this is on"
- * is worth more than letting each pill darken into its own hue -- where four
- * different "on" colours would have to be learned.
+ * Selected: the pill's own label colour becomes the fill and the label turns
+ * white. So "on" is the same pill, inverted -- the tone you were already
+ * reading -- rather than four pills all turning into one blue, which said
+ * "selected" at the cost of saying which bucket you were in. Cobalt stays
+ * reserved for navigation and the primary action.
+ *
+ * Every inverted pair is 5.3:1 or better, and the selected hover darkens
+ * again rather than lightening under the white label.
  */
-a.chip[aria-current="true"],
-a.chip.tone-overdue[aria-current="true"],
-a.chip.tone-today[aria-current="true"],
-a.chip.tone-week[aria-current="true"],
-a.chip.tone-none[aria-current="true"] {
-  background: var(--accent-strong); border-color: var(--accent-strong); color: #fff;
+a.chip[aria-current="true"] {
+  background: var(--accent); border-color: var(--accent); color: #fff;
 }
+a.chip.tone-today[aria-current="true"]   { background: #2456b8; border-color: #2456b8; color: #fff; }
+a.chip.tone-week[aria-current="true"]    { background: #147a50; border-color: #147a50; color: #fff; }
+a.chip.tone-overdue[aria-current="true"] { background: #b4232a; border-color: #b4232a; color: #fff; }
+a.chip.tone-none[aria-current="true"]    { background: #4b5565; border-color: #4b5565; color: #fff; }
+a.chip.tone-today[aria-current="true"]:hover   { background: #1d4899; border-color: #1d4899; }
+a.chip.tone-week[aria-current="true"]:hover    { background: #0f6341; border-color: #0f6341; }
+a.chip.tone-overdue[aria-current="true"]:hover { background: #941c22; border-color: #941c22; }
+a.chip.tone-none[aria-current="true"]:hover    { background: #3b4453; border-color: #3b4453; }
 
 /* The word before a control, which had only a collapsed text space between
    it and the control it names. */
@@ -751,7 +893,7 @@ a.chip.tone-none[aria-current="true"] {
   background: var(--surface); color: var(--fg); font-size: 13px;
   cursor: pointer; white-space: nowrap;
 }
-.filters .menu-button:hover { background: #f3f4f6; }
+.filters .menu-button:hover { background: var(--header-bg); }
 /* The focus ring belongs on the thing you can see, not the off-screen input. */
 .filters .menu-state:focus-visible ~ .menu-button {
   outline: 2px solid var(--accent); outline-offset: 1px;
@@ -789,9 +931,11 @@ a.chip.tone-none[aria-current="true"] {
   display: block; padding: 6px 10px; border-radius: 4px;
   color: var(--fg); text-decoration: none; font-size: 13px; white-space: nowrap;
 }
-.filters ul.menu-list a:hover { background: #f3f4f6; }
+.filters ul.menu-list a:hover { background: var(--header-bg); }
 .filters ul.menu-list a[aria-current="true"] {
-  background: var(--accent-strong); color: #fff;
+  /* Cobalt: this is a chosen row in a menu, which is the same "this is on"
+     the rail's selected item means. */
+  background: var(--accent); color: #fff;
 }
 
 .stack { display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
@@ -856,7 +1000,7 @@ button.primary.slack:focus-visible { outline: 2px solid var(--accent); outline-o
  * button and competing with it.
  */
 .signin-note {
-  margin: 0; padding: 14px 20px; color: var(--muted);
+  margin: 0; padding: 14px 20px; color: var(--muted-strong);
   background: var(--header-bg); border-top: 1px solid var(--border);
 }
 
@@ -1055,12 +1199,11 @@ button.danger:hover { border-color: var(--danger); }
    * there is no sub-line to fall back on any more, so hiding it would leave
    * the phone unable to say which Space a task belongs to.
    *
-   * Priority drops out too, which looks like losing the most important signal
-   * and is not: the list is ordered priority-first everywhere, so on a phone
-   * the top row IS the critical one and the pill only repeats what position
-   * already says. Keeping it cost 44px off a title column that was already
-   * wrapping titles to six lines at 375px, and "Priority" is too long a word
-   * to label a 44px track -- it collided with "Space" in the header.
+   * Priority used to drop out here too -- it cost 44px off a title column that
+   * was already wrapping, and "Priority" is too long a word to label a 44px
+   * track. Now that it rides in the tick circle it costs no width at all, so a
+   * phone shows it as well: the one signal worth catching first is the first
+   * thing on the row at every size.
    */
   .row, .row.haswait {
     grid-template-columns: var(--tick-w) minmax(0, 1fr) 84px 66px;
@@ -1068,11 +1211,9 @@ button.danger:hover { border-color: var(--danger); }
   .row.nospace, .row.nospace.haswait {
     grid-template-columns: var(--tick-w) minmax(0, 1fr) 66px;
   }
-  .row .assignee, .row .due, .row .age, .row .waiting-on,
-  .row .priority { display: none; }
+  .row .assignee, .row .due, .row .age, .row .waiting-on { display: none; }
   .row.head .assignee, .row.head .due,
-  .row.head .age, .row.head .waiting-on,
-  .row.head .priority { display: none; }
+  .row.head .age, .row.head .waiting-on { display: none; }
 
   /*
    * The Wait / Unblock button goes too.
@@ -1319,7 +1460,7 @@ details.reveal > summary {
   background: var(--surface); color: var(--fg);
 }
 details.reveal > summary::-webkit-details-marker { display: none; }
-details.reveal > summary:hover { background: #f3f4f6; }
+details.reveal > summary:hover { background: var(--header-bg); }
 details.reveal > summary:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
@@ -1343,15 +1484,15 @@ a.iconbtn {
   opacity: 0.55;
 }
 .row:hover a.iconbtn, a.iconbtn:focus-visible, a.iconbtn:hover { opacity: 1; }
-a.iconbtn:hover { background: #f1f3f5; color: var(--fg); }
-a.iconbtn.danger:hover { background: #fef3f2; color: var(--danger); }
+a.iconbtn:hover { background: var(--header-bg); color: var(--fg); }
+a.iconbtn.danger:hover { background: #fff0f0; color: var(--danger); }
 a.iconbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 a.iconbtn .icon { width: 15px; height: 15px; }
 .row .num {
   color: var(--muted); font-size: 13px; text-align: right;
   padding-right: 14px; font-variant-numeric: tabular-nums;
 }
-.row.head .num { color: var(--fg); }
+.row.head .num { color: var(--col-fg); }
 
 @media (max-width: 860px) {
   .row.spacerow { grid-template-columns: minmax(0, 1fr) 48px 76px; }
