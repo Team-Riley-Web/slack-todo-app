@@ -9,6 +9,7 @@ coverage/
 .next/
 next-env.d.ts
 .slack.pid
+.slack.log
 
 # TypeScript incremental build cache: regenerated, never reviewed.
 *.tsbuildinfo

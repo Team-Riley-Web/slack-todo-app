@@ -35,11 +35,27 @@ afterEach(async () => { await db.close(); });
  * the block_id we rendered, so a client that has not refreshed sends the older
  * version — which is exactly the stale-payload case.
  */
+/**
+ * `rendered` is the element's full option list, as Slack sends it back in
+ * `message.blocks`. It defaults to the ticked ids; a test that unticks must
+ * name the task it is unticking, or the handler (rightly) will not reopen it.
+ */
 const payload = (
-  selectedIds: string[], actionTs: string, user = 'U_JOSH', version: number | null = 1
+  selectedIds: string[], actionTs: string, user = 'U_JOSH', version: number | null = 1,
+  rendered: string[] = selectedIds
 ) => {
   const blockId = version === null ? 'task_toggle:0' : `task_toggle:0:v${version}`;
   return {
+    message: {
+      type: 'message', ts: '1700000000.000100',
+      blocks: [{
+        type: 'actions', block_id: blockId,
+        elements: [{
+          type: 'checkboxes', action_id: 'task_checkbox',
+          options: rendered.map((id) => ({ text: { type: 'plain_text', text: id }, value: id })),
+        }],
+      }],
+    },
     type: 'block_actions',
     team: { id: 'T_RILEY' }, user: { id: user },
     container: { type: 'message', channel_id: 'C_NL', message_ts: '1700000000.000100' },
@@ -114,7 +130,7 @@ describe('concurrent toggles on one card', () => {
     // check, then uncheck, fired together
     await Promise.all([
       handleCheckboxToggle(deps, payload([task.id], '9.1') as never),
-      handleCheckboxToggle(deps, payload([], '9.2') as never),
+      handleCheckboxToggle(deps, payload([], '9.2', 'U_JOSH', 1, [task.id]) as never),
     ]);
 
     const final = (await getTask(db, task.id))!;
@@ -215,7 +231,7 @@ describe('stale payloads', () => {
   });
 
   it('still honours a genuine uncheck from a current client', async () => {
-    const { a } = await seedTwo();
+    const { a, b } = await seedTwo();
     const client = { chat: { update: vi.fn().mockResolvedValue({ ok: true }) } };
     const deps = { db, client: client as never, config };
 
@@ -223,7 +239,7 @@ describe('stale payloads', () => {
     expect((await getTask(db, a.id))!.status).toBe('completed');
 
     // Client refreshed to v2, then unchecks: a real reopen, and it must apply.
-    await handleCheckboxToggle(deps, payload([], '9.2', 'U_JOSH', 2) as never);
+    await handleCheckboxToggle(deps, payload([], '9.2', 'U_JOSH', 2, [a.id, b.id]) as never);
     expect((await getTask(db, a.id))!.status).toBe('open');
   });
 

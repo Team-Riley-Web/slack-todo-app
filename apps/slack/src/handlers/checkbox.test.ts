@@ -33,29 +33,53 @@ const seed = async (title = 'Offer Neil Instagram and Facebook package for $100'
   return task;
 };
 
-const payload = (selectedIds: string[], over: Record<string, unknown> = {}) => ({
-  type: 'block_actions',
-  team: { id: 'T_RILEY' },
-  user: { id: 'U_JOSH' },
-  channel: { id: 'C_NL' },
-  container: { type: 'message', channel_id: 'C_NL', message_ts: '1700000000.000100' },
-  actions: [{
-    type: 'checkboxes', action_id: 'task_checkbox', block_id: 'task_toggle:0',
-    action_ts: '1700000001.000001',
-    selected_options: selectedIds.map((id) => ({ value: id })),
-  }],
-  state: {
-    values: {
-      'task_toggle:0': {
-        task_checkbox: {
-          type: 'checkboxes',
-          selected_options: selectedIds.map((id) => ({ value: id })),
-        },
-      },
+/** One checkbox element as Slack renders it: its full option list and what is ticked. */
+interface ElementState { id: string; rendered: string[]; selected: string[] }
+
+/**
+ * A block_actions payload the way Slack actually sends it for a message: the
+ * clicked action, `state.values` for EVERY checkbox element, and the message
+ * itself with each element's full option list.
+ */
+const payloadFor = (
+  elements: ElementState[], clicked: string, over: Record<string, unknown> = {}
+) => {
+  const opts = (ids: string[]) => ids.map((id) => ({ value: id }));
+  const clickedEl = elements.find((e) => e.id === clicked)!;
+  return {
+    type: 'block_actions',
+    team: { id: 'T_RILEY' },
+    user: { id: 'U_JOSH' },
+    channel: { id: 'C_NL' },
+    container: { type: 'message', channel_id: 'C_NL', message_ts: '1700000000.000100' },
+    actions: [{
+      type: 'checkboxes', action_id: 'task_checkbox', block_id: clicked,
+      action_ts: '1700000001.000001',
+      selected_options: opts(clickedEl.selected),
+    }],
+    state: {
+      values: Object.fromEntries(elements.map((e) => [
+        e.id, { task_checkbox: { type: 'checkboxes', selected_options: opts(e.selected) } },
+      ])),
     },
-  },
-  ...over,
-});
+    message: {
+      type: 'message', ts: '1700000000.000100',
+      blocks: elements.map((e) => ({
+        type: 'actions', block_id: e.id,
+        elements: [{
+          type: 'checkboxes', action_id: 'task_checkbox',
+          options: e.rendered.map((id) => ({ text: { type: 'plain_text', text: id }, value: id })),
+        }],
+      })),
+    },
+    ...over,
+  };
+};
+
+/** A single-element card. `rendered` defaults to the selected ids. */
+const payload = (
+  selectedIds: string[], over: Record<string, unknown> = {}, rendered: string[] = selectedIds
+) => payloadFor([{ id: 'task_toggle:0', rendered, selected: selectedIds }], 'task_toggle:0', over);
 
 const deps = () => ({ db, client: client as never, config });
 
@@ -162,7 +186,7 @@ describe('reopen via uncheck', () => {
     const task = await seed();
     await completeTask(db, task.id, { id: 'U_JOSH', source: 'test' });
     await reseedCompleted(task.id);
-    const r = await handleCheckboxToggle(deps(), payload([]) as never);
+    const r = await handleCheckboxToggle(deps(), payload([], {}, [task.id]) as never);
     expect(r.outcome).toBe('applied');
     const back = (await getTask(db, task.id))!;
     expect(back.status).toBe('open');
@@ -174,7 +198,7 @@ describe('reopen via uncheck', () => {
     const task = await seed();
     await completeTask(db, task.id, { id: 'U_JOSH', source: 'test' });
     await reseedCompleted(task.id);
-    await handleCheckboxToggle(deps(), payload([]) as never);
+    await handleCheckboxToggle(deps(), payload([], {}, [task.id]) as never);
     const el = client.chat.update.mock.calls[0]![0]!.blocks
       .find((b: any) => b.type === 'actions').elements[0];
     expect(el.options[0].text.text).toBe(task.title);
@@ -184,7 +208,7 @@ describe('reopen via uncheck', () => {
 
   it('is a no-op when unchecking an already-open task', async () => {
     const task = await seed();
-    const r = await handleCheckboxToggle(deps(), payload([]) as never);
+    const r = await handleCheckboxToggle(deps(), payload([], {}, [task.id]) as never);
     expect(r.outcome).toBe('noop');
     expect((await getTask(db, task.id))!.status).toBe('open');
     const { rows } = await db.query(
@@ -223,8 +247,88 @@ describe('grouped cards', () => {
         { task: (await getTask(db, b.id))!, space },
       ],
     });
-    await handleCheckboxToggle(deps(), payload([b.id]) as never);
+    await handleCheckboxToggle(deps(), payload([b.id], {}, [a.id, b.id]) as never);
     expect((await getTask(db, a.id))!.status).toBe('open');
+    expect((await getTask(db, b.id))!.status).toBe('completed');
+  });
+});
+
+describe('cards spanning several checkbox elements', () => {
+  /*
+   * The morning digest bug, 2026-09-13. Slack puts at most 10 options in one
+   * checkboxes element, so a 40-task digest is four elements, and a click
+   * reports the ticks in ITS element only. Diffing the whole card against that
+   * one element read every completed task elsewhere on the card as unticked
+   * and reopened it: six clicks, one task left completed.
+   */
+  const twoElements = async () => {
+    const a = await createTask(db, { title: 'Needed better colors', spaceId });
+    const b = await createTask(db, { title: 'Pitch song to Spotify', spaceId });
+    await completeTask(db, a.id, { id: 'U_JOSH', source: 'test' });
+    await saveCard(db, {
+      channelId: 'C_NL', messageTs: '1700000000.000100',
+      entries: [{ task: (await getTask(db, a.id))!, space }, { task: b, space }],
+    });
+    return { a, b };
+  };
+
+  it('ticking a task in one element leaves completed tasks in other elements alone', async () => {
+    const { a, b } = await twoElements();
+    const r = await handleCheckboxToggle(deps(), payloadFor([
+      { id: 'task_toggle:0:v1', rendered: [a.id], selected: [a.id] },
+      { id: 'task_toggle:1:v1', rendered: [b.id], selected: [b.id] },
+    ], 'task_toggle:1:v1') as never);
+    expect(r.outcome).toBe('applied');
+    expect((await getTask(db, a.id))!.status).toBe('completed');
+    expect((await getTask(db, b.id))!.status).toBe('completed');
+  });
+
+  it('ignores the other elements entirely — an untick there is its own click', async () => {
+    const { a, b } = await twoElements();
+    await handleCheckboxToggle(deps(), payloadFor([
+      { id: 'task_toggle:0:v1', rendered: [a.id], selected: [] },
+      { id: 'task_toggle:1:v1', rendered: [b.id], selected: [b.id] },
+    ], 'task_toggle:1:v1') as never);
+    expect((await getTask(db, a.id))!.status).toBe('completed');
+    expect((await getTask(db, b.id))!.status).toBe('completed');
+  });
+
+  it('reopens a task unticked in the element that was clicked', async () => {
+    const { a, b } = await twoElements();
+    await handleCheckboxToggle(deps(), payloadFor([
+      { id: 'task_toggle:0:v1', rendered: [a.id], selected: [] },
+      { id: 'task_toggle:1:v1', rendered: [b.id], selected: [] },
+    ], 'task_toggle:0:v1') as never);
+    expect((await getTask(db, a.id))!.status).toBe('open');
+    expect((await getTask(db, b.id))!.status).toBe('open'); // was never completed
+  });
+
+  it('never reopens a task the payload does not account for', async () => {
+    const { a, b } = await twoElements();
+    // A payload with no message body and no state: nothing says a is unticked.
+    const p: any = payload([b.id]);
+    delete p.message;
+    delete p.state;
+    const r = await handleCheckboxToggle(deps(), p as never);
+    expect(r.outcome).toBe('applied');
+    expect((await getTask(db, a.id))!.status).toBe('completed');
+    expect((await getTask(db, b.id))!.status).toBe('completed');
+  });
+
+  /*
+   * 2026-09-13 13:44:40Z, on the live digest: a tick in the INBOX element
+   * arrived with state.values reporting the MUSIC element as empty, although
+   * the message rendered "Pitch song to Spotify" ticked there. Slack does not
+   * fold initial_options into state.values for an untouched element, so that
+   * state must never be read as an untick.
+   */
+  it('does not reopen a task in another element whose state.values reads empty', async () => {
+    const { a, b } = await twoElements();
+    await handleCheckboxToggle(deps(), payloadFor([
+      { id: 'task_toggle:5:v7', rendered: [a.id], selected: [] }, // Pitch song, rendered ticked
+      { id: 'task_toggle:0:v7', rendered: [b.id], selected: [b.id] },
+    ], 'task_toggle:0:v7') as never);
+    expect((await getTask(db, a.id))!.status).toBe('completed');
     expect((await getTask(db, b.id))!.status).toBe('completed');
   });
 });
