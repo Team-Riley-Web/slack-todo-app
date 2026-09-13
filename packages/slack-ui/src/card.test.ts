@@ -89,9 +89,10 @@ describe('completed task card', () => {
     expect(JSON.stringify(blocks).match(/"type":"button"/g)).toBeNull();
   });
 
-  it('states completion in the description as a strikethrough-independent signal', () => {
+  it('carries no "Completed" line — the checked box and strikethrough say it', () => {
     const el = checkbox(taskCardBlocks([{ task: done, space }], opts));
-    expect(el.options[0].description.text).toBe('Completed Sep 9 · Nazareth Law');
+    expect(el.options[0].description.text).toBe('Nazareth Law');
+    expect(el.options[0].description.text).not.toMatch(/Completed/);
   });
 });
 
