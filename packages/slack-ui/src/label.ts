@@ -104,9 +104,13 @@ function clip(text: string, budget: number): string {
 export function metaLine(task: Task, space: Space, opts: MetaOpts): string {
   const parts: string[] = [];
 
-  if (task.status === 'completed' && task.completed_at) {
-    parts.push(`Completed ${fmtDate(task.completed_at, opts.timeZone)}`);
-  }
+  /*
+   * A completed row carries no "Completed <date>" line. The checked box and
+   * the strikethrough already say it, and Slack renders an option description
+   * at the same size and nearly the same weight as the title, so the line read
+   * as a second row of text under every finished task. The date is still on
+   * the web UI and in the Completed report.
+   */
   // Skipped when a Space heading is already above the row.
   if (opts.showSpace !== false) parts.push(shortSpace(space.name));
 

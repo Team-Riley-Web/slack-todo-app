@@ -83,15 +83,16 @@ describe('metaLine', () => {
     expect(line).toBe('');
   });
 
-  it('renders completion for a completed task and drops due/assignee', () => {
+  it('shows only the Space for a completed task — no date, due or assignee', () => {
     const line = metaLine(
       task({
         status: 'completed', assignee_id: 'U_JOSH',
         completed_at: new Date('2026-09-09T18:00:00Z'),
+        due_at: new Date('2026-09-10T18:00:00Z'),
       }),
       space('Client - Nazareth Law'), opts
     );
-    expect(line).toBe('Completed Sep 9 · Nazareth Law');
+    expect(line).toBe('Nazareth Law');
   });
 
   it('renders waiting_on when present and bare waiting when not', () => {
