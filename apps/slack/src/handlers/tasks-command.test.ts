@@ -155,12 +155,12 @@ it('returns interactive checkboxes in the channel-defaulted view', async () => {
   expect(posted()).toContain('checkboxes');
 });
 
-it('lists every task from an unmapped channel, rather than counts', async () => {
+it('lists every task with /tasks all, rather than counts', async () => {
   // This used to answer with "Marketing: 1 open", which told you a task
   // existed without letting you tick it off.
   await add('Marketing', 'Mkt task');
   await add('Sales', 'Sales task');
-  const r = await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+  const r = await handleTasksCommand(deps(), cmd('all', { channel_id: 'C_UNMAPPED' }) as never);
   expect(r.scope).toBe('all');
   expect(r.count).toBe(2);
   const out = posted();
@@ -173,7 +173,7 @@ it('groups the everything view by Space, each Space once', async () => {
   await add('Marketing', 'Mkt one');
   await add('Marketing', 'Mkt two');
   await add('Sales', 'Sales one');
-  await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+  await handleTasksCommand(deps(), cmd('all', { channel_id: 'C_UNMAPPED' }) as never);
 
   const blocks = (client.chat.postMessage.mock.calls[0]![0] as any).blocks as any[];
   const headings = blocks.filter((b) => b.type === 'header').map((b) => b.text.text);
@@ -181,7 +181,7 @@ it('groups the everything view by Space, each Space once', async () => {
 });
 
 it('says nothing open, ephemerally, when there are no tasks at all', async () => {
-  const r = await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+  const r = await handleTasksCommand(deps(), cmd('all', { channel_id: 'C_UNMAPPED' }) as never);
   expect(r.count).toBe(0);
   expect(client.chat.postMessage).not.toHaveBeenCalled();
   expect(posted()).toContain('Nothing open');
@@ -194,7 +194,7 @@ it('excludes completed and waiting from the everything view', async () => {
   await completeTask(db, done.id, actor);
   await moveTask(db, wait.id, { status: 'waiting' }, actor);
 
-  const r = await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+  const r = await handleTasksCommand(deps(), cmd('all', { channel_id: 'C_UNMAPPED' }) as never);
   expect(r.count).toBe(1);
   const out = posted();
   expect(out).toContain('Open task');
@@ -261,11 +261,43 @@ it('never infers a Space from channel-name text when the channel is unmapped', a
   await add('Client - Secure Logic', 'Secure task');
   // The channel id itself looks like a client channel, but has no mapping row.
   const r = await handleTasksCommand(
-    deps(), cmd('', { channel_id: 'C_client_secure_logic' }) as never
+    deps(),
+    cmd('', { channel_id: 'C_client_secure_logic', channel_name: 'client-secure-logic' }) as never
   );
-  // Every Space, not the one the channel id happens to spell.
-  expect(r.scope).toBe('all');
-  expect(posted()).toContain('Secure task');
+  // Neither the Space the channel id spells, nor every Space.
+  expect(r.scope).toBe('unmapped');
+  expect(posted()).not.toContain('Secure task');
+});
+
+// The fallback this replaces answered a channel-scoped question with all 43
+// tasks in the database, which looked exactly like channel scoping being
+// broken rather than like a channel nobody had mapped.
+it('tells you the channel is unmapped instead of showing every task', async () => {
+  await add('Marketing', 'Mkt task');
+  await add('Sales', 'Sales task');
+  const r = await handleTasksCommand(
+    deps(), cmd('', { channel_id: 'C_UNMAPPED', channel_name: 'client-galleria' }) as never
+  );
+
+  expect(r).toEqual({ scope: 'unmapped', count: 0 });
+  expect(client.chat.postMessage).not.toHaveBeenCalled();
+  const out = posted();
+  expect(out).toContain('#client-galleria');
+  expect(out).toContain('not mapped');
+  expect(out).toContain('/space');
+  expect(out).toContain('/tasks all');
+  expect(out).not.toContain('Mkt task');
+});
+
+it('does not offer /space in a DM, where there is nothing to map', async () => {
+  const r = await handleTasksCommand(
+    deps(), cmd('', { channel_id: 'D_JOSH', channel_name: 'directmessage' }) as never
+  );
+  expect(r.scope).toBe('unmapped');
+  const out = posted();
+  expect(out).toContain('direct message');
+  expect(out).not.toContain('/space');
+  expect(out).toContain('/tasks all');
 });
 
 // --- native Slack elements ---
@@ -307,7 +339,7 @@ it('posts every-Space blocks with unique block ids, which Slack requires', async
   for (const space of ['Marketing', 'Sales', 'Music', 'Personal', 'Agency / Internal']) {
     await add(space, `${space} task`);
   }
-  await handleTasksCommand(deps(), cmd('', { channel_id: 'C_UNMAPPED' }) as never);
+  await handleTasksCommand(deps(), cmd('all', { channel_id: 'C_UNMAPPED' }) as never);
 
   const blocks = (client.chat.postMessage.mock.calls[0]![0] as any).blocks as any[];
   const ids = blocks.map((b) => b.block_id).filter(Boolean);
