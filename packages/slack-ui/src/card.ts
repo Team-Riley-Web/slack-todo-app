@@ -206,20 +206,12 @@ export function taskCardBlocks(
     } as unknown as KnownBlock);
   });
 
-  // Any title too long for a 75-char option label keeps its exact form here.
-  const truncated = shown.filter(
-    (e) => truncateLabel(e.task.title, titleBudgetFor(e.task)).truncated
-  );
-  if (truncated.length > 0) {
-    blocks.push({
-      type: 'context',
-      elements: truncated.map((e) => ({
-        type: 'plain_text' as const,
-        text: `Full title: ${e.task.title}`,
-        emoji: true,
-      })),
-    } as unknown as KnownBlock);
-  }
+  /*
+   * A title clipped at Slack's 75-character option limit used to be repeated
+   * in full in a context block below the card. It said the same thing twice:
+   * the clipped row is enough to recognize the task, and the whole title is
+   * one click away in the task itself. So the card no longer carries it.
+   */
 
   if (hidden > 0) {
     blocks.push({

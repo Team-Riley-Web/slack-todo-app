@@ -244,9 +244,10 @@ always return the byte-exact title regardless of rendering.
 `title.slice(0, 72)` — JS strings are UTF-16 and a naive slice can split a
 surrogate pair and corrupt a character. The export contains `’` and `—`, and a
 task title could contain an emoji. Truncation is display-only, never written
-back, and when it fires a context block carries the full exact title. The longest
-real title today is 63 characters, so this is a safety net rather than a common
-path.
+back. It used to be paired with a context block repeating the full exact title
+under the card, which said the same thing twice; the clipped row identifies the
+task and the task itself holds the whole title. The longest real title today is
+63 characters, so this is a safety net rather than a common path.
 
 **Where selections are read from.** The docs are inconsistent: the state payload
 documents `selected_options`, while the checkboxes reference example shows

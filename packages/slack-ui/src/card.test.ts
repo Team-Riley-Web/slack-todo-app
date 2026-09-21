@@ -129,10 +129,17 @@ describe('mixed group', () => {
 describe('truncated title', () => {
   const long = task({ title: 'L'.repeat(200) });
 
-  it('adds a context block carrying the full exact title', () => {
+  // The full title used to be repeated in a context block under the card.
+  // It was the same sentence twice; the task itself holds the whole thing.
+  it('does not repeat the full title under the card', () => {
     const blocks = taskCardBlocks([{ task: long, space }], opts);
-    const ctx = blocks.find((b: any) => b.type === 'context') as any;
-    expect(ctx.elements[0].text).toContain('L'.repeat(200));
+    expect(blocks.find((b: any) => b.type === 'context')).toBeUndefined();
+    expect(JSON.stringify(blocks)).not.toContain('Full title');
+  });
+
+  it('still clips the option label itself to what Slack accepts', () => {
+    const el = checkbox(taskCardBlocks([{ task: long, space }], opts));
+    expect([...el.options[0].text.text].length).toBeLessThanOrEqual(75);
   });
 
   it('does not add a context block when nothing is truncated', () => {
@@ -472,13 +479,14 @@ describe('priority in a rendered task', () => {
     }
   });
 
-  it('still offers the full title when the tag caused the clipping', () => {
+  it('clips rather than repeating the title when the tag caused it', () => {
     const long = 'y'.repeat(70);
     const blocks = taskCardBlocks(
       [{ task: task({ title: long, priority: 'P0' }), space }], opts
     );
     // 70 chars fits alone but not once "[P0] " takes five of the budget.
-    expect(JSON.stringify(blocks)).toContain(`Full title: ${long}`);
+    expect([...checkbox(blocks).options[0].text.text].length).toBeLessThanOrEqual(75);
+    expect(JSON.stringify(blocks)).not.toContain('Full title');
   });
 
   it('carries the tag into the notification fallback too', () => {
