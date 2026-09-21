@@ -76,28 +76,40 @@ export async function handleTasksCommand(
   /**
    * Bare `/tasks` is channel-aware: from a mapped channel it shows that Space,
    * because that is what someone standing in #client-secure-logic means.
+   *
+   * From an unmapped channel or a DM it says so, rather than answering with
+   * every task in the database. That fallback looked identical to the scoping
+   * being broken: you stand in a channel you believe is mapped, ask for its
+   * tasks, and get all 43 of them with nothing saying why.
    */
   if (!scope) {
     const context = await getSpaceForChannel(db, command.channel_id);
-    if (context.mapped) {
-      const entries = toEntries(
-        await listTasks(db, { spaceId: context.space.id, actionableOnly: true })
+    if (!context.mapped) {
+      await replyPrivately(
+        deps,
+        { channelId: command.channel_id, userId: command.user_id },
+        notMappedHere(command.channel_name)
       );
-      await postList(deps, command, context.space.name.toUpperCase(), entries, context.space.slug);
-      return { scope: context.space.slug, count: entries.length };
+      return { scope: 'unmapped', count: 0 };
     }
+
+    const entries = toEntries(
+      await listTasks(db, { spaceId: context.space.id, actionableOnly: true })
+    );
+    await postList(deps, command, context.space.name.toUpperCase(), entries, context.space.slug);
+    return { scope: context.space.slug, count: entries.length };
   }
 
   /**
-   * From an unmapped channel or a DM, and for `/tasks all`, show every
-   * actionable task grouped by Space -- with working checkboxes.
+   * `/tasks all` shows every actionable task grouped by Space -- with working
+   * checkboxes.
    *
    * This used to show per-Space counts, which read as "Inbox: 1 open" and told
    * you a task existed without letting you do anything about it. Counts are
    * still available as `/tasks summary`, but they are no longer what you get
    * for asking to see your tasks.
    */
-  if (!scope || scope === 'all') {
+  if (scope === 'all') {
     /*
      * Grouped by Space, in the order listSpaces returns, so the same Space
      * never appears twice and the ordering is stable between runs.
@@ -142,7 +154,7 @@ export async function handleTasksCommand(
       channel: command.channel_id, user: command.user_id,
       text:
       `No space matches "${command.text.trim()}".\n` +
-      '`/tasks` shows everything · `/tasks map` sets this channel\'s Space · ' +
+      '`/tasks all` shows everything · `/tasks map` sets this channel\'s Space · ' +
       '`/tasks new <name>` creates one.',
     });
     return { scope, count: 0 };
@@ -151,6 +163,23 @@ export async function handleTasksCommand(
   const entries = toEntries(await listTasks(db, { spaceId: space.id, actionableOnly: true }));
   await postList(deps, command, space.name.toUpperCase(), entries, space.slug);
   return { scope: space.slug, count: entries.length };
+}
+
+/**
+ * What to say when someone asks a channel for its tasks and the channel is not
+ * mapped to a Space. Names the channel, because the usual cause is standing in
+ * a client channel nobody ever mapped, and gives the three ways forward.
+ * `channelName` arrives from Slack without a leading '#'; a DM sends the
+ * literal "directmessage", which is not a channel anyone can map.
+ */
+export function notMappedHere(channelName: string | undefined): string {
+  const isDm = !channelName || channelName === 'directmessage';
+  const where = isDm ? 'A direct message' : `*#${channelName}*`;
+  return (
+    `${where} is not mapped to a Space, so there is no channel list to show.\n\n` +
+    (isDm ? '' : '`/space` maps this channel to a Space · ') +
+    '`/tasks all` shows every open task · `/tasks <space>` shows one Space.'
+  );
 }
 
 /**

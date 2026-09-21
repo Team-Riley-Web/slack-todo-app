@@ -67,7 +67,7 @@ Request URL field is not used.
 | Command | Short description | Usage hint |
 |---|---|---|
 | `/task` | Capture a task, exactly as typed. No text opens a form. | `<task title> [due:YYYY-MM-DD]` |
-| `/tasks` | View your tasks | `[space \| waiting]` |
+| `/tasks` | View this channel's Space; `all` for every Space | `[all \| space \| waiting]` |
 | `/space` | Set this channel's Space, or create a new one | (no arguments) |
 | `/import` | Import tasks from a CSV or JSON file | (no arguments) |
 
@@ -164,7 +164,9 @@ client from message text. Where a channel mapping resolves a client, message tex
 is never consulted.
 
 The mapping also drives bare `/tasks` (which returns the channel's Space) and the
-channel-aware Hermes tools, so it is worth getting right before rollout.
+channel-aware Hermes tools, so it is worth getting right before rollout. In an
+unmapped channel or a DM, bare `/tasks` replies privately that the channel has
+no Space rather than listing every task; `/tasks all` is the everything view.
 
 Suggested mapping:
 
