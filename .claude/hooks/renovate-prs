@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+export RENOVATE_PRS_REPO_HOOK=1
+# Claude Code SessionStart hook: one line about open Renovate PRs in this repo.
+#
+# Prints nothing (and makes no network call) unless the cwd is a git checkout
+# whose origin is in the Team-Riley-Web org. Reads the open Renovate branches
+# with `git ls-remote` so it works anywhere git has credentials for the repo
+# (local machine, Claude Code on the web); never needs `gh`. Hard 4s limit;
+# any failure prints nothing. Output lands in Claude's context via stdout.
+set -u
+origin=$(git remote get-url origin 2>/dev/null) || exit 0
+case "$origin" in
+  *github.com[:/]Team-Riley-Web/*) ;;
+  *) exit 0 ;;
+esac
+repo=${origin##*/}; repo=${repo%.git}
+# Repos that ship their own copy (.claude/hooks/renovate-prs, so the hook also
+# runs in Claude Code on the web) already print this line; don't print it twice.
+# The repo copy is told apart by RENOVATE_PRS_REPO_HOOK=1.
+if [ -z "${RENOVATE_PRS_REPO_HOOK:-}" ]; then
+  top=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+  [ -x "$top/.claude/hooks/renovate-prs" ] && exit 0
+fi
+
+# perl alarm = portable timeout (macOS has no coreutils `timeout`).
+branches=$(perl -e 'alarm shift; exec @ARGV' 4 git ls-remote --heads -q origin 'refs/heads/renovate/*' 2>/dev/null | awk '{print $2}' | sed 's#refs/heads/renovate/##') || exit 0
+[ -n "$branches" ] || exit 0
+
+total=0; major=0; security=0; onboarding=0; shopify=0
+while IFS= read -r b; do
+  [ -n "$b" ] || continue
+  total=$((total + 1))
+  case "$b" in
+    configure) onboarding=$((onboarding + 1)) ;;
+    major-*) major=$((major + 1)) ;;
+    *vulnerability*) security=$((security + 1)) ;;
+    *team-riley*|*shopify*) shopify=$((shopify + 1)) ;;
+  esac
+done <<< "$branches"
+
+detail=""
+[ $major -gt 0 ] && detail="$detail, $major major"
+[ $security -gt 0 ] && detail="$detail, $security security"
+[ $shopify -gt 0 ] && detail="$detail, $shopify shopify-engine"
+[ $onboarding -gt 0 ] && detail="$detail, onboarding not merged"
+detail=${detail#, }
+printf 'Renovate: %d PR%s open on %s%s. Patch/minor ones auto-merge once the Netlify preview is green; majors and engine tags wait for a person. List: gh pr list --author app/renovate\n' \
+  "$total" "$([ $total -eq 1 ] || echo s)" "$repo" "${detail:+ ($detail)}"
