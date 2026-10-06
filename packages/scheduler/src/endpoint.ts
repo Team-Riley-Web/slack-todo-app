@@ -2,6 +2,7 @@ import { WebClient } from '@slack/web-api';
 import type { Db } from '@tr/db';
 import { loadSchedulerConfig } from './config.js';
 import type { SlackPoster } from './jobs.js';
+import { buildCrashAlert, sendAlert } from './alerts.js';
 import { runBriefingNow, runWeeklyDispatch, UnknownBriefingError } from './run.js';
 
 /**
@@ -96,6 +97,15 @@ export async function handleScheduledRequest(
       );
     }
     console.error('[scheduler] run failed', error);
+    // A crash before any briefing went out is the worst Monday: say so in Slack.
+    if (job === null) {
+      try {
+        await sendAlert(
+          opts.client ?? createSchedulerSlackClient(env), loadSchedulerConfig(env),
+          buildCrashAlert(error)
+        );
+      } catch { /* the alert is best effort; the 500 below still reports it */ }
+    }
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : String(error) },
       { status: 500 }

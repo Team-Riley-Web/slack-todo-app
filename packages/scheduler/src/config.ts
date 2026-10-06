@@ -20,6 +20,12 @@ export interface SchedulerConfig {
    */
   topPerSpace: number;
   assigneeLabels: Record<string, string>;
+  /**
+   * Slack user id the bot DMs when a run fails and #agency-ops cannot be
+   * trusted to carry the warning. `SCHEDULED_ALERT_USER_ID`, else the default
+   * assignee, else the first authorized user -- so it works with no new setting.
+   */
+  alertUserId?: string;
 }
 
 /** Marketing, sales and agency operations. Inbox joins them by flag. */
@@ -62,5 +68,9 @@ export function loadSchedulerConfig(
     personalSpaceKeys: list(env.SCHEDULED_PERSONAL_SPACES, DEFAULT_PERSONAL_SPACES),
     topPerSpace: positiveInt(env.SCHEDULED_TOP_PER_SPACE, DEFAULT_TOP_PER_SPACE),
     assigneeLabels: parseAssigneeLabels(env.ASSIGNEE_LABELS),
+    alertUserId: env.SCHEDULED_ALERT_USER_ID?.trim()
+      || env.DEFAULT_ASSIGNEE_SLACK_ID?.trim()
+      || env.AUTHORIZED_SLACK_USER_IDS?.split(',').map((s) => s.trim()).find(Boolean)
+      || undefined,
   };
 }

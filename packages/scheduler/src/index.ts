@@ -36,3 +36,6 @@ export {
   syncChannelMappings, planChannelMappings, listSlackChannels, matchSpace,
   type ChannelLister, type NewMapping, type SlackChannel,
 } from './channel-sync.js';
+export {
+  buildRunAlert, buildCrashAlert, sendAlert, explain, type AlertMessage,
+} from './alerts.js';

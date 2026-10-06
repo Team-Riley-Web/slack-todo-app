@@ -206,6 +206,21 @@ releases only its own claim, and does not stop the next channel. Re-running
 Errors are sanitized before they reach a log: anything matching a Slack token
 or a bearer header is masked, and the message is truncated.
 
+### Failure alerts come to you in Slack
+
+You do not have to go looking. When a weekly run has a problem, the bot posts
+a plain-language warning in **#agency-ops**: which briefing, which channel,
+what went wrong and the fix. It alerts on a failed post, on open tasks in a
+Space that cannot be routed (two channels, or mapped to #personal-ops), and on
+a whole-run crash (database down, bad config) where nothing posted at all.
+Quiet client channels and clean runs send nothing.
+
+If #agency-ops is itself the problem (archived, bot removed), or the post to
+it fails, the bot **DMs you** instead. The DM goes to `SCHEDULED_ALERT_USER_ID`,
+else `DEFAULT_ASSIGNEE_SLACK_ID`, else the first `AUTHORIZED_SLACK_USER_IDS`,
+so it works with no new setting. A rehearsal (`--dry-run`) never alerts. If
+even the DM fails (Slack fully down) the alert goes to the Vercel log.
+
 ### When Slack fails: what the error means
 
 Find them in Vercel -> Logs for `/api/cron/scheduled`, in the cron response
@@ -239,6 +254,7 @@ once it is back; the ledger makes it safe and it never double-posts.
 | `SCHEDULED_AGENCY_SPACES` | Agency briefing Spaces, slug or name. Default `agency-internal,marketing,sales`. Inbox is always in. |
 | `SCHEDULED_PERSONAL_SPACES` | Personal briefing Spaces. Default `personal,music,spiritual`. |
 | `SCHEDULED_TOP_PER_SPACE` | Tasks shown per Space. Default `10`. |
+| `SCHEDULED_ALERT_USER_ID` | Optional. Who gets the failure DM. Defaults to the default assignee. |
 | `CRON_SECRET` | Bearer token on the cron route. `openssl rand -hex 32` |
 
 Client and Finance channels need no variable — map them, or name the channel

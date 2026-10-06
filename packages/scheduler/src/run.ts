@@ -1,5 +1,6 @@
 import { claimRun, finishRun, releaseRun } from './ledger.js';
 import { syncChannelMappings } from './channel-sync.js';
+import { buildRunAlert, sendAlert } from './alerts.js';
 import {
   DIGEST_LIMIT, getOpenTasks, loadBriefingPlan, postBriefing,
   type JobDeps, type PostResult,
@@ -202,6 +203,13 @@ export async function runWeeklyDispatch(
     if (taskCount === 0) continue;
     console.warn(`[scheduler] ${space.name}: ${taskCount} open task(s) not briefed: ${reason}`);
     results.push({ key: space.slug, occurrence: week, status: 'unrouted', taskCount, reason });
+  }
+
+  // Tell a person, in Slack, about anything that did not go out. A rehearsal
+  // posts nothing anywhere, so it never alerts either.
+  if (!opts.rehearsal) {
+    const alert = buildRunAlert(results, week, deps.config);
+    if (alert) await sendAlert(deps.client, deps.config, alert);
   }
 
   return {
