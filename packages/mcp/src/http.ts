@@ -4,6 +4,9 @@ import {
 import type { Db } from '@tr/db';
 import { createMcpServer } from './server.js';
 import { TOOL_NAMES } from './tools.js';
+import {
+  authorizeOAuthAccess, isOAuthConfigured, resourceMetadataUrl, type OAuthDeps,
+} from './oauth.js';
 
 /**
  * Remote MCP over authenticated HTTPS.
@@ -56,14 +59,17 @@ export function authorizeMcpRequest(
  * wrong, and no echo of what was sent -- an error message is a place
  * credentials leak into logs.
  */
-function unauthorized(): Response {
+function unauthorized(discovery?: string): Response {
   return new Response(
     JSON.stringify({ error: 'unauthorized' }),
     {
       status: 401,
       headers: {
         'content-type': 'application/json',
-        'www-authenticate': 'Bearer realm="team-riley-tasks-mcp"',
+        // The metadata URL is what lets a connector find the sign-in flow
+        // (RFC 9728). It is a public address, not a credential.
+        'www-authenticate': 'Bearer realm="team-riley-tasks-mcp"' +
+          (discovery ? `, resource_metadata="${discovery}"` : ''),
       },
     }
   );
@@ -72,6 +78,12 @@ function unauthorized(): Response {
 export interface McpHttpOptions {
   getDb: () => Promise<Db>;
   env?: NodeJS.ProcessEnv;
+  /**
+   * Allowlist check for OAuth access tokens. Supplying it is what turns the
+   * connector sign-in on; without it only the static Hermes token is accepted.
+   */
+  isAllowed?: OAuthDeps['isAllowed'];
+  now?: () => number;
 }
 
 /** One remote MCP request: authorize, then hand it to the SDK transport. */
@@ -79,8 +91,14 @@ export async function handleMcpHttpRequest(
   request: Request, opts: McpHttpOptions
 ): Promise<Response> {
   const env = opts.env ?? process.env;
-  if (!authorizeMcpRequest(request.headers.get('authorization'), env)) {
-    return unauthorized();
+  const oauthOn = opts.isAllowed !== undefined && isOAuthConfigured(env);
+  // Two credentials, one tool list: the static token (Hermes) or a signed
+  // OAuth access token (Claude / ChatGPT connectors). Either way nothing below
+  // this check can tell which one it was.
+  const ok = authorizeMcpRequest(request.headers.get('authorization'), env) ||
+    (oauthOn && authorizeOAuthAccess(request, { env, now: opts.now, isAllowed: opts.isAllowed! }) !== null);
+  if (!ok) {
+    return unauthorized(oauthOn ? resourceMetadataUrl(new URL(request.url).origin) : undefined);
   }
 
   // Built only after the request is authorized, so an unauthenticated caller
@@ -126,6 +144,7 @@ export async function handleMcpHttpRequest(
  */
 export function mcpHealth(env: NodeJS.ProcessEnv = process.env): {
   ok: boolean; service: string; transport: string; tools: number; configured: boolean;
+  oauth: boolean;
 } {
   const configured = isMcpHttpConfigured(env);
   return {
@@ -134,5 +153,7 @@ export function mcpHealth(env: NodeJS.ProcessEnv = process.env): {
     transport: 'streamable-http',
     tools: TOOL_NAMES.length,
     configured,
+    // That connector sign-in has a secret to sign with; never the secret.
+    oauth: isOAuthConfigured(env),
   };
 }

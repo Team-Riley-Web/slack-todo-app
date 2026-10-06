@@ -1,5 +1,6 @@
 import { handleMcpHttpRequest } from '@tr/mcp/http';
 import { getDb } from '@/db';
+import { oauthDeps } from '@/lib/oauth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -18,11 +19,14 @@ export const dynamic = 'force-dynamic';
  * reach. This app is the only deployed surface, and it already terminates
  * HTTPS and holds the database URL.
  *
+ * Two credentials are accepted: the static Hermes token, or an OAuth access
+ * token from a Claude / ChatGPT connector sign-in (docs/specs/connector-oauth.md).
+ *
  * POST carries every MCP request. GET is the protocol's SSE upgrade, which
  * stateless mode does not serve; the SDK answers it correctly on its own.
  */
 function handle(request: Request): Promise<Response> {
-  return handleMcpHttpRequest(request, { getDb });
+  return handleMcpHttpRequest(request, { getDb, isAllowed: oauthDeps.isAllowed });
 }
 
 export const POST = handle;

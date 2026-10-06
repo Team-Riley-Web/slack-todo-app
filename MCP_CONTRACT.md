@@ -57,6 +57,42 @@ touched until a request has authenticated.
 It is deliberately separate from the REST API's `API_TOKEN`, so Hermes's MCP
 access can be revoked without taking the REST API down with it.
 
+### Connector sign-in (Claude.ai, ChatGPT)
+
+The custom-connector screens take a URL and OAuth, not a bearer header, so
+`/mcp` also accepts an OAuth access token. Same endpoint, same twenty-one tools.
+Design and trade-offs: `docs/specs/connector-oauth.md`.
+
+Add the connector with just `https://<TASKS_APP_HOST>/mcp`. The app is its own
+authorization server (OAuth 2.1, PKCE `S256` only, dynamic client registration)
+and the human step is the web app's existing **Sign in with Slack**, limited to
+`AUTHORIZED_SLACK_USER_IDS`. A consent screen names what is being connected.
+
+| Path | Purpose |
+|---|---|
+| `/.well-known/oauth-protected-resource[/mcp]` | RFC 9728 discovery |
+| `/.well-known/oauth-authorization-server` | RFC 8414 metadata |
+| `/oauth/register` | dynamic client registration |
+| `/oauth/authorize` | sign-in redirect, consent, code |
+| `/oauth/token` | code and refresh-token exchange |
+
+- **Configuration:** `MCP_OAUTH_SECRET` (32+ characters). Unset or shorter, the
+  sign-in is off and `/mcp` accepts only `TASKS_MCP_TOKEN`. `/mcp/health` reports
+  `oauth: true|false`, never the secret.
+- **Stateless:** clients, codes and tokens are HMAC-signed, nothing is stored.
+  Access tokens last 1 hour, refresh tokens 90 days, codes 60 seconds.
+- **Revoking:** remove the person from `AUTHORIZED_SLACK_USER_IDS` and every
+  token they hold stops working on its next request. Rotating
+  `MCP_OAUTH_SECRET` signs out every connector at once.
+- **Redirect addresses** are an exact allowlist: `claude.ai` / `claude.com`
+  `/api/mcp/auth_callback`, ChatGPT's `/connector/oauth/<id>` and
+  `/connector_platform_oauth_redirect`, and loopback for local clients like
+  Claude Code. Anything else is refused at registration and again at
+  authorization.
+- **Known limit:** a code cannot be marked single-use without storing it. PKCE
+  and the 60-second lifetime bound that.
+- The Hermes bearer token is unchanged and independent.
+
 ### Development
 
 `pnpm mcp` still runs the stdio transport, unchanged. Both transports are

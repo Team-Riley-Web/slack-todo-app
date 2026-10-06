@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { signIn } from '@/auth';
 import { currentUser } from '@/user';
 import { redirect } from 'next/navigation';
+import { safeNext } from '@/lib/safe-next';
 
 /**
  * The Slack mark, inline and local to this page.
@@ -35,8 +36,13 @@ function SlackMark() {
  * That strip is the most recognisable part of the app, and reusing it is what
  * makes this read as the same product rather than a form on a blank page.
  */
-export default async function SignInPage() {
-  if (await currentUser()) redirect('/');
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string | string[] }>;
+}) {
+  const next = safeNext((await searchParams).next);
+  if (await currentUser()) redirect(next);
 
   return (
     <main className="signin">
@@ -50,7 +56,7 @@ export default async function SignInPage() {
           <form
             action={async () => {
               'use server';
-              await signIn('slack', { redirectTo: '/' });
+              await signIn('slack', { redirectTo: next });
             }}
           >
             <button type="submit" className="primary slack">

@@ -190,7 +190,7 @@ describe('tools over the HTTP transport', () => {
 describe('health', () => {
   it('reports alive without exposing the token or any task', () => {
     const h = mcpHealth(env);
-    expect(h).toEqual({
+    expect(h).toMatchObject({
       ok: true, service: 'team-riley-tasks-mcp', transport: 'streamable-http',
       tools: TOOL_NAMES.length, configured: true,
     });

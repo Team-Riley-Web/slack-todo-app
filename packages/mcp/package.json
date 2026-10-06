@@ -14,6 +14,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./http": "./src/http.ts",
+    "./oauth": "./src/oauth.ts",
     "./server": "./src/server.ts",
     "./tools": "./src/tools.ts"
   }
