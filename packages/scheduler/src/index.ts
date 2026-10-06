@@ -1,10 +1,15 @@
 export {
-  SCHEDULE_ZONE, JOB_KEYS, localMoment,
-  type JobKey, type LocalMoment,
+  SCHEDULE_ZONE, WEEKLY_CRON, FIXED_BRIEFINGS, localMoment,
+  type FixedBriefing, type LocalMoment,
 } from './schedule.js';
 export {
-  loadSchedulerConfig, channelFor, type SchedulerConfig,
+  loadSchedulerConfig, DEFAULT_AGENCY_SPACES, DEFAULT_PERSONAL_SPACES,
+  DEFAULT_TOP_PER_SPACE, type SchedulerConfig,
 } from './config.js';
+export {
+  planBriefings, findBriefing,
+  type Briefing, type BriefingPlan, type ChannelMapping, type UnroutedSpace,
+} from './routing.js';
 export {
   planTaskMessages, GROUP_CHUNK, type PlannedMessage,
 } from './messages.js';
@@ -13,14 +18,15 @@ export {
   type RunOutcome, type RunRecord,
 } from './ledger.js';
 export {
-  getAllOpenAgencyTasks, getAllOpenPersonalTasks,
-  postAgencyDailyTasks, postPersonalDailyTasks, postDigest,
+  getOpenTasks, loadBriefingPlan, tasksForBriefing, focusGroups, hiddenFooter,
+  briefingHeading, postBriefing,
   withoutDailyAnchors, isDailyAnchor, DAILY_ANCHORS, DIGEST_LIMIT,
-  type JobDeps, type SlackPoster, type PostResult, type DigestOptions,
+  type JobDeps, type SlackPoster, type PostResult, type PostBriefingOptions,
+  type FocusedGroups,
 } from './jobs.js';
 export {
-  runDailyDispatch, runJobNow, sanitizeError,
-  type RunReport, type JobRunReport, type RunDailyOptions,
+  runWeeklyDispatch, runBriefingNow, sanitizeError, UnknownBriefingError,
+  type RunReport, type JobRunReport, type RunWeeklyOptions,
 } from './run.js';
 export {
   handleScheduledRequest, authorizeCronRequest, createSchedulerSlackClient,

@@ -1,22 +1,28 @@
-import type { Db } from '@tr/db';
 import { claimRun, finishRun, releaseRun } from './ledger.js';
 import {
-  postAgencyDailyTasks, postPersonalDailyTasks,
+  DIGEST_LIMIT, getOpenTasks, loadBriefingPlan, postBriefing,
   type JobDeps, type PostResult,
 } from './jobs.js';
-import { localMoment, SCHEDULE_ZONE, type JobKey } from './schedule.js';
+import { findBriefing, type Briefing } from './routing.js';
+import { localMoment, SCHEDULE_ZONE } from './schedule.js';
+import type { GroupedTasks } from '@tr/task-core';
 
 export interface JobRunReport {
-  key: JobKey;
+  /** The briefing's name: `agency`, `personal`, or a Space slug. */
+  key: string;
+  /** The Monday of the week this run belongs to. */
   occurrence: string;
   /**
    * posted    -- a message went to Slack
-   * duplicate -- this occurrence was already delivered today
-   * skipped   -- nothing to send it to
+   * duplicate -- this week's briefing was already delivered
+   * skipped   -- nothing to send, or nowhere to send it
    * failed    -- the post threw; the claim was released
+   * unrouted  -- open tasks in a Space no briefing can safely carry
    */
-  status: 'posted' | 'duplicate' | 'skipped' | 'failed';
+  status: 'posted' | 'duplicate' | 'skipped' | 'failed' | 'unrouted';
+  channel?: string;
   taskCount?: number;
+  shownCount?: number;
   messageTimestamps?: string[];
   reason?: string;
 }
@@ -24,7 +30,7 @@ export interface JobRunReport {
 export interface RunReport {
   /** The America/Chicago wall clock the dispatch ran at. */
   localTime: string;
-  /** The local date both posts are keyed to. */
+  /** The Monday of the week every briefing in this run is keyed to. */
   occurrence: string;
   results: JobRunReport[];
 }
@@ -45,7 +51,7 @@ export function sanitizeError(error: unknown): string {
 }
 
 /**
- * Claims today's occurrence, posts, and records what happened.
+ * Claims this week's briefing, posts, and records what happened.
  *
  * Claim first, post second, record third. Claiming after posting would let two
  * invocations both post before either claimed. The claim is released only when
@@ -54,46 +60,53 @@ export function sanitizeError(error: unknown): string {
  * a detail row.
  */
 async function runOne(
-  db: Db,
-  deps: JobDeps,
-  key: JobKey,
-  occurrence: string,
-  post: (deps: JobDeps) => Promise<PostResult>
+  deps: JobDeps, briefing: Briefing, week: string, all: GroupedTasks
 ): Promise<JobRunReport> {
-  const claimed = await claimRun(db, key, occurrence);
-  if (!claimed) return { key, occurrence, status: 'duplicate' };
+  const { db } = deps;
+  const base = {
+    key: briefing.name, occurrence: week,
+    ...(briefing.channelId ? { channel: briefing.channelId } : {}),
+  };
+  const claimed = await claimRun(db, briefing.ledgerKey, week);
+  if (!claimed) return { ...base, status: 'duplicate' };
 
   let result: PostResult;
   try {
-    result = await post(deps);
+    result = await postBriefing(deps, briefing, { week, all });
   } catch (error) {
-    await releaseRun(db, key, occurrence);
-    console.error(`[scheduler] ${key} failed for ${occurrence}: ${sanitizeError(error)}`);
-    return { key, occurrence, status: 'failed', reason: sanitizeError(error) };
+    await releaseRun(db, briefing.ledgerKey, week);
+    console.error(
+      `[scheduler] ${briefing.name} failed for week of ${week}: ${sanitizeError(error)}`
+    );
+    return { ...base, status: 'failed', reason: sanitizeError(error) };
   }
 
   if (!result.posted) {
-    await finishRun(db, key, occurrence, 'skipped', {
+    await finishRun(db, briefing.ledgerKey, week, 'skipped', {
+      briefing: briefing.name,
       reason: result.reason ?? 'nothing posted', taskCount: result.taskCount,
     });
     return {
-      key, occurrence, status: 'skipped',
-      reason: result.reason, taskCount: result.taskCount,
+      ...base, status: 'skipped', reason: result.reason, taskCount: result.taskCount,
     };
   }
 
-  await finishRun(db, key, occurrence, 'posted', {
+  await finishRun(db, briefing.ledgerKey, week, 'posted', {
+    briefing: briefing.name,
+    channel: briefing.channelId,
     taskCount: result.taskCount,
+    shownCount: result.shownCount,
     messageTimestamps: result.messageTimestamps,
     ...(result.truncated ? { truncated: true } : {}),
   });
   return {
-    key, occurrence, status: 'posted',
-    taskCount: result.taskCount, messageTimestamps: result.messageTimestamps,
+    ...base, status: 'posted',
+    taskCount: result.taskCount, shownCount: result.shownCount,
+    messageTimestamps: result.messageTimestamps,
   };
 }
 
-export interface RunDailyOptions {
+export interface RunWeeklyOptions {
   /** The instant to key the run to. Defaults to now. */
   at?: Date;
   zone?: string;
@@ -102,74 +115,105 @@ export interface RunDailyOptions {
 }
 
 /**
- * The whole scheduler: post the Agency list, post the Personal list, stop.
+ * The whole scheduler: post every weekly briefing, report what could not be
+ * routed, stop.
  *
- * There is no clock to consult and nothing to decide. Vercel Cron fires this
- * once a day and everything it fires is due by definition -- the hourly
- * dispatcher that used to ask "is anything due?" is gone, along with the
- * reason for it. What made the old design hourly was the EOS reminders, which
- * needed several times of day; Hermes owns those now.
+ * Vercel Cron fires this once a week. The ledger key is the Monday of the
+ * local ISO week, so a Vercel retry, a manual `dispatch`, or a stray second
+ * invocation any day that week finds every briefing already claimed and posts
+ * nothing. That is the guarantee of one briefing per channel per week.
  *
- * The two posts are ISOLATED. Each claims its own ledger row, each has its own
- * try/catch inside `runOne`, and Agency is awaited before Personal starts, so
- * an Agency failure cannot stop the Personal post from being attempted and a
- * Personal failure cannot touch what Agency already delivered.
+ * The open tasks are read ONCE and split by briefing, and each Space belongs
+ * to at most one briefing (`planBriefings`), so no task can appear in two
+ * channels' posts.
  *
- * Deterministic throughout: no model, no ranking, no interpretation. The tasks
- * are whatever the database holds at the moment this runs.
+ * Briefings are ISOLATED. Each claims its own ledger row and has its own
+ * try/catch inside `runOne`, and they run one after another, so a failure in
+ * one channel cannot stop the next from being attempted or touch what an
+ * earlier one delivered.
+ *
+ * Deterministic throughout: no model, no ranking beyond the shared query's
+ * priority order, no interpretation, and no writes to any task.
  */
-export async function runDailyDispatch(
-  deps: JobDeps, opts: RunDailyOptions = {}
+export async function runWeeklyDispatch(
+  deps: JobDeps, opts: RunWeeklyOptions = {}
 ): Promise<RunReport> {
   const zone = opts.zone ?? deps.config.timeZone ?? SCHEDULE_ZONE;
   const moment = localMoment(opts.at ?? new Date(), zone);
+  const week = moment.week;
+
+  const plan = await loadBriefingPlan(deps.db, deps.config);
+  const all = await getOpenTasks(deps.db);
+  if (all.entries.length >= DIGEST_LIMIT) {
+    console.warn(
+      `[scheduler] hit the ${DIGEST_LIMIT}-row query cap; ` +
+      'some open tasks are not in this week\'s briefings.'
+    );
+  }
+
   const results: JobRunReport[] = [];
-
-  const run = async (
-    key: JobKey, post: (d: JobDeps) => Promise<PostResult>
-  ): Promise<void> => {
-    if (opts.rehearsal) {
-      // A rehearsal must never consume the real occurrence, so it skips the
-      // ledger entirely rather than claiming and releasing.
-      try {
-        const result = await post(deps);
-        results.push({
-          key, occurrence: moment.date,
-          status: result.posted ? 'posted' : 'skipped',
-          reason: result.reason, taskCount: result.taskCount,
-          messageTimestamps: result.messageTimestamps,
-        });
-      } catch (error) {
-        results.push({
-          key, occurrence: moment.date, status: 'failed', reason: sanitizeError(error),
-        });
-      }
-      return;
+  for (const briefing of plan.briefings) {
+    if (!opts.rehearsal) {
+      results.push(await runOne(deps, briefing, week, all));
+      continue;
     }
-    results.push(await runOne(deps.db, deps, key, moment.date, post));
-  };
+    // A rehearsal must never consume the real occurrence, so it skips the
+    // ledger entirely rather than claiming and releasing.
+    try {
+      const result = await postBriefing(deps, briefing, { week, all });
+      results.push({
+        key: briefing.name, occurrence: week,
+        ...(briefing.channelId ? { channel: briefing.channelId } : {}),
+        status: result.posted ? 'posted' : 'skipped',
+        reason: result.reason, taskCount: result.taskCount,
+        shownCount: result.shownCount, messageTimestamps: result.messageTimestamps,
+      });
+    } catch (error) {
+      results.push({
+        key: briefing.name, occurrence: week, status: 'failed', reason: sanitizeError(error),
+      });
+    }
+  }
 
-  await run('agency-daily', postAgencyDailyTasks);
-  await run('personal-daily', postPersonalDailyTasks);
+  // Open work in a Space no briefing can carry is said out loud, never
+  // posted somewhere plausible. A Space with nothing open is not news.
+  for (const { space, reason } of plan.unrouted) {
+    const taskCount = all.entries.filter((e) => e.space.id === space.id).length;
+    if (taskCount === 0) continue;
+    console.warn(`[scheduler] ${space.name}: ${taskCount} open task(s) not briefed: ${reason}`);
+    results.push({ key: space.slug, occurrence: week, status: 'unrouted', taskCount, reason });
+  }
 
   return {
     localTime: `${moment.date} ${String(moment.hour).padStart(2, '0')}:${
       String(moment.minute).padStart(2, '0')} ${zone}`,
-    occurrence: moment.date,
+    occurrence: week,
     results,
   };
 }
 
+export class UnknownBriefingError extends Error {
+  constructor(readonly briefing: string, readonly available: string[]) {
+    super(`Unknown briefing "${briefing}"`);
+  }
+}
+
 /**
- * Runs ONE of the two posts immediately, ignoring the ledger.
+ * Runs ONE briefing immediately, ignoring the ledger.
  *
- * The manual test path. It calls the same `postAgencyDailyTasks` /
- * `postPersonalDailyTasks` the cron calls -- there is no second code path to
- * drift -- and deliberately does not claim an occurrence, so testing the
- * Agency post at noon does not consume tomorrow morning's delivery.
+ * The manual test path. It goes through the same `loadBriefingPlan` and
+ * `postBriefing` the cron does -- there is no second code path to drift --
+ * and deliberately does not claim the week, so a test post at 6am Monday
+ * does not consume the briefing the cron delivers an hour later.
  */
-export function runJobNow(deps: JobDeps, key: JobKey): Promise<PostResult> {
-  return key === 'agency-daily'
-    ? postAgencyDailyTasks(deps)
-    : postPersonalDailyTasks(deps);
+export async function runBriefingNow(
+  deps: JobDeps, name: string, opts: { at?: Date } = {}
+): Promise<PostResult> {
+  const plan = await loadBriefingPlan(deps.db, deps.config);
+  const briefing = findBriefing(plan, name);
+  if (!briefing) {
+    throw new UnknownBriefingError(name, plan.briefings.map((b) => b.name));
+  }
+  const week = localMoment(opts.at ?? new Date(), deps.config.timeZone).week;
+  return postBriefing(deps, briefing, { week, all: await getOpenTasks(deps.db) });
 }

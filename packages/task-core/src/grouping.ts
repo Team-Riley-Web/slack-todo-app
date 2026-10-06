@@ -33,7 +33,7 @@ export interface GroupedTasksOptions {
 /**
  * Every open task, grouped by Space -- the query behind `/tasks all`.
  *
- * Extracted from the Slack handler so the scheduled daily digests run the
+ * Extracted from the Slack handler so the scheduled weekly briefings run the
  * SAME query and the SAME grouping rather than a parallel implementation that
  * can drift. `actionableOnly` means status = 'open': waiting and completed are
  * both excluded, which is the semantics every caller here wants.
@@ -64,41 +64,20 @@ export async function listOpenTasksBySpace(
   return { entries, groups };
 }
 
-/** The seeded Personal Space. Everything else is business/agency work. */
+/** The seeded Personal Space. */
 export const PERSONAL_SPACE_SLUG = 'personal';
 
 /**
- * Matches a Space by slug OR by name, both case-insensitively.
+ * Matches a Space by slug OR by name, both case-insensitively, against a
+ * configured list -- e.g. the Spaces the weekly briefings send to #agency-ops.
  *
  * Two keys rather than one because `setSpaceName` regenerates the slug on a
  * rename while `space_aliases` keeps the old name working. Checking both means
- * a Space renamed from either direction still lands on the right side of the
- * personal/agency line instead of silently moving the whole Personal list into
- * the Agency post.
+ * a renamed Space still lands in the same briefing instead of silently moving
+ * to another channel's.
  */
-function matchesAny(space: Space, keys: readonly string[]): boolean {
+export function matchesSpaceKeys(space: Space, keys: readonly string[]): boolean {
   const wanted = keys.map((k) => k.trim().toLowerCase()).filter(Boolean);
   return wanted.includes(space.slug.toLowerCase())
     || wanted.includes(space.name.toLowerCase());
-}
-
-/** True for the Spaces that belong in the Personal digest. */
-export function isPersonalSpace(
-  space: Space, keys: readonly string[] = [PERSONAL_SPACE_SLUG]
-): boolean {
-  return matchesAny(space, keys);
-}
-
-/**
- * True for everything else -- Agency / Internal, Marketing, Sales, Music,
- * Inbox and every client Space.
- *
- * Deliberately the complement of `isPersonalSpace` rather than its own list:
- * the two digests then cover every Space between them, so a Space added later
- * appears in the Agency post instead of silently appearing in neither.
- */
-export function isAgencySpace(
-  space: Space, keys: readonly string[] = [PERSONAL_SPACE_SLUG]
-): boolean {
-  return !isPersonalSpace(space, keys);
 }

@@ -115,8 +115,8 @@ export async function handleTasksCommand(
      * never appears twice and the ordering is stable between runs.
      *
      * `listOpenTasksBySpace` is that query and that grouping, lifted into
-     * task-core so the scheduled daily digests run exactly this and not a
-     * second copy of it. `/tasks all` and the 8am posts must never disagree
+     * task-core so the scheduled weekly briefings run exactly this and not a
+     * second copy of it. `/tasks all` and the Monday posts must never disagree
      * about what is open.
      */
     const { entries, groups } = await listOpenTasksBySpace(db);

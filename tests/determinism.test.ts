@@ -115,8 +115,8 @@ it('keeps editTask reachable only from human surfaces', async () => {
 /**
  * Scheduled delivery must stand on its own.
  *
- * The brief is explicit: the 8am digests and the EOS reminders are plain cron
- * jobs reading the task database, and they keep working with every AI surface
+ * The brief is explicit: the scheduled task posts are plain cron jobs reading
+ * the task database, and they keep working with every AI surface
  * switched off. MCP and Hermes may LATER consume the same functions for
  * planning and prioritisation -- the dependency runs that way and never back,
  * so an outage or a bad model response cannot cost you your morning list.
@@ -161,13 +161,14 @@ it('keeps remote MCP behind a credential of its own', async () => {
 });
 
 /**
- * Scheduling ownership, settled 2026-09-11: the Tasks app delivers the two
- * morning task posts and nothing else. EOS reminders moved to Hermes, and this
- * asserts they did not quietly stay behind.
+ * Scheduling ownership: the Tasks app delivers its weekly task briefings and
+ * nothing else (2026-10-06; the two daily posts before that, 2026-09-11). EOS
+ * reminders moved to Hermes, and this asserts they did not quietly stay
+ * behind -- and that the daily posts did not either.
  */
-it('schedules only the two daily task posts, with no EOS delivery left behind', async () => {
-  const { JOB_KEYS } = await import('../packages/scheduler/src/schedule.js');
-  expect([...JOB_KEYS]).toEqual(['agency-daily', 'personal-daily']);
+it('schedules only the weekly task briefings, with no EOS or daily post left behind', async () => {
+  const { FIXED_BRIEFINGS } = await import('../packages/scheduler/src/schedule.js');
+  expect([...FIXED_BRIEFINGS]).toEqual(['agency', 'personal']);
 
   const scheduler = (await allSources())
     .filter(({ file }) => file.startsWith(join('packages', 'scheduler')));
@@ -175,6 +176,11 @@ it('schedules only the two daily task posts, with no EOS delivery left behind', 
     .filter(({ text }) => /level.?10|same.?page|quarterly|eos/i.test(codeOnly(text)))
     .map(({ file }) => file);
   expect(eos).toEqual([]);
+
+  const daily = scheduler
+    .filter(({ text }) => /agency-daily|personal-daily|— Today/.test(codeOnly(text)))
+    .map(({ file }) => file);
+  expect(daily).toEqual([]);
 });
 
 it('resolves tasks by uuid only — every mutation guards with assertTaskId', async () => {

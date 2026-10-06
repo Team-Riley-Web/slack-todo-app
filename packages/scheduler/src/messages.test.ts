@@ -114,3 +114,39 @@ describe('the daily digest layout', () => {
     expect(messages[1]!.text).toContain('(continued)');
   });
 });
+
+describe('the briefing footer', () => {
+  const footer = '+4 more in Marketing (`/tasks marketing`)';
+
+  it('closes the last message as a context line', () => {
+    const [message, ...rest] = planTaskMessages(
+      'Agency Tasks — Week of Oct 5', [group('marketing', 3)], opts, footer
+    );
+    expect(rest).toHaveLength(0);
+    expect(message!.blocks.at(-1)).toMatchObject({
+      type: 'context', elements: [{ type: 'mrkdwn', text: footer }],
+    });
+    expect(message!.text.endsWith(footer)).toBe(true);
+  });
+
+  it('starts a message of its own when the last one is full', () => {
+    // Title (1) + an 11-task group (heading + two checkbox blocks = 3) + 23
+    // one-task groups (2 each = 46) is exactly Slack's 50, with no room left.
+    const groups = [
+      group('big', 11),
+      ...Array.from({ length: 23 }, (_, i) => group(`space${i}`, 1)),
+    ];
+    const messages = planTaskMessages('Briefing', groups, opts, footer);
+    expect(messages.map((m) => m.blocks.length)).toEqual([MAX_BLOCKS_PER_MESSAGE, 1]);
+    expect(messages.at(-1)).toMatchObject({
+      blocks: [{ type: 'context' }], text: footer, entries: [],
+    });
+    expect(messages.flatMap((m) => m.entries)).toHaveLength(34);
+  });
+
+  it('is left off entirely when nothing was held back', () => {
+    const [message] = planTaskMessages('Briefing', [group('sales', 2)], opts);
+    expect(message!.blocks.some((b) => (b as { type?: string }).type === 'context'))
+      .toBe(false);
+  });
+});

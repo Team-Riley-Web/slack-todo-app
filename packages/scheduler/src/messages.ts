@@ -12,9 +12,10 @@ import {
  *
  * `taskCardBlocks` silently caps a single group at 400 entries and replaces the
  * rest with a "narrow the scope" note. That is right for a slash command
- * someone can re-run; it is wrong for a digest whose whole contract is that
- * every open task appears. Chunking well below the cap means the cap never
- * fires, at a cost of one extra heading per hundred tasks in a Space.
+ * someone can re-run; it is wrong for a briefing, which must show every task
+ * it was handed -- the briefing decides what to leave out, and says so.
+ * Chunking well below the cap means the cap never fires, at a cost of one
+ * extra heading per hundred tasks in a Space.
  */
 export const GROUP_CHUNK = 100;
 
@@ -63,11 +64,13 @@ function rendersIntact(
 }
 
 /**
- * Lays the digest out across as many messages as it takes to show every task.
+ * Lays a briefing out across as many messages as it takes to show every task
+ * it was given, then closes with `footer` when there is one.
  *
  * Slack caps a message at 50 blocks, and `/tasks all` handles that by dropping
- * whole Spaces with a note. A scheduled digest cannot: "include every open
- * Agency task" is the requirement. So groups are packed greedily into
+ * whole Spaces with a note. A briefing cannot: what to leave out is decided
+ * BEFORE planning (`focusGroups`), and anything left here must render. So
+ * groups are packed greedily into
  * messages, and a group that will not fit alongside what is already there
  * starts the next message instead of being cut.
  *
@@ -77,6 +80,28 @@ function rendersIntact(
  * every checkbox in every message stays live.
  */
 export function planTaskMessages(
+  heading: string, groups: TaskGroup[], opts: MetaOpts, footer?: string
+): PlannedMessage[] {
+  const messages = planBody(heading, groups, opts);
+  if (!footer) return messages;
+
+  // The footer closes the LAST message, or starts one of its own when that
+  // message is already at Slack's block cap.
+  const block = {
+    type: 'context',
+    elements: [{ type: 'mrkdwn', text: footer }],
+  } as KnownBlock;
+  const last = messages[messages.length - 1]!;
+  if (last.blocks.length < MAX_BLOCKS_PER_MESSAGE) {
+    last.blocks.push(block);
+    last.text = `${last.text}\n${footer}`;
+  } else {
+    messages.push({ blocks: [block], text: footer, entries: [] });
+  }
+  return messages;
+}
+
+function planBody(
   heading: string, groups: TaskGroup[], opts: MetaOpts
 ): PlannedMessage[] {
   const chunked = chunkGroups(groups).filter((g) => g.entries.length > 0);

@@ -44,7 +44,7 @@ export interface ListTasksFilter {
  *
  * Priority first, then the ordering that was here before it -- due date, then
  * creation. Declared once and used by every query rather than repeated per
- * surface, so Slack, the daily digests, the web lists, the REST API and MCP
+ * surface, so Slack, the weekly briefings, the web lists, the REST API and MCP
  * cannot disagree about what "first" means.
  *
  * `NULLS LAST` is what puts Unprioritized below P3: 'P0' < 'P1' < 'P2' < 'P3'

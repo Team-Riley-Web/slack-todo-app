@@ -40,7 +40,7 @@ export {
   type ListTasksFilter, type SpaceCount, type DueBucket,
 } from './queries.js';
 export {
-  listOpenTasksBySpace, isPersonalSpace, isAgencySpace, PERSONAL_SPACE_SLUG,
+  listOpenTasksBySpace, matchesSpaceKeys, PERSONAL_SPACE_SLUG,
   type TaskInSpace, type TaskGroup, type GroupedTasks,
   type SpacePredicate, type GroupedTasksOptions,
 } from './grouping.js';

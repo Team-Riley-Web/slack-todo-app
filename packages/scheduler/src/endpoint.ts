@@ -2,10 +2,7 @@ import { WebClient } from '@slack/web-api';
 import type { Db } from '@tr/db';
 import { loadSchedulerConfig } from './config.js';
 import type { SlackPoster } from './jobs.js';
-import { runDailyDispatch, runJobNow } from './run.js';
-import { JOB_KEYS, type JobKey } from './schedule.js';
-
-export { JOB_KEYS };
+import { runBriefingNow, runWeeklyDispatch, UnknownBriefingError } from './run.js';
 
 /**
  * The credential-reading half of the cron endpoint, kept OUT of
@@ -60,13 +57,14 @@ export interface ScheduledRequestOptions {
 /**
  * One scheduled-delivery request.
  *
- * With no parameters it runs the daily dispatch: post Agency, post Personal,
- * stop. That is what the once-daily Vercel cron calls, and it is idempotent
- * for the day via the ledger.
+ * With no parameters it runs the weekly dispatch: every briefing, each to its
+ * own channel, then stop. That is what the Monday Vercel cron calls, and it is
+ * idempotent for the week via the ledger.
  *
- * With `?job=<key>` it runs that ONE post immediately, bypassing the ledger --
- * the manual test path. Same handler, same functions; there is no separate
- * test-only scheduling logic to drift.
+ * With `?job=<briefing>` -- `agency`, `personal`, or a mapped Space's slug --
+ * it runs that ONE briefing immediately, bypassing the ledger: the manual test
+ * path. Same handler, same functions; there is no separate test-only
+ * scheduling logic to drift.
  */
 export async function handleScheduledRequest(
   request: Request, opts: ScheduledRequestOptions
@@ -79,12 +77,6 @@ export async function handleScheduledRequest(
   const url = new URL(request.url);
   const job = url.searchParams.get('job');
 
-  if (job && !JOB_KEYS.includes(job as JobKey)) {
-    return Response.json(
-      { ok: false, error: `Unknown job "${job}"`, jobs: JOB_KEYS }, { status: 400 }
-    );
-  }
-
   try {
     const deps = {
       db: await opts.getDb(),
@@ -92,12 +84,17 @@ export async function handleScheduledRequest(
       config: loadSchedulerConfig(env),
     };
 
-    if (job) {
-      const result = await runJobNow(deps, job as JobKey);
+    if (job !== null) {
+      const result = await runBriefingNow(deps, job);
       return Response.json({ ok: true, manual: true, job, result });
     }
-    return Response.json({ ok: true, ...(await runDailyDispatch(deps)) });
+    return Response.json({ ok: true, ...(await runWeeklyDispatch(deps)) });
   } catch (error) {
+    if (error instanceof UnknownBriefingError) {
+      return Response.json(
+        { ok: false, error: error.message, jobs: error.available }, { status: 400 }
+      );
+    }
     console.error('[scheduler] run failed', error);
     return Response.json(
       { ok: false, error: error instanceof Error ? error.message : String(error) },

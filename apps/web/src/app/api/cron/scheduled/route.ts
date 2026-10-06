@@ -6,7 +6,8 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 /**
- * Scheduled Slack delivery, driven hourly by Vercel Cron (see vercel.json).
+ * The weekly Slack task briefings, driven every Monday by Vercel Cron (see
+ * vercel.json and SCHEDULED.md).
  *
  * A thin adapter on purpose. Everything that reads a credential or decides
  * what to post lives in `@tr/scheduler`, so nothing under `src/app` holds a

@@ -1,5 +1,9 @@
 # Daily-only scheduling — spec as given, 2026-09-11
 
+> **Superseded 2026-10-06** by [`weekly-briefings.md`](weekly-briefings.md):
+> the two daily posts are now weekly, channel-scoped briefings. Kept for
+> history; the Hermes ownership split below still stands.
+
 Captured verbatim so the `TASKS.md` entry stays one line. Nothing inferred.
 
 ## Goal
