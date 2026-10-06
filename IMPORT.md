@@ -38,12 +38,10 @@ budget — which is why you briefly see a "Working" view.
 
 ```bash
 # 1. Look. This writes nothing.
-pnpm import-tasks -- --file docs/workast-export-2026-09-09.json \
-  --type workast --map config/workast-mapping.json
+pnpm import-tasks -- --file tasks.csv --type csv
 
 # 2. If the preview looks right, write it.
-pnpm import-tasks -- --file docs/workast-export-2026-09-09.json \
-  --type workast --map config/workast-mapping.json \
+pnpm import-tasks -- --file tasks.csv --type csv \
   --confirm --actor U01ABCDEF
 
 # 3. Changed your mind.
@@ -138,9 +136,6 @@ no source category at all; it never overrides one.
 
 An explicit `waiting: true` on a source record beats any status mapping, because
 otherwise mapping `pending → open` would silently un-park every waiting task.
-
-`config/workast-mapping.json` is the mapping for the real migration. Fill in the
-assignee's Slack user id before using it.
 
 ## CSV and JSON format
 

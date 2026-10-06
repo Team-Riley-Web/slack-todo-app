@@ -151,14 +151,10 @@ Without one of these there is no safe way to re-run a partially-failed import.
    ~~`source_external_id` for idempotent re-import.~~ Done — migration 007,
    with a partial unique index on `(source_platform, source_external_id)`.
 3. ~~Write the importer.~~ Done — `packages/importer`, `pnpm import-tasks`.
-4. ~~Verify against a copy of the export.~~ Done — the adapter and a
-   full-pipeline test both run against the real file on every test run.
-5. Fill in Joshua's Slack user id in `config/workast-mapping.json`.
-6. Dry-run against the real database: `pnpm import-tasks -- --file … --type
-   workast --map config/workast-mapping.json` (writes nothing).
-7. Import with `--confirm --actor <slack-id>`, then spot-check in Slack.
-8. Leave Workast read-only for a week before decommissioning. Roll back with
-   `--rollback <batch-id>` if anything looks wrong.
+4. ~~Verify against a copy of the export.~~ Obsolete: the Workast adapter, its
+   mapping and its tests were removed (Workast is no longer used).
+5. ~~Dry-run and import from Workast.~~ Obsolete, same reason. The CSV and JSON
+   importers remain (`pnpm import-tasks`, see IMPORT.md).
 
 **Known limitation, worth deciding on before you run it:** the export carries no
 creation timestamps, so every imported task will show as created at import time.

@@ -1,6 +1,6 @@
 import type { TaskStatus } from '@tr/task-core';
 
-export type ImportSourceType = 'csv' | 'json' | 'workast' | 'kanban';
+export type ImportSourceType = 'csv' | 'json' | 'kanban';
 
 export type Verdict = 'READY' | 'SKIP_DUPLICATE' | 'NEEDS_REVIEW' | 'INVALID';
 

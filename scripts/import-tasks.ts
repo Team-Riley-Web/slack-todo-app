@@ -9,7 +9,7 @@ import {
   type ImportMapping, type ImportSourceType,
 } from '@tr/importer';
 
-const SOURCE_TYPES: ImportSourceType[] = ['csv', 'json', 'workast', 'kanban'];
+const SOURCE_TYPES: ImportSourceType[] = ['csv', 'json', 'kanban'];
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
@@ -22,7 +22,7 @@ function usage(): never {
   console.log(`
 Import legacy tasks. Nothing is written without --confirm.
 
-  pnpm import-tasks -- --file <path> --type <csv|json|workast|kanban> [options]
+  pnpm import-tasks -- --file <path> --type <csv|json|kanban> [options]
   pnpm import-tasks -- --list
   pnpm import-tasks -- --batch <id>
   pnpm import-tasks -- --rollback <id> [--force]

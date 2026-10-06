@@ -58,7 +58,6 @@ export const IMPORT_FILETYPES = ['csv', 'json'] as const;
 const SOURCE_TYPES: ReadonlyArray<{ value: ImportSourceType; label: string }> = [
   { value: 'csv', label: 'CSV' },
   { value: 'json', label: 'JSON' },
-  { value: 'workast', label: 'Workast export' },
 ];
 
 export interface UploadMeta {
@@ -360,7 +359,7 @@ export function parseUploadSubmission(view: Record<string, any>): ParsedUpload {
 
   const rawType = typeState?.selected_option?.value;
   const sourceType: ImportSourceType =
-    rawType === 'csv' || rawType === 'json' || rawType === 'workast'
+    rawType === 'csv' || rawType === 'json'
       ? rawType
       : 'csv';
 

@@ -192,8 +192,7 @@ describe('limits', () => {
     expect(() => assertWithinLimits('\u0000binary', 'csv')).toThrow(ImportLimitError);
   });
 
-  it('treats workast and kanban as json sources', () => {
-    expect(() => assertWithinLimits('{"tasks":[]}', 'workast')).not.toThrow();
+  it('treats kanban as a json source', () => {
     expect(() => assertWithinLimits('{"tasks":[]}', 'kanban')).not.toThrow();
   });
 });

@@ -44,10 +44,10 @@ describe('the upload view', () => {
     expect(blockById(view, IMPORT_BLOCKS.file).element.filetypes).toEqual(['csv', 'json']);
   });
 
-  it('asks the source type natively, since sniffing cannot tell Workast from plain JSON', () => {
+  it('asks the source type natively rather than sniffing it', () => {
     const block = blockById(view, IMPORT_BLOCKS.sourceType);
     expect(block.element.type).toBe('radio_buttons');
-    expect(block.element.options.map((o: any) => o.value)).toEqual(['csv', 'json', 'workast']);
+    expect(block.element.options.map((o: any) => o.value)).toEqual(['csv', 'json']);
   });
 
   it('reuses the same option object for initial_option, which Slack matches by identity', () => {
@@ -212,8 +212,8 @@ describe('parsing the upload submission', () => {
   });
 
   it('reads the chosen source type', () => {
-    expect(parseUploadSubmission(submission({ files: [{ id: 'F' }] }, 'workast')).sourceType)
-      .toBe('workast');
+    expect(parseUploadSubmission(submission({ files: [{ id: 'F' }] }, 'json')).sourceType)
+      .toBe('json');
   });
 
   it('falls back to csv rather than trusting an unknown source type', () => {
