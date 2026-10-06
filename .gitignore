@@ -13,3 +13,6 @@ next-env.d.ts
 
 # TypeScript incremental build cache: regenerated, never reviewed.
 *.tsbuildinfo
+
+# Local PGlite database for apps/web (never commit)
+.pglite-web/
