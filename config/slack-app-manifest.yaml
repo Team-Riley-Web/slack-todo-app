@@ -84,6 +84,10 @@ oauth_config:
       # to its Space automatically (public, then private).
       - channels:read
       - groups:read
+      # post to a public channel without having been invited, so a new client
+      # channel never fails with not_in_channel; and join one on its own.
+      - chat:write.public
+      - channels:join
 
 settings:
   # This checked-in manifest keeps Socket Mode enabled for `pnpm slack` local

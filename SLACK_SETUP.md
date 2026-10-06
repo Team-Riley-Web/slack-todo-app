@@ -43,12 +43,16 @@ below.
 | `files:read` | reading the file uploaded to the import wizard |
 | `channels:read` | the weekly run lists public channels to map new ones by name |
 | `groups:read` | the same, for private channels (e.g. #personal-ops, client channels) |
+| `chat:write.public` | post to a public channel without being a member, so a new channel never fails with `not_in_channel` |
+| `channels:join` | lets the bot join a public channel itself |
 
 That is the complete list. The app reads no messages, so it needs no
-`channels:history` and no user scopes. `channels:read` and `groups:read` only
-list channel names and ids; they are optional: without them the weekly run
+`channels:history`. (The web app's sign-in adds the user scopes `email`,
+`openid` and `profile`.) `channels:read` and `groups:read` only list channel
+names and ids; they are optional: without them the weekly run
 skips the automatic mapping (and logs it) and every briefing still posts.
-Adding them forces a reinstall of the app.
+Adding them forces a reinstall of the app. A bot can never add itself to a
+**private** channel: someone has to `/invite @Tasks` there.
 
 `files:read` exists solely so the import wizard can fetch the bytes behind an
 uploaded file: `url_private` is not a public URL and requires an Authorization

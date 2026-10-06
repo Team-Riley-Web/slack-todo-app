@@ -206,6 +206,30 @@ releases only its own claim, and does not stop the next channel. Re-running
 Errors are sanitized before they reach a log: anything matching a Slack token
 or a bearer header is masked, and the message is truncated.
 
+### When Slack fails: what the error means
+
+Find them in Vercel -> Logs for `/api/cron/scheduled`, in the cron response
+(`status: "failed"`, with a `reason`), or in `pnpm scheduled status`.
+Re-run `pnpm scheduled dispatch` after fixing; only the failed ones retry.
+
+| Error | Meaning | Fix |
+|---|---|---|
+| `not_in_channel` | Private channel the bot is not in (public ones are covered by `chat:write.public`). | `/invite @Tasks` in that channel. |
+| `channel_not_found` | The channel was deleted or archived, or the id is wrong (a Space mapped to a dead channel, or a bad `SCHEDULED_*_CHANNEL_ID`). | Remap with `/map`, or fix the env var. |
+| `is_archived` | The mapped channel was archived. | Unarchive it or `/map` the Space to a live channel. |
+| `missing_scope` | The bot token lacks a scope. | Add it under OAuth & Permissions and **reinstall**. In `channel sync skipped: missing_scope` (a log line, not a failure) it is only the automatic mapping that is off; briefings still post. |
+| `invalid_auth` / `token_revoked` / `account_inactive` | `SLACK_BOT_TOKEN` is wrong, or was replaced by a reinstall or rotation. | Copy the current Bot User OAuth Token (Install App) into Vercel, redeploy. |
+| `ratelimited` | Too many posts at once. | Re-run `dispatch` a minute later. |
+| `msg_too_long` / `invalid_blocks` | A briefing outgrew a message. | The planner chunks by design; this is a bug, so capture the `reason` and the Space. |
+
+A briefing that did not appear at all is usually **not an error**: a client or
+Finance Space with nothing open posts nothing, by design. Check `pnpm scheduled
+status`: "recent runs" shows `posted`, `skipped` or `failed` per briefing.
+Open work in a Space no briefing can carry shows as `unrouted`.
+
+If Slack is down, Vercel Cron does not retry. Run `pnpm scheduled dispatch`
+once it is back; the ledger makes it safe and it never double-posts.
+
 ## Configuration
 
 | Variable | Meaning |
@@ -217,9 +241,11 @@ or a bearer header is masked, and the message is truncated.
 | `SCHEDULED_TOP_PER_SPACE` | Tasks shown per Space. Default `10`. |
 | `CRON_SECRET` | Bearer token on the cron route. `openssl rand -hex 32` |
 
-Client and Finance channels need no variable — map them. **Invite the bot to
-every briefing channel**: `chat.postMessage` to a channel it has not joined
-fails with `not_in_channel`, and that one briefing is reported as failed.
+Client and Finance channels need no variable — map them, or name the channel
+after the Space and it maps itself. With `chat:write.public` the bot can post
+to any **public** channel unprompted; for a **private** channel (#personal-ops,
+a private client channel) invite it, or that one briefing fails with
+`not_in_channel`.
 
 ## Testing without waiting for the cron
 
@@ -261,9 +287,13 @@ curl -H "Authorization: Bearer $CRON_SECRET" \
    example set it to `personal`, which would leave Music out of #personal-ops.
    Delete it to take the default, or set `personal,music,spiritual`.
 3. Make sure the Finances Space and each client Space are mapped to their
-   channel, and the bot is in each. `pnpm scheduled status` against production
-   shows the routing table and anything not briefed.
-4. Deploy. Confirm **one** entry, `0 13 * * 1`, under **Project → Settings →
+   channel, and the bot is in each private one. `pnpm scheduled status` against
+   production shows the routing table and anything not briefed. It needs the
+   real `DATABASE_URL` in your shell: `vercel env pull` blanks secrets to
+   `[SENSITIVE]`, which silently points the script at an empty local database.
+4. Deploy. This repo is private on Vercel Hobby, so pushes do not deploy:
+   run `vercel --prod` from the repo root, and make sure the tip commit's
+   author is on the Vercel team. Confirm **one** entry, `0 13 * * 1`, under **Project → Settings →
    Cron Jobs**.
 
 ## The EOS wording Hermes is taking over
