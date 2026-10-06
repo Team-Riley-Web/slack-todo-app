@@ -19,6 +19,8 @@ export interface McpTool {
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 const HERMES = { id: null, source: 'hermes-mcp' };
+/** Upper bound for one create_tasks call: a brain dump, not a bulk import. */
+const MAX_BATCH = 25;
 
 export function buildTools(db: Db): McpTool[] {
   return [
@@ -271,6 +273,93 @@ export function buildTools(db: Db): McpTool[] {
         return { task, space: dest.space, resolved_from: dest.source };
       },
     },
+    {
+      name: 'create_tasks',
+      description:
+        'Create several tasks at once, so one approval covers a whole list. Only call ' +
+        'this after the user has seen the complete proposed list and said to create it. ' +
+        'Titles are stored exactly as given and can never be changed afterwards: pass ' +
+        'the approved titles verbatim, as shown to the user. Every task needs an ' +
+        'explicit space (name, slug or alias) or space_id; nothing is guessed. The ' +
+        'batch is all-or-nothing: if any task has an unknown Space or an invalid ' +
+        'value, nothing is created and the error names the offending task.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tasks: {
+            type: 'array',
+            minItems: 1,
+            maxItems: MAX_BATCH,
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string', description: 'The literal task title, verbatim.' },
+                space: { type: 'string', description: 'Space name, slug or alias.' },
+                space_id: { type: 'string' },
+                due_at: { type: 'string', description: 'ISO 8601 timestamp' },
+                assignee_id: { type: 'string' },
+                details: { type: 'string', description: 'Optional notes. Write-once.' },
+                priority: {
+                  type: 'string',
+                  enum: ['P0', 'P1', 'P2', 'P3'],
+                  description:
+                    'Optional priority. P0 critical, P1 high, P2 medium, P3 low. ' +
+                    'Omit for unprioritized; anything else is rejected.',
+                },
+              },
+              required: ['title'],
+            },
+          },
+        },
+        required: ['tasks'],
+      },
+      handler: async (a) => {
+        const items = a.tasks;
+        if (!Array.isArray(items) || items.length === 0) {
+          throw new Error('tasks must be a non-empty array');
+        }
+        if (items.length > MAX_BATCH) {
+          throw new Error(`tasks may hold at most ${MAX_BATCH} items; got ${items.length}`);
+        }
+        // One transaction: a failure on item N must not leave items 1..N-1 behind,
+        // or a retry after the user fixes the Space would duplicate them.
+        return db.transaction(async (tx) => {
+          const spacesById = new Map((await listSpaces(tx)).map((s) => [s.id, s]));
+          const created = [];
+          for (const [i, raw] of items.entries()) {
+            const item = (raw ?? {}) as Record<string, unknown>;
+            try {
+              const title = str(item.title);
+              if (!title) throw new Error('title must be a non-empty string');
+              const spaceName = str(item.space)?.trim();
+              const spaceId = str(item.space_id);
+              if (!spaceName && !spaceId) throw new Error('needs a space or space_id');
+              let space;
+              if (spaceName) {
+                space = (await resolveDestinationSpace(tx, { space: spaceName })).space;
+              } else {
+                space = spacesById.get(spaceId!);
+                if (!space) throw new Error(`Unknown space_id: "${spaceId}"`);
+              }
+              const task = await createTask(tx, {
+                title,
+                spaceId: space.id,
+                assigneeId: str(item.assignee_id) ?? null,
+                dueAt: str(item.due_at) ? new Date(String(item.due_at)) : null,
+                sourcePlatform: 'hermes',
+                details: str(item.details) ?? null,
+                priority: parsePriority(item.priority),
+              });
+              created.push({ task, space });
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              throw new Error(`tasks[${i}]: ${msg} — nothing was created`);
+            }
+          }
+          return { tasks: created };
+        });
+      },
+    },
     // --- Import inspection. All four are READS. Hermes may look and explain;
     // it may not confirm, import, roll back, or merge anything.
     {
@@ -416,6 +505,7 @@ export const TOOL_NAMES: string[] = [
   'list_tasks', 'get_task', 'create_task', 'complete_task', 'move_task',
   'list_spaces', 'list_waiting', 'set_task_details',
   'get_space_for_channel', 'list_tasks_for_context', 'create_task_for_context',
+  'create_tasks',
   'get_task_counts',
   // Import inspection, all reads.
   'list_import_batches', 'get_import_batch', 'preview_import',

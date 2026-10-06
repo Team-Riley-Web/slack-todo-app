@@ -10,7 +10,7 @@ Three transports over identical `task-core` calls, so they cannot drift:
   What Hermes Managed connects to.
 - **REST** — `pnpm api`, `:3030`, `Authorization: Bearer $API_TOKEN`.
 
-Twenty tools, listed in full below. (An earlier version of this line said
+Twenty-one tools, listed in full below. (An earlier version of this line said
 "eight"; it was stale from the first phase and never matched `TOOL_NAMES`.)
 
 ## Connecting Hermes
@@ -25,7 +25,7 @@ Liveness, unauthenticated and carrying no task data:
 ```sh
 curl https://<TASKS_APP_HOST>/mcp/health
 # {"ok":true,"service":"team-riley-tasks-mcp","transport":"streamable-http",
-#  "tools":20,"configured":true}
+#  "tools":21,"configured":true}
 ```
 
 `configured` says only that a token EXISTS, never what it is. 503 when unset.
@@ -100,10 +100,21 @@ through verbatim."*
 | `list_tasks` | — | `space_id`, `assignee_id`, `status`, `actionable_only`, `limit` | `{ tasks }` |
 | `get_task` | `task_id` | — | `{ task }` |
 | `create_task` | `title`, `space_id` | `assignee_id`, `due_at`, `details`, `priority` | `{ task }` |
+| `create_tasks` | `tasks[]` (max 25; each `title` + `space` or `space_id`) | per task: `due_at`, `assignee_id`, `details`, `priority` | `{ tasks: [{ task, space }] }` |
 | `complete_task` | `task_id` | — | `{ task }` |
 | `move_task` | `task_id` | `space_id`, `status`, `waiting_on` | `{ task }` |
 
 | `set_task_details` | `task_id`, `details` | — | `{ task }` |
+
+### Batch create
+
+`create_tasks` takes up to 25 tasks so one approval covers a whole list. Every
+task names its Space explicitly (`space` or `space_id`) — there is no Inbox
+fallback and no guessing. It is **all-or-nothing**: any unknown Space, invalid
+priority or empty title rejects the batch, names the offending `tasks[i]`, and
+creates nothing, so a retry cannot duplicate the earlier items. Titles follow
+the same rule as `create_task`. The intended flow is conversational: the
+assistant proposes the list in chat, the user approves, then it calls this once.
 
 ### Priority
 
@@ -241,8 +252,8 @@ Three semantics worth relying on:
 
 The week starts Monday 00:00 UTC.
 
-Twenty tools in total, on both transports. Five can write — `create_task`,
-`create_task_for_context`, `complete_task`, `move_task`, `set_task_details` —
+Twenty-one tools in total, on both transports. Six can write — `create_task`,
+`create_tasks`, `create_task_for_context`, `complete_task`, `move_task`, `set_task_details` —
 and none of them can touch a title.
 
 ## Task shape

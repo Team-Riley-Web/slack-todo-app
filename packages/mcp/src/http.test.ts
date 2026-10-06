@@ -222,13 +222,13 @@ describe('the documented contract matches the code', () => {
   it('states the right tool count in prose', async () => {
     const { readFile } = await import('node:fs/promises');
     const doc = await readFile('MCP_CONTRACT.md', 'utf8');
-    expect(doc).toContain(`Twenty tools`);
-    expect(TOOL_NAMES).toHaveLength(20);
+    expect(doc).toContain(`Twenty-one tools`);
+    expect(TOOL_NAMES).toHaveLength(21);
   });
 
-  it('documents the five writers, and only those five', async () => {
+  it('documents the six writers, and only those six', async () => {
     const writers = [
-      'create_task', 'create_task_for_context', 'complete_task',
+      'create_task', 'create_task_for_context', 'create_tasks', 'complete_task',
       'move_task', 'set_task_details',
     ];
     for (const w of writers) expect(TOOL_NAMES).toContain(w);

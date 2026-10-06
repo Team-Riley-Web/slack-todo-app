@@ -21,7 +21,7 @@ const call = (name: string, args: Record<string, unknown> = {}) => tools.get(nam
 
 it('exposes exactly the contracted tools', () => {
   expect([...TOOL_NAMES].sort()).toEqual([
-    'complete_task', 'create_task', 'create_task_for_context',
+    'complete_task', 'create_task', 'create_task_for_context', 'create_tasks',
     'get_completed_between', 'get_import_batch', 'get_import_conflicts',
     'get_open_counts_by_space', 'get_space_for_channel', 'get_task',
     'get_task_counts', 'get_task_health', 'get_this_week',
@@ -277,8 +277,8 @@ it('states in its description that it cannot change the title', () => {
 
 // --- Phase 2A: import inspection and reporting, all read-only ---
 
-it('exposes the twenty contracted tools', () => {
-  expect(TOOL_NAMES).toHaveLength(20);
+it('exposes the twenty-one contracted tools', () => {
+  expect(TOOL_NAMES).toHaveLength(21);
   expect(new Set(buildTools(db).map((t) => t.name))).toEqual(new Set(TOOL_NAMES));
 });
 
@@ -289,8 +289,8 @@ it('exposes no tool that can confirm, import, roll back, or delete', async () =>
   // And the only write-shaped names are the ones we intend.
   const writes = TOOL_NAMES.filter((n) => /^(create|complete|move|set)_/.test(n));
   expect(writes.sort()).toEqual([
-    'complete_task', 'create_task', 'create_task_for_context', 'move_task',
-    'set_task_details',
+    'complete_task', 'create_task', 'create_task_for_context', 'create_tasks',
+    'move_task', 'set_task_details',
   ]);
 });
 
@@ -432,4 +432,67 @@ it('still exposes no way to change an existing task’s priority or title', () =
   expect([...TOOL_NAMES].some(
     (n) => /edit|rename|update_task|set_title|set_priority/i.test(n)
   )).toBe(false);
+});
+
+// --- create_tasks: one approval for a whole list ---
+
+it('creates a batch across Spaces with titles otherwise byte-exact', async () => {
+  const r = await call('create_tasks', {
+    tasks: [
+      { title: 'Offer Neil Instagram and Facebook package for $100', space: 'Nazareth Law', priority: 'P1' },
+      { title: 'review pricing', space: 'Agency / Internal' },
+      { title: 'Call the bank', space_id: spaceId },
+    ],
+  });
+  expect(r.tasks).toHaveLength(3);
+  expect(r.tasks[0].task.title).toBe('Offer Neil Instagram and Facebook package for $100');
+  expect(r.tasks[0].task.priority).toBe('P1');
+  expect(r.tasks[0].space.name).toBe('Client - Nazareth Law');
+  expect(r.tasks[1].task.title).toBe('Review pricing');
+  expect(r.tasks[1].space.name).toBe('Agency / Internal');
+  expect(r.tasks[2].task.priority).toBeNull();
+  expect((await call('list_tasks', {})).tasks).toHaveLength(3);
+});
+
+it('creates nothing when one task names an unknown Space', async () => {
+  await expect(call('create_tasks', {
+    tasks: [
+      { title: 'Good one', space: 'Agency / Internal' },
+      { title: 'Bad one', space: 'Some Other Client' },
+    ],
+  })).rejects.toThrow(/tasks\[1\].*Unknown space.*nothing was created/s);
+  expect((await call('list_tasks', {})).tasks).toHaveLength(0);
+});
+
+it('creates nothing when one task has an invalid priority', async () => {
+  await expect(call('create_tasks', {
+    tasks: [
+      { title: 'Good one', space: 'Agency / Internal' },
+      { title: 'Bad one', space: 'Agency / Internal', priority: 'P7' },
+    ],
+  })).rejects.toThrow(/tasks\[1\]/);
+  expect((await call('list_tasks', {})).tasks).toHaveLength(0);
+});
+
+it('refuses a task with no Space instead of guessing Inbox', async () => {
+  await expect(call('create_tasks', { tasks: [{ title: 'Floating' }] }))
+    .rejects.toThrow(/tasks\[0\].*space/);
+  expect((await call('list_tasks', {})).tasks).toHaveLength(0);
+});
+
+it('rejects an unknown space_id and an empty or oversized batch', async () => {
+  await expect(call('create_tasks', {
+    tasks: [{ title: 'X', space_id: '00000000-0000-0000-0000-000000000000' }],
+  })).rejects.toThrow(/Unknown space_id/);
+  await expect(call('create_tasks', { tasks: [] })).rejects.toThrow(/non-empty/);
+  await expect(call('create_tasks', {
+    tasks: Array.from({ length: 26 }, (_, i) => ({ title: `T${i}`, space_id: spaceId })),
+  })).rejects.toThrow(/at most 25/);
+  expect((await call('list_tasks', {})).tasks).toHaveLength(0);
+});
+
+it('tells the assistant to wait for approval and keep titles verbatim', () => {
+  const t = buildTools(db).find((x) => x.name === 'create_tasks')!;
+  expect(t.description).toMatch(/after the user has seen the complete proposed list/);
+  expect(t.description).toMatch(/verbatim/);
 });
