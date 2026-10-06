@@ -32,3 +32,7 @@ export {
   handleScheduledRequest, authorizeCronRequest, createSchedulerSlackClient,
   type ScheduledRequestOptions,
 } from './endpoint.js';
+export {
+  syncChannelMappings, planChannelMappings, listSlackChannels, matchSpace,
+  type ChannelLister, type NewMapping, type SlackChannel,
+} from './channel-sync.js';

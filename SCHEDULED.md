@@ -73,8 +73,25 @@ files a task captured in that channel. So:
   gets a briefing next Monday. Nothing to configure here.
 - A channel maps to exactly one Space, so a client channel can never carry a
   second client's tasks.
-- Routing never looks at a channel's **name**. `#client-yoga-farm` with no
-  mapping gets nothing.
+- Routing itself never looks at a channel's **name**; it reads the table.
+  New channels get a row from the automatic mapping below, which is the only
+  place a name is used.
+
+### New channels map themselves
+
+Before each weekly run (and on `pnpm scheduled sync-channels [--dry-run]`) the
+app lists the bot's channels and maps any **unmapped** channel whose name is
+exactly a Space's slug (`#yoga-farm`) or `client-` + slug
+(`#client-yoga-farm`). It writes the same `channel_space_map` row `/map` does.
+
+- It only fills gaps: a channel that already has a mapping is never changed,
+  and a Space that already has a channel never gets a second.
+- Inbox, the Agency and Personal Spaces, #agency-ops and #personal-ops are
+  skipped. Substrings, suffixes and other near-misses are not guessed.
+- Needs the `channels:read` and `groups:read` bot scopes (a reinstall, see
+  SLACK_SETUP.md). Without them it is skipped with a log line and the
+  briefings still post.
+- A Space with no matching channel falls back to #agency-ops, below.
 
 A Space with **no channel mapped**, or mapped to #agency-ops itself, is briefed
 in the Agency post (#agency-ops) so its tasks are never dropped. Mapping a

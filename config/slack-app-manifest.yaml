@@ -80,6 +80,10 @@ oauth_config:
       # reading the file uploaded to the import wizard. url_private is not a
       # public URL and needs a token carrying this scope.
       - files:read
+      # the weekly run lists channels so a new #client-name channel is mapped
+      # to its Space automatically (public, then private).
+      - channels:read
+      - groups:read
 
 settings:
   # This checked-in manifest keeps Socket Mode enabled for `pnpm slack` local

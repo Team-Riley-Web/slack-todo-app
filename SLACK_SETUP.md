@@ -41,10 +41,14 @@ below.
 | `commands` | `/task`, `/tasks`, `/import` |
 | `chat:write` | posting task cards, `chat.update` in place, ephemeral replies |
 | `files:read` | reading the file uploaded to the import wizard |
+| `channels:read` | the weekly run lists public channels to map new ones by name |
+| `groups:read` | the same, for private channels (e.g. #personal-ops, client channels) |
 
 That is the complete list. The app reads no messages, so it needs no
-`channels:history`, no `channels:read`, and no user scopes. Channel → Space
-mapping is configuration, not discovery.
+`channels:history` and no user scopes. `channels:read` and `groups:read` only
+list channel names and ids; they are optional: without them the weekly run
+skips the automatic mapping (and logs it) and every briefing still posts.
+Adding them forces a reinstall of the app.
 
 `files:read` exists solely so the import wizard can fetch the bytes behind an
 uploaded file: `url_private` is not a public URL and requires an Authorization

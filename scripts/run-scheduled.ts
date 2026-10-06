@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { createDb, migrate } from '@tr/db';
 import {
   createSchedulerSlackClient, loadSchedulerConfig, localMoment, recentRuns,
-  runWeeklyDispatch, runBriefingNow, loadBriefingPlan, findBriefing,
+  runWeeklyDispatch, runBriefingNow, syncChannelMappings, loadBriefingPlan, findBriefing,
   getOpenTasks, tasksForBriefing, focusGroups, hiddenFooter, briefingHeading,
   planTaskMessages, UnknownBriefingError, WEEKLY_CRON,
   type SlackPoster,
@@ -32,6 +32,7 @@ function usage(): never {
   console.error(
     'usage:\n' +
     '  pnpm scheduled status\n' +
+    '  pnpm scheduled sync-channels [--dry-run]\n' +
     '  pnpm scheduled preview <briefing>\n' +
     '  pnpm scheduled run <briefing> [--dry-run]\n' +
     '  pnpm scheduled dispatch [--at 2026-10-05T13:05:00Z] [--dry-run]\n' +
@@ -97,6 +98,15 @@ try {
     for (const r of runs) {
       console.log(`  ${r.occurrence}  ${r.job_key.padEnd(24)} ${r.outcome.padEnd(8)} ${
         JSON.stringify(r.detail ?? {})}`);
+    }
+  } else if (command === 'sync-channels') {
+    // Maps new Slack channels to the Spaces their names point at. Reads the
+    // channel list from Slack; --dry-run only reports.
+    const dry = argv.includes('--dry-run');
+    const added = await syncChannelMappings(db, liveClient() as never, config, { apply: !dry });
+    if (added.length === 0) console.log('nothing new to map');
+    for (const m of added) {
+      console.log(`${dry ? 'would map' : 'mapped'} #${m.channelName} (${m.channelId}) -> ${m.space.name}`);
     }
   } else if (command === 'preview') {
     const name = argv[1];

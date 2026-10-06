@@ -1,4 +1,5 @@
 import { claimRun, finishRun, releaseRun } from './ledger.js';
+import { syncChannelMappings } from './channel-sync.js';
 import {
   DIGEST_LIMIT, getOpenTasks, loadBriefingPlan, postBriefing,
   type JobDeps, type PostResult,
@@ -141,6 +142,25 @@ export async function runWeeklyDispatch(
   const zone = opts.zone ?? deps.config.timeZone ?? SCHEDULE_ZONE;
   const moment = localMoment(opts.at ?? new Date(), zone);
   const week = moment.week;
+
+  // Channels created since last week get mapped by name first, so a new
+  // client channel is briefed this Monday. Best effort: a Slack hiccup or a
+  // missing `channels:read` scope must never stop the briefings themselves.
+  // A rehearsal reports what it would map and writes nothing.
+  if (deps.client.conversations) {
+    try {
+      const added = await syncChannelMappings(
+        deps.db, { conversations: deps.client.conversations }, deps.config,
+        { apply: !opts.rehearsal }
+      );
+      for (const m of added) {
+        console.log(`[scheduler] ${opts.rehearsal ? 'would map' : 'mapped'} ` +
+          `#${m.channelName} (${m.channelId}) -> ${m.space.name}`);
+      }
+    } catch (error) {
+      console.warn(`[scheduler] channel sync skipped: ${sanitizeError(error)}`);
+    }
+  }
 
   const plan = await loadBriefingPlan(deps.db, deps.config);
   const all = await getOpenTasks(deps.db);

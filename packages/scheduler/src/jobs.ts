@@ -8,6 +8,7 @@ import { saveCard } from '@tr/slack-sync';
 import type { CardEntry } from '@tr/slack-ui';
 import { planTaskMessages } from './messages.js';
 import type { SchedulerConfig } from './config.js';
+import type { ChannelLister } from './channel-sync.js';
 import { planBriefings, type Briefing, type BriefingPlan } from './routing.js';
 
 /**
@@ -63,6 +64,8 @@ export interface SlackPoster {
   chat: {
     postMessage: (args: Record<string, unknown>) => Promise<{ ts?: string }>;
   };
+  /** Present on a real Slack client; lets the run map new channels by name. */
+  conversations?: ChannelLister['conversations'];
 }
 
 export interface JobDeps {
