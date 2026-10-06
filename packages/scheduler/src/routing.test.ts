@@ -117,15 +117,11 @@ describe('where each Space is briefed', () => {
 });
 
 describe('Spaces that cannot be routed safely', () => {
-  it('reports a Space with no mapped channel instead of guessing one', () => {
+  it('folds a Space with no mapped channel into the Agency briefing', () => {
     const plan = planBriefings(SPACES, MAPPINGS.filter((m) => m.channelId !== 'C_YOGA'), config);
     expect(findBriefing(plan, 'yoga-farm')).toBeNull();
-    expect(plan.unrouted).toEqual([
-      expect.objectContaining({
-        space: expect.objectContaining({ slug: 'yoga-farm' }),
-        reason: expect.stringContaining('no Slack channel'),
-      }),
-    ]);
+    expect(plan.unrouted).toEqual([]);
+    expect(spacesOf(plan, 'agency')).toContain('yoga-farm');
   });
 
   it('never infers a channel from a matching channel name', () => {
@@ -133,6 +129,7 @@ describe('Spaces that cannot be routed safely', () => {
     // row in channel_space_map does not exist as far as routing is concerned.
     const plan = planBriefings(SPACES, [], config);
     expect(plan.briefings.map((b) => b.name)).toEqual(['agency', 'personal']);
+    expect(plan.unrouted).toEqual([]);
   });
 
   it('refuses a Space mapped to two channels rather than posting twice', () => {
@@ -146,7 +143,7 @@ describe('Spaces that cannot be routed safely', () => {
     });
   });
 
-  it('refuses a client mapped to #agency-ops', () => {
+  it('briefs a client mapped to #agency-ops in the Agency post, not a second one', () => {
     const plan = planBriefings(
       SPACES,
       [
@@ -156,8 +153,9 @@ describe('Spaces that cannot be routed safely', () => {
       config
     );
     expect(findBriefing(plan, 'yoga-farm')).toBeNull();
-    expect(plan.unrouted[0]!.reason).toContain('Agency briefing channel');
-    expect(spacesOf(plan, 'agency')).not.toContain('yoga-farm');
+    expect(plan.unrouted).toEqual([]);
+    expect(spacesOf(plan, 'agency')).toContain('yoga-farm');
+    expect(plan.briefings.filter((b) => b.channelId === 'C_AGENCY')).toHaveLength(1);
   });
 
   it('refuses Finances mapped to #personal-ops', () => {

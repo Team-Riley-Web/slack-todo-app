@@ -91,7 +91,7 @@ async function seedEverySpace(): Promise<void> {
 }
 
 describe('#agency-ops', () => {
-  it('carries only marketing, sales, agency operations and inbox', async () => {
+  it('carries agency work plus any client that has no channel of its own', async () => {
     await seedEverySpace();
     const { client, posts } = fakeSlack();
     await runWeeklyDispatch({ db, client, config }, { at: MONDAY });
@@ -100,9 +100,11 @@ describe('#agency-ops', () => {
     for (const title of ['Inbox task', 'Agency / Internal task', 'Marketing task', 'Sales task']) {
       expect(agency).toContain(title);
     }
+    // Yoga Farm has no channel, so it falls back here.
+    expect(agency).toContain('Client - Yoga Farm task');
+    // Mapped clients and Finances keep their own channels; Personal stays out.
     for (const title of [
-      'Finances task', 'Music task', 'Personal task',
-      'Client - Joy Within Birth task', 'Client - Yoga Farm task',
+      'Finances task', 'Music task', 'Personal task', 'Client - Joy Within Birth task',
     ]) {
       expect(agency).not.toContain(title);
     }
@@ -140,15 +142,13 @@ describe('client channels', () => {
     expect(textIn(posts, 'C_YOGA')).toContain('Yoga Farm retreat page');
   });
 
-  it('report an unmapped client instead of posting it anywhere', async () => {
+  it('fall back to #agency-ops for an unmapped client, never unbriefed', async () => {
     await add('Client - Yoga Farm', 'Yoga Farm retreat page');
     const { client, posts } = fakeSlack();
     const report = await runWeeklyDispatch({ db, client, config }, { at: MONDAY });
 
-    expect(posts.map((p) => p.text).join('\n')).not.toContain('Yoga Farm retreat page');
-    expect(report.results.find((r) => r.key === 'yoga-farm')).toMatchObject({
-      status: 'unrouted', taskCount: 1, reason: expect.stringContaining('no Slack channel'),
-    });
+    expect(textIn(posts, 'C_AGENCY')).toContain('Yoga Farm retreat page');
+    expect(report.results.find((r) => r.status === 'unrouted')).toBeUndefined();
   });
 
   it('stay quiet when the client has nothing open', async () => {

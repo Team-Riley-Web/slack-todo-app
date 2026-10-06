@@ -59,7 +59,7 @@ Every Space goes to **at most one** channel, decided in one place
 |---|---|---|
 | **Agency Tasks** | `SCHEDULED_AGENCY_CHANNEL_ID` (#agency-ops) | Inbox, Agency / Internal, Marketing, Sales |
 | **Personal Tasks** | `SCHEDULED_PERSONAL_CHANNEL_ID` (#personal-ops) | Personal, Music, Spiritual — minus the Daily Anchors |
-| **One per client** | the channel mapped to that client's Space | that client only |
+| **One per client** | the channel mapped to that client's Space; **#agency-ops** if it has none | that client only (a section of the Agency post if unmapped) |
 | **Finances** | the channel mapped to the Finances Space | Finances only |
 | **Any other Space** | the channel mapped to it | that Space only |
 
@@ -76,15 +76,18 @@ files a task captured in that channel. So:
 - Routing never looks at a channel's **name**. `#client-yoga-farm` with no
   mapping gets nothing.
 
+A Space with **no channel mapped**, or mapped to #agency-ops itself, is briefed
+in the Agency post (#agency-ops) so its tasks are never dropped. Mapping a
+channel later moves it to its own briefing.
+
 A Space is **reported, not posted**, when its channel cannot be chosen safely.
 `pnpm scheduled status` lists these under "not briefed", and the cron response
 and logs carry each one as `unrouted` when it has open tasks:
 
-- **No channel mapped.** Map one.
 - **More than one channel mapped.** Posting to both would put each task in two
   briefings, and picking one would be a guess. Unmap the extra.
-- **Mapped to #agency-ops or #personal-ops.** That would put client or finance
-  work into exactly the briefing it must stay out of. Map it elsewhere.
+- **Mapped to #personal-ops.** That would put client or finance work into
+  exactly the briefing it must stay out of. Map it elsewhere.
 
 A capture mapping on an Agency or Personal Space does not move it: Marketing
 mapped to #marketing for capture still briefs in #agency-ops.

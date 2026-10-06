@@ -67,13 +67,14 @@ export interface BriefingPlan {
  * channel maps to exactly one Space (the table's primary key), so a
  * mapped-channel briefing can never carry two clients.
  *
- * When rule 3 cannot pick exactly one safe channel, the Space is reported as
- * unrouted instead of posted somewhere plausible:
- *   - no channel mapped to it;
+ * Rule 3 falls back to the Agency briefing when a Space has no channel of its
+ * own, or is mapped to the Agency channel itself, so no task goes unbriefed.
+ * It reports a Space as unrouted, instead of posting it somewhere plausible,
+ * only for a conflict a person must resolve:
  *   - more than one channel mapped to it, since posting to both would put the
  *     same task in two briefings, and picking one would be a guess;
- *   - its channel is the Agency or Personal channel, which would put client
- *     or finance work into exactly the posts it must stay out of.
+ *   - its channel is the Personal channel, which would put client or finance
+ *     work into exactly the post it must stay out of.
  */
 export function planBriefings(
   spaces: readonly Space[],
@@ -119,7 +120,9 @@ export function planBriefings(
       mappings.filter((m) => m.spaceId === space.id).map((m) => m.channelId)
     )];
     if (channels.length === 0) {
-      unrouted.push({ space, reason: 'no Slack channel is mapped to this Space' });
+      // No home of its own yet: its tasks ride in the Agency briefing rather
+      // than going unbriefed. Mapping a channel later moves it out.
+      agency.spaces.push(space);
       continue;
     }
     if (channels.length > 1) {
@@ -132,6 +135,11 @@ export function planBriefings(
     }
     const channelId = channels[0]!;
     const clash = fixedChannels.get(channelId);
+    if (clash === 'Agency') {
+      // Already posting to #agency-ops; one briefing, not a second post there.
+      agency.spaces.push(space);
+      continue;
+    }
     if (clash) {
       unrouted.push({
         space,
