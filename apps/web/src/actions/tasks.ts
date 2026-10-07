@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { WebClient } from '@slack/web-api';
 import type { Priority, TaskStatus } from '@tr/task-core';
 import { getDb } from '@/db';
@@ -41,6 +42,9 @@ async function deps(): Promise<OperationDeps | null> {
   return {
     db: await getDb(),
     actorId: user.slackUserId,
+    // The Slack card redraw runs after the response, so a click is not held
+    // open for a round trip to Slack. A failure there is logged, never shown.
+    defer: (work) => after(work),
     slack: client
       ? { chat: { update: (args) => client.chat.update(args as never) } }
       : undefined,

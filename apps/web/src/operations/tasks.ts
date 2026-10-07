@@ -21,6 +21,14 @@ export interface OperationDeps {
   actorId: string;
   slack?: CardDeps['client'];
   config?: { timeZone: string; assigneeLabels?: Record<string, string> };
+  /**
+   * Runs work after the response has gone out (Next's `after`).
+   *
+   * Given one, the Slack card redraw stops holding the user's click open: the
+   * task has committed, so the page can update now and Slack catch up a moment
+   * later. Without one (tests, scripts) the redraw is awaited, as before.
+   */
+  defer?: (work: () => Promise<void>) => void;
 }
 
 /**
@@ -68,7 +76,8 @@ async function run(
 ): Promise<OperationResult> {
   try {
     const id = await fn();
-    await syncSlack(deps, id);
+    if (deps.defer) deps.defer(() => syncSlack(deps, id));
+    else await syncSlack(deps, id);
     return { ok: true, taskId: id };
   } catch (err) {
     const message = describe(err);

@@ -681,6 +681,23 @@ button.circle:hover svg path { opacity: .5; }
 button.circle.done { color: var(--done); }
 button.circle.done svg circle { fill: var(--done); stroke: var(--done); }
 button.circle.done svg path { stroke: #fff; opacity: 1; }
+/* A completed circle shows the check, never the priority digit. Needed for the
+   instant look (TickButton), where the digit is still in the markup. */
+button.circle.done svg text.rank { opacity: 0; }
+
+/*
+ * The instant look. TickButton marks the button `data-pending` the moment the
+ * form posts, before the server has answered, so the whole row reacts at once
+ * and not only the circle. These come off again by themselves when the server's
+ * row replaces this one. Specific enough to beat `.row.done .title a` for the
+ * reopen case.
+ */
+.row.task:has(button.circle[data-pending='complete']) .title a {
+  text-decoration: line-through; color: var(--muted);
+}
+.row.task:has(button.circle[data-pending='reopen']) .title a {
+  text-decoration: none; color: inherit;
+}
 
 /*
  * Priority, drawn in the circle rather than in a column.

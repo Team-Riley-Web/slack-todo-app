@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { PRIORITY_LABELS, type Priority, type Space, type Task } from '@tr/task-core';
 import { completeTaskAction, reopenTaskAction, moveTaskAction } from '@/actions/tasks';
 import { ageLabel, dueLabel, shortSpaceName, taskEditHref } from '@/lib/display';
+import { TickButton } from './TickButton';
 
 export interface TaskRowProps {
   task: Task;
@@ -122,11 +123,10 @@ export function TaskRow({
         could not complete anything at all.
       */}
       <form className="tick" action={done ? reopenHere : completeHere}>
-        <button
-          type="submit"
-          className={
-            ['circle', done ? 'done' : mark.className].filter(Boolean).join(' ')
-          }
+        <TickButton
+          isDone={done}
+          openClass={['circle', mark.className].join(' ')}
+          doneClass="circle done"
           /*
            * The priority rides in the accessible name as well as in the ring,
            * because the ring is a colour and a digit inside a graphic. A
@@ -136,12 +136,12 @@ export function TaskRow({
            * Not on a completed row: the digit is not drawn there either, the
            * circle having become the green check.
            */
-          aria-label={
+          label={
             done
               ? `Reopen ${task.title}`
               : `Complete ${task.title}${mark.label ? `, ${mark.label}` : ''}`
           }
-          title={
+          hint={
             done ? 'Reopen' : mark.label ? `${mark.label}. Complete` : 'Complete'
           }
         >
@@ -163,7 +163,7 @@ export function TaskRow({
             ) : null}
             <path d="M6 10.4l2.6 2.6L14.2 7.4" />
           </svg>
-        </button>
+        </TickButton>
       </form>
 
       {/*

@@ -369,6 +369,33 @@ describe('Slack card sync', () => {
     expect((await getTask(db, task.id))!.status).toBe('completed');
   });
 
+  it('answers without waiting for Slack when given a way to defer the redraw', async () => {
+    const task = await withCard(await seed());
+    // Slack that never answers: awaiting it would hang this test.
+    slack.chat.update = vi.fn().mockReturnValue(new Promise(() => {}));
+    const deferred: Array<() => Promise<void>> = [];
+
+    const result = await completeTaskOp(deps({ defer: (w: () => Promise<void>) => deferred.push(w) }), task.id);
+
+    expect(result).toEqual({ ok: true, taskId: task.id });
+    expect((await getTask(db, task.id))!.status).toBe('completed');
+    // Nothing has been sent to Slack yet; the work is queued for later.
+    expect(slack.chat.update).not.toHaveBeenCalled();
+    expect(deferred).toHaveLength(1);
+  });
+
+  it('still redraws the card when the deferred work runs, and swallows a failure', async () => {
+    const task = await withCard(await seed());
+    const deferred: Array<() => Promise<void>> = [];
+    await completeTaskOp(deps({ defer: (w: () => Promise<void>) => deferred.push(w) }), task.id);
+    await deferred[0]!();
+    expect(slack.chat.update).toHaveBeenCalledTimes(1);
+
+    slack.chat.update = vi.fn().mockRejectedValue(new Error('slack is down'));
+    await reopenTaskOp(deps({ defer: (w: () => Promise<void>) => deferred.push(w) }), task.id);
+    await expect(deferred[1]!()).resolves.toBeUndefined();
+  });
+
   // The important one: Slack must never be able to lose the user's edit.
   it('keeps the task change when the Slack redraw fails', async () => {
     const task = await withCard(await seed());
