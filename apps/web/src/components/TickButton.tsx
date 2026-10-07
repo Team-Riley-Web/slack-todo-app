@@ -22,7 +22,7 @@ import { useFormStatus } from 'react-dom';
  * optimistic look goes away on its own, because `pending` ends.
  */
 export function TickButton({
-  openClass, doneClass, isDone, label, hint, children,
+  openClass, doneClass, isDone, label, hint, prio, children,
 }: {
   /** Classes for the open look (carries the priority colour). */
   openClass: string;
@@ -30,6 +30,9 @@ export function TickButton({
   isDone: boolean;
   label: string;
   hint: string;
+  /** "p0".."p3", so the stylesheet can give P0 a little more ceremony. The
+   *  done look drops the priority class, which is why it rides separately. */
+  prio?: string;
   children: ReactNode;
 }) {
   const { pending } = useFormStatus();
@@ -39,6 +42,7 @@ export function TickButton({
     <button
       type="submit"
       className={showDone ? doneClass : openClass}
+      data-prio={prio}
       data-pending={pending ? (isDone ? 'reopen' : 'complete') : undefined}
       aria-label={label}
       title={hint}

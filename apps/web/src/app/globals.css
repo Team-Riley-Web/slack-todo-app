@@ -700,6 +700,51 @@ button.circle.done svg text.rank { opacity: 0; }
 }
 
 /*
+ * The complete moment: a short flourish, all of it CSS, all of it keyed on
+ * the same `data-pending='complete'` the instant look uses. It plays in the
+ * window between the click and the server's row replacing this one, and it is
+ * pure decoration over a state that has ALREADY changed -- nothing waits on it.
+ *
+ *   1. the check draws itself (~220ms) and the ring pops (~240ms)
+ *   2. the row settles back to 70% as it hands over to the server's answer
+ *   3. P0 gets one ring of green breathing out; so does the last open task
+ *      in a list, slower and wider -- the only "you cleared it" there is
+ *
+ * Reopening is deliberately not animated: undoing is not a celebration.
+ * Inside no-preference, so reduced motion gets the instant state and no motion.
+ * To remove the whole thing, delete this block.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  button.circle[data-pending='complete'] svg {
+    animation: tick-pop .24s cubic-bezier(.3, 1.5, .5, 1);
+  }
+  button.circle[data-pending='complete'] svg path {
+    stroke-dasharray: 14; animation: tick-draw .22s ease-out;
+  }
+  .row.task:has(button.circle[data-pending='complete']) {
+    animation: tick-settle .35s ease-out forwards;
+  }
+  .row.task:has(button.circle[data-pending='complete']) .title a {
+    transition: color .2s ease;
+  }
+  button.circle[data-pending='complete'][data-prio='p0'] {
+    --ring: 9px; animation: tick-ring .45s ease-out;
+  }
+  /* Every tick in this list is being completed: this one is the last. Written
+     as one :has(:not()) because browsers reject a :has() nested inside :has(). */
+  ul.rows:not(:has(button.circle:not([data-pending='complete']))) button.circle[data-pending='complete'] {
+    --ring: 12px; animation: tick-ring .6s ease-out;
+  }
+}
+@keyframes tick-pop { 0% { transform: scale(.86); } 55% { transform: scale(1.14); } 100% { transform: scale(1); } }
+@keyframes tick-draw { from { stroke-dashoffset: 14; } to { stroke-dashoffset: 0; } }
+@keyframes tick-settle { to { opacity: .7; } }
+@keyframes tick-ring {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--done) 40%, transparent); }
+  to { box-shadow: 0 0 0 var(--ring, 7px) color-mix(in srgb, var(--done) 0%, transparent); }
+}
+
+/*
  * Priority, drawn in the circle rather than in a column.
  *
  * The colours are the ones the due pills already use as their INK -- amber,

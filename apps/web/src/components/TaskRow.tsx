@@ -127,6 +127,7 @@ export function TaskRow({
           isDone={done}
           openClass={['circle', mark.className].join(' ')}
           doneClass="circle done"
+          prio={task.priority ? task.priority.toLowerCase() : undefined}
           /*
            * The priority rides in the accessible name as well as in the ring,
            * because the ring is a colour and a digit inside a graphic. A
