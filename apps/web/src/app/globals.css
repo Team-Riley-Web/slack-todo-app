@@ -673,6 +673,20 @@ ul.rows li.row.task.selected:hover {
   background: var(--surface); border: 1px solid var(--border); color: var(--muted);
   border-radius: var(--radius); padding: 3px 8px; font-size: 12px; cursor: pointer;
 }
+/*
+ * The Today card's one-click Tomorrow sits beside Wait, so its rows take a
+ * wider actions track -- and the header above them takes the same class, or
+ * every column after Due would sit a few pixels out of line with its label.
+ * The word on a desktop; the arrow only on a phone, where the word won't fit.
+ */
+.row.hastomorrow {
+  grid-template-columns: var(--tick-w) minmax(0, 1fr) 128px 110px 92px 150px;
+}
+.row .rowactions form.tomorrow button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  color: var(--accent-strong); border-color: var(--col-border);
+}
+.row .rowactions form.tomorrow button .icon { display: none; width: 18px; height: 18px; }
 .row .rowactions button:hover {
   color: var(--fg); background: var(--header-bg); border-color: var(--border-strong);
 }
@@ -1643,4 +1657,22 @@ a.iconbtn .icon { width: 15px; height: 15px; }
   .filters button, .filters .btn, .filters select, .filters input { height: 40px; }
   .page-actions > .btn, .filters .menu-button { height: 40px; }
   .pane-actions button, .pane-actions .btn { height: 40px; }
+}
+
+/*
+ * Phones: the actions column is hidden on every list (the 860px block above),
+ * but the Today card keeps its Tomorrow -- it is the one row action you reach
+ * for while working down a list on a phone. A 40px arrow button, the touch
+ * size the toolbar controls use; Wait stays off, as it is on every other row.
+ *
+ * Its own block at the end of the file on purpose: these rules have to come
+ * after the 860px rules they override, at the same specificity.
+ */
+@media (max-width: 860px) {
+  .row.hastomorrow { grid-template-columns: var(--tick-w) minmax(0, 1fr) 84px 44px; }
+  .row.hastomorrow .rowactions { display: flex; }
+  .row.hastomorrow .rowactions form:not(.tomorrow) { display: none; }
+  .row .rowactions form.tomorrow button { width: 40px; height: 40px; padding: 0; }
+  .row .rowactions form.tomorrow button .label { display: none; }
+  .row .rowactions form.tomorrow button .icon { display: block; }
 }

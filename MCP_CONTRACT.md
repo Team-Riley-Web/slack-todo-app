@@ -302,7 +302,7 @@ and none of them can touch a title.
   "list_id": null,              // unpopulated in Phase 1; status is authoritative
   "assignee_id": "U…" ,         // Slack user ID, nullable
   "status": "open",             // open | waiting | completed
-  "due_at": null,               // timestamptz
+  "due_at": null,               // timestamptz; see "Due dates" below
   "waiting_on": null,           // free text, nullable, only meaningful when waiting
   "details": null,              // notes; updatable via set_task_details, unlike title
   "created_at": "…",
@@ -316,6 +316,20 @@ and none of them can touch a title.
 
 `completed_at` is non-null exactly when `status` is `completed`, guaranteed by a
 database constraint rather than convention.
+
+## Due dates
+
+`due_at` accepts ISO 8601 on every create tool and both REST create routes.
+A value with no zone is read in the app's time zone (`DEFAULT_TIMEZONE`,
+America/Chicago by default):
+
+- `"2026-10-14"` is the start of Oct 14 in Chicago, the same as a Slack "due Oct 14".
+- `"2026-10-14T09:00"` is 9am Chicago.
+- A value with `Z` or an offset is that exact instant, unchanged.
+
+Until 2026-10-13 a value with no zone was read as UTC, so `"2026-10-14"`
+landed on the evening of Oct 13 in Chicago. "Due today" also counts the
+Chicago calendar day, overdue work included, rather than the next 24 hours.
 
 ## REST routes
 

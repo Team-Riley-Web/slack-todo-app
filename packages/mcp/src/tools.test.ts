@@ -496,3 +496,32 @@ it('tells the assistant to wait for approval and keep titles verbatim', () => {
   expect(t.description).toMatch(/after the user has seen the complete proposed list/);
   expect(t.description).toMatch(/verbatim/);
 });
+
+// --- due_at with no zone is Chicago time, not UTC ---
+
+it('reads a date-only due_at as that day in Chicago, on every create tool', async () => {
+  // new Date('2026-10-14') was midnight UTC: 7pm on Oct 13 in Chicago, so a
+  // task Claude filed for "Wednesday" showed up as due Tuesday.
+  const one = await call('create_task', { title: 'A', space_id: spaceId, due_at: '2026-10-14' });
+  const ctx = await call('create_task_for_context', { title: 'B', due_at: '2026-10-14' });
+  const batch = await call('create_tasks', {
+    tasks: [{ title: 'C', space_id: spaceId, due_at: '2026-10-14T09:00' }],
+  });
+  expect(new Date(one.task.due_at).toISOString()).toBe('2026-10-14T05:00:00.000Z');
+  expect(new Date(ctx.task.due_at).toISOString()).toBe('2026-10-14T05:00:00.000Z');
+  expect(new Date(batch.tasks[0].task.due_at).toISOString()).toBe('2026-10-14T14:00:00.000Z');
+});
+
+it('keeps an explicit Z or offset exactly as sent', async () => {
+  const r = await call('create_task', {
+    title: 'Exact', space_id: spaceId, due_at: '2026-10-14T09:00:00Z',
+  });
+  expect(new Date(r.task.due_at).toISOString()).toBe('2026-10-14T09:00:00.000Z');
+});
+
+it('tells the model how a due_at with no zone is read', () => {
+  for (const name of ['create_task', 'create_task_for_context', 'create_tasks']) {
+    const schema = JSON.stringify(buildTools(db).find((t) => t.name === name)!.inputSchema);
+    expect(schema).toContain('America/Chicago');
+  }
+});

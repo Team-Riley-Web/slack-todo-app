@@ -4,7 +4,7 @@ import {
   listSpaces, listTasks, listWaiting, moveTask, resolveDestinationSpace,
   updateTaskDetails, parsePriority, TaskNotFoundError, type TaskStatus,
   openCountBySpace, completedBetween, createdThisWeek, completedThisWeek,
-  averageTaskAgeDays, staleTasks,
+  averageTaskAgeDays, staleTasks, parseDueInput, DEFAULT_TIME_ZONE,
 } from '@tr/task-core';
 import {
   listBatches, getBatch, getStagedRows, getConflicts, getAudit, verdictCounts,
@@ -21,6 +21,23 @@ const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : und
 const HERMES = { id: null, source: 'hermes-mcp' };
 /** Upper bound for one create_tasks call: a brain dump, not a bulk import. */
 const MAX_BATCH = 25;
+
+/**
+ * What a model is told about `due_at`, on every tool that takes one. It says
+ * how a value with no zone is read because that is the case that used to go
+ * wrong: "2026-10-14" became midnight UTC, the evening of Oct 13 in Chicago.
+ */
+const DUE_AT_DESCRIPTION =
+  'ISO 8601. A date ("2026-10-14") means that day; a time without an offset ' +
+  '("2026-10-14T09:00") is read in the app\'s time zone (America/Chicago ' +
+  'unless configured otherwise). Include Z or an offset only for an exact instant.';
+
+/** A `due_at` argument as a Date, read in the app's zone; null when absent. */
+function dueFrom(value: unknown): Date | null {
+  const raw = str(value);
+  if (!raw) return null;
+  return parseDueInput(raw, process.env.DEFAULT_TIMEZONE?.trim() || DEFAULT_TIME_ZONE);
+}
 
 export function buildTools(db: Db): McpTool[] {
   return [
@@ -72,7 +89,7 @@ export function buildTools(db: Db): McpTool[] {
           title: { type: 'string', description: 'The literal task title, verbatim.' },
           space_id: { type: 'string' },
           assignee_id: { type: 'string' },
-          due_at: { type: 'string', description: 'ISO 8601 timestamp' },
+          due_at: { type: 'string', description: DUE_AT_DESCRIPTION },
           details: {
             type: 'string',
             description:
@@ -98,7 +115,7 @@ export function buildTools(db: Db): McpTool[] {
           task: await createTask(db, {
             title, spaceId,
             assigneeId: str(a.assignee_id) ?? null,
-            dueAt: str(a.due_at) ? new Date(String(a.due_at)) : null,
+            dueAt: dueFrom(a.due_at),
             sourcePlatform: 'hermes',
             createdBy: str(a.created_by) ?? null,
             details: str(a.details) ?? null,
@@ -240,7 +257,7 @@ export function buildTools(db: Db): McpTool[] {
           channel_id: { type: 'string' },
           title: { type: 'string', description: 'The literal task title, verbatim.' },
           space: { type: 'string', description: 'Optional explicit destination Space.' },
-          due_at: { type: 'string', description: 'ISO 8601 timestamp' },
+          due_at: { type: 'string', description: DUE_AT_DESCRIPTION },
           assignee_id: { type: 'string' },
           details: { type: 'string', description: 'Optional capture notes. Write-once.' },
           priority: {
@@ -264,7 +281,7 @@ export function buildTools(db: Db): McpTool[] {
           title,
           spaceId: dest.space.id,
           assigneeId: str(a.assignee_id) ?? null,
-          dueAt: str(a.due_at) ? new Date(String(a.due_at)) : null,
+          dueAt: dueFrom(a.due_at),
           sourcePlatform: 'hermes',
           sourceChannelId: str(a.channel_id) ?? null,
           details: str(a.details) ?? null,
@@ -296,7 +313,7 @@ export function buildTools(db: Db): McpTool[] {
                 title: { type: 'string', description: 'The literal task title, verbatim.' },
                 space: { type: 'string', description: 'Space name, slug or alias.' },
                 space_id: { type: 'string' },
-                due_at: { type: 'string', description: 'ISO 8601 timestamp' },
+                due_at: { type: 'string', description: DUE_AT_DESCRIPTION },
                 assignee_id: { type: 'string' },
                 details: { type: 'string', description: 'Optional notes. Write-once.' },
                 priority: {
@@ -345,7 +362,7 @@ export function buildTools(db: Db): McpTool[] {
                 title,
                 spaceId: space.id,
                 assigneeId: str(item.assignee_id) ?? null,
-                dueAt: str(item.due_at) ? new Date(String(item.due_at)) : null,
+                dueAt: dueFrom(item.due_at),
                 sourcePlatform: 'hermes',
                 details: str(item.details) ?? null,
                 priority: parsePriority(item.priority),

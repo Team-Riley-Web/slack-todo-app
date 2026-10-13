@@ -8,6 +8,7 @@ import {
   resolveDestinationSpace,
   InvalidDueDateError, InvalidPriorityError, InvalidTaskIdError,
   TaskNotFoundError, UnknownSpaceError, parsePriority,
+  parseDueInput, DEFAULT_TIME_ZONE,
   type TaskStatus,
 } from '@tr/task-core';
 
@@ -134,7 +135,9 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
       title: b.title,
       spaceId: dest.space.id,
       assigneeId: typeof b.assignee_id === 'string' ? b.assignee_id : null,
-      dueAt: typeof b.due_at === 'string' ? new Date(b.due_at) : null,
+      dueAt: typeof b.due_at === 'string'
+        ? parseDueInput(b.due_at, process.env.DEFAULT_TIMEZONE?.trim() || DEFAULT_TIME_ZONE)
+        : null,
       sourcePlatform: typeof b.source_platform === 'string' ? b.source_platform : 'api',
       sourceChannelId: channelId,
       createdBy: typeof b.created_by === 'string' ? b.created_by : null,
@@ -163,7 +166,9 @@ export function buildServer(deps: ApiDeps): FastifyInstance {
       title: b.title,
       spaceId: b.space_id,
       assigneeId: typeof b.assignee_id === 'string' ? b.assignee_id : null,
-      dueAt: typeof b.due_at === 'string' ? new Date(b.due_at) : null,
+      dueAt: typeof b.due_at === 'string'
+        ? parseDueInput(b.due_at, process.env.DEFAULT_TIMEZONE?.trim() || DEFAULT_TIME_ZONE)
+        : null,
       sourcePlatform: typeof b.source_platform === 'string' ? b.source_platform : 'api',
       createdBy: typeof b.created_by === 'string' ? b.created_by : null,
       details: typeof b.details === 'string' ? b.details : null,

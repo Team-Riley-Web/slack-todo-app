@@ -1,12 +1,7 @@
-import type { Space, Task } from '@tr/task-core';
+import {
+  calendarDaysFrom, DEFAULT_TIME_ZONE, type Space, type Task,
+} from '@tr/task-core';
 import { filtersToQuery, type TaskFilters } from '@/data/filters';
-
-/** Calendar-day difference in UTC, so a time of day never shifts the answer. */
-function daysBetween(a: Date, b: Date): number {
-  const dayA = Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate());
-  const dayB = Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate());
-  return Math.round((dayA - dayB) / 86_400_000);
-}
 
 export interface DueLabel {
   text: string;
@@ -18,9 +13,16 @@ export interface DueLabel {
  * How a due date reads in a list. Relative for the next few days, then an
  * absolute date, because "in 43 days" is harder to act on than "Oct 23".
  */
-export function dueLabel(task: Task, now = new Date()): DueLabel | null {
+/*
+ * Days are counted in the app's zone (America/Chicago by default), not UTC.
+ * They were UTC, which turned "Due today" into "Due tomorrow" at 7pm Chicago
+ * time -- and inside the Today card that read as a bug in the card.
+ */
+export function dueLabel(
+  task: Task, now = new Date(), timeZone: string = DEFAULT_TIME_ZONE
+): DueLabel | null {
   if (!task.due_at) return null;
-  const days = daysBetween(task.due_at, now);
+  const days = calendarDaysFrom(task.due_at, now, timeZone);
 
   if (days < 0) {
     const ago = Math.abs(days);
@@ -35,19 +37,23 @@ export function dueLabel(task: Task, now = new Date()): DueLabel | null {
 
   return {
     text: `Due ${task.due_at.toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', timeZone: 'UTC',
+      month: 'short', day: 'numeric', timeZone,
     })}`,
     tone: 'normal',
   };
 }
 
 /** How long a task has existed, for the waiting view's age column. */
-export function ageInDays(task: Task, now = new Date()): number {
-  return Math.max(0, daysBetween(now, task.created_at));
+export function ageInDays(
+  task: Task, now = new Date(), timeZone: string = DEFAULT_TIME_ZONE
+): number {
+  return Math.max(0, calendarDaysFrom(now, task.created_at, timeZone));
 }
 
-export function ageLabel(task: Task, now = new Date()): string {
-  const days = ageInDays(task, now);
+export function ageLabel(
+  task: Task, now = new Date(), timeZone: string = DEFAULT_TIME_ZONE
+): string {
+  const days = ageInDays(task, now, timeZone);
   if (days === 0) return 'today';
   if (days === 1) return '1 day';
   if (days < 30) return `${days} days`;

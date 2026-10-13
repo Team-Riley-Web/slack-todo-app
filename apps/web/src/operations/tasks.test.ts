@@ -6,6 +6,7 @@ import { saveCard } from '@tr/slack-sync';
 import { buildServer } from '../../../api/src/server.js';
 import {
   completeTaskOp, reopenTaskOp, moveTaskOp, editTaskOp, createTaskOp,
+  postponeToTomorrowOp,
 } from './tasks.js';
 
 let db: Db;
@@ -177,6 +178,66 @@ describe('editing', () => {
   it('rejects an unknown but well-formed id', async () => {
     const result = await completeTaskOp(deps(), '00000000-0000-4000-8000-000000000000');
     expect(result.ok).toBe(false);
+  });
+});
+
+describe('Tomorrow, from the Today card', () => {
+  const now = new Date('2026-10-13T20:31:00Z'); // 3:31pm CDT, Oct 13
+
+  it('moves the due date to tomorrow at the same Chicago time of day', async () => {
+    const task = await createTask(db, {
+      title: 'Call Neil at 2', spaceId: space.id, dueAt: new Date('2026-10-13T19:00:00Z'),
+    });
+    expect(await postponeToTomorrowOp(deps(), task.id, now))
+      .toEqual({ ok: true, taskId: task.id });
+    expect((await getTask(db, task.id))!.due_at!.toISOString())
+      .toBe('2026-10-14T19:00:00.000Z'); // 2pm CDT, Oct 14
+  });
+
+  it('sends overdue work to tomorrow, not to the day after it was due', async () => {
+    const task = await createTask(db, {
+      title: 'Overdue', spaceId: space.id, dueAt: new Date('2026-10-09T14:00:00Z'),
+    });
+    await postponeToTomorrowOp(deps(), task.id, now);
+    expect((await getTask(db, task.id))!.due_at!.toISOString())
+      .toBe('2026-10-14T14:00:00.000Z');
+  });
+
+  it('changes the due date and nothing else', async () => {
+    const task = await createTask(db, {
+      title: 'Keep me exactly', spaceId: space.id, assigneeId: 'U_JOSH', priority: 'P1',
+      dueAt: new Date('2026-10-13T19:00:00Z'), details: 'notes',
+    });
+    await postponeToTomorrowOp(deps(), task.id, now);
+    const after = (await getTask(db, task.id))!;
+    expect({ ...after, due_at: null }).toEqual({ ...task, due_at: null });
+  });
+
+  it('is logged as an ordinary due-date edit by the web user', async () => {
+    const task = await createTask(db, {
+      title: 'Audit me', spaceId: space.id, dueAt: new Date('2026-10-13T19:00:00Z'),
+    });
+    await postponeToTomorrowOp(deps(), task.id, now);
+    const { rows } = await db.query<{ actor_id: string; source: string; detail: unknown }>(
+      `SELECT actor_id, source, detail FROM task_events
+        WHERE task_id = $1 AND event = 'edited'`, [task.id]
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ actor_id: 'U_JOSH', source: 'web' });
+    expect(JSON.stringify(rows[0]!.detail)).toContain('due_at');
+  });
+
+  it('redraws any Slack card showing the task', async () => {
+    const task = await withCard(await createTask(db, {
+      title: 'On a card', spaceId: space.id, dueAt: new Date('2026-10-13T19:00:00Z'),
+    }));
+    await postponeToTomorrowOp(deps(), task.id, now);
+    expect(slack.chat.update).toHaveBeenCalled();
+  });
+
+  it('reports an unknown task rather than throwing', async () => {
+    expect(await postponeToTomorrowOp(deps(), '00000000-0000-4000-8000-000000000000', now))
+      .toEqual({ ok: false, error: 'That task could not be found.' });
   });
 });
 

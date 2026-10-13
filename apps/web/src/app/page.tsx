@@ -146,9 +146,9 @@ export default async function MyTasksPage({
            *
            * The one card on this page that keeps the Space column, because it
            * is the one card that mixes Spaces -- every card below names its
-           * Space once in its title. Ticking a task here completes it
-           * everywhere; its title opens the same edit pane, for a due date or
-           * a move.
+           * Space once in its title. Each row is one decision: tick it done,
+           * push it to Tomorrow (same time of day), or open its title for
+           * anything else.
            *
            * The tasks also stay in their Space's card below. This is a lens
            * on the list, not a second list, so a Space's count never changes
@@ -161,10 +161,12 @@ export default async function MyTasksPage({
               label="Today"
               count={today.length}
               showSpace
+              showTomorrow
             >
               <TaskList
                 rows={sortRows(today, sortBy, assigneeLabels())}
                 showSpace
+                showTomorrow
                 empty="Nothing due today."
                 assigneeLabels={assigneeLabels()}
                 basePath="/"

@@ -4,11 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { after } from 'next/server';
 import { WebClient } from '@slack/web-api';
-import type { Priority, TaskStatus } from '@tr/task-core';
+import { parseDueInput, type Priority, type TaskStatus } from '@tr/task-core';
 import { getDb } from '@/db';
 import { currentUser } from '@/user';
+import { timeZone } from '@/lib/env';
 import {
   completeTaskOp, reopenTaskOp, moveTaskOp, editTaskOp, createTaskOp,
+  postponeToTomorrowOp,
   type OperationDeps, type OperationResult, type CaptureStatus,
 } from '@/operations/tasks';
 
@@ -49,7 +51,7 @@ async function deps(): Promise<OperationDeps | null> {
       ? { chat: { update: (args) => client.chat.update(args as never) } }
       : undefined,
     config: {
-      timeZone: process.env.DEFAULT_TIMEZONE?.trim() || 'America/Chicago',
+      timeZone: timeZone(),
       assigneeLabels: assigneeLabels(),
     },
   };
@@ -98,6 +100,15 @@ export async function moveTaskAction(
   return result;
 }
 
+/** The Today card's "Tomorrow" button. Changes the due date and nothing else. */
+export async function postponeToTomorrowAction(taskId: string): Promise<OperationResult> {
+  const d = await deps();
+  if (!d) return DENIED;
+  const result = await postponeToTomorrowOp(d, taskId);
+  refresh();
+  return result;
+}
+
 /** Called only from the dedicated edit form, never from a list row. */
 export async function editTaskFormAction(formData: FormData): Promise<OperationResult> {
   const d = await deps();
@@ -117,7 +128,7 @@ export async function editTaskFormAction(formData: FormData): Promise<OperationR
     spaceId: String(formData.get('spaceId') ?? '') || undefined,
     status: status || undefined,
     assigneeId: assignee.length > 0 ? assignee : null,
-    dueAt: dueRaw.length > 0 ? new Date(dueRaw) : null,
+    dueAt: dueRaw.length > 0 ? parseDueInput(dueRaw, timeZone()) : null,
     waitingOn: waitingOn.length > 0 ? waitingOn : null,
     details: details.length > 0 ? details : null,
     priority: (priority.length > 0 ? priority : null) as Priority | null,
@@ -142,7 +153,7 @@ export async function createTaskFormAction(formData: FormData): Promise<Operatio
     title: String(formData.get('title') ?? ''),
     spaceSlug: String(formData.get('spaceSlug') ?? ''),
     assigneeId: assignee.length > 0 ? assignee : null,
-    dueAt: dueRaw.length > 0 ? new Date(dueRaw) : null,
+    dueAt: dueRaw.length > 0 ? parseDueInput(dueRaw, timeZone()) : null,
     // Read the same way the edit form reads them, so the two paths agree on
     // what an empty field means: nothing, not an empty string.
     status: (status.length > 0 ? status : null) as CaptureStatus | null,

@@ -4,7 +4,7 @@ import {
   spaceHref, filterHref, shortSpaceName, spaceBySlug, newTaskHref,
   closeNewTaskHref, newTaskSpace,
 } from './display.js';
-import type { Task, Space } from '@tr/task-core';
+import { parseDueInput, type Task, type Space } from '@tr/task-core';
 
 const NOW = new Date('2026-09-10T12:00:00Z');
 
@@ -20,48 +20,66 @@ const space: Space = {
   id: 'S1', name: 'Client - Nazareth Law', slug: 'nazareth-law', is_inbox: false,
 };
 
+/** A Chicago wall-clock time as an instant, the way the app now reads one. */
+const chi = (local: string) => parseDueInput(local, 'America/Chicago');
+
 describe('dueLabel', () => {
+  // NOW is 7am CDT, Sep 10.
   it('returns null with no due date', () => {
     expect(dueLabel(task(), NOW)).toBeNull();
   });
 
   it('reads relatively for today and tomorrow', () => {
-    expect(dueLabel(task({ due_at: new Date('2026-09-10T23:00:00Z') }), NOW))
+    expect(dueLabel(task({ due_at: chi('2026-09-10T18:00') }), NOW))
       .toEqual({ text: 'Due today', tone: 'soon' });
-    expect(dueLabel(task({ due_at: new Date('2026-09-11T01:00:00Z') }), NOW))
+    expect(dueLabel(task({ due_at: chi('2026-09-11T08:00') }), NOW))
       .toEqual({ text: 'Due tomorrow', tone: 'soon' });
+  });
+
+  it('calls 8pm tonight in Chicago "today" -- UTC had already moved on to tomorrow', () => {
+    const afternoon = chi('2026-09-10T15:30');
+    const tonight = new Date('2026-09-11T01:00:00Z'); // 8pm CDT, Sep 10
+    expect(dueLabel(task({ due_at: tonight }), afternoon)!.text).toBe('Due today');
   });
 
   it('counts calendar days, so a time of day cannot shift the answer', () => {
     // Due at 00:30 tomorrow, from 23:30 tonight, is still "tomorrow".
-    const late = new Date('2026-09-10T23:30:00Z');
-    expect(dueLabel(task({ due_at: new Date('2026-09-11T00:30:00Z') }), late)!.text)
+    const late = chi('2026-09-10T23:30');
+    expect(dueLabel(task({ due_at: chi('2026-09-11T00:30') }), late)!.text)
       .toBe('Due tomorrow');
   });
 
   it('reads relatively within a week', () => {
-    expect(dueLabel(task({ due_at: new Date('2026-09-15T00:00:00Z') }), NOW))
+    expect(dueLabel(task({ due_at: chi('2026-09-15') }), NOW))
       .toEqual({ text: 'Due in 5 days', tone: 'soon' });
-    expect(dueLabel(task({ due_at: new Date('2026-09-17T00:00:00Z') }), NOW)!.text)
+    expect(dueLabel(task({ due_at: chi('2026-09-17T09:00') }), NOW)!.text)
       .toBe('Due in 7 days');
   });
 
-  it('switches to an absolute date beyond a week', () => {
-    const label = dueLabel(task({ due_at: new Date('2026-10-23T00:00:00Z') }), NOW)!;
+  it('switches to an absolute date beyond a week, dated in Chicago', () => {
+    const label = dueLabel(task({ due_at: chi('2026-10-23') }), NOW)!;
     expect(label.text).toBe('Due Oct 23');
     expect(label.tone).toBe('normal');
   });
 
   it('marks an overdue task, singular and plural', () => {
-    expect(dueLabel(task({ due_at: new Date('2026-09-09T00:00:00Z') }), NOW))
+    expect(dueLabel(task({ due_at: chi('2026-09-09') }), NOW))
       .toEqual({ text: 'Overdue by 1 day', tone: 'overdue' });
-    expect(dueLabel(task({ due_at: new Date('2026-09-01T00:00:00Z') }), NOW))
+    expect(dueLabel(task({ due_at: chi('2026-09-01') }), NOW))
       .toEqual({ text: 'Overdue by 9 days', tone: 'overdue' });
   });
 
   it('handles a month boundary', () => {
-    expect(dueLabel(task({ due_at: new Date('2026-08-31T00:00:00Z') }), NOW)!.text)
+    expect(dueLabel(task({ due_at: chi('2026-08-31') }), NOW)!.text)
       .toBe('Overdue by 10 days');
+  });
+
+  it('counts in the zone it is given', () => {
+    // 11:30pm CDT is already 12:30am in New York.
+    const at = new Date('2026-09-11T04:30:00Z');
+    const evening = new Date('2026-09-11T02:00:00Z');
+    expect(dueLabel(task({ due_at: at }), evening, 'America/Chicago')!.text).toBe('Due today');
+    expect(dueLabel(task({ due_at: at }), evening, 'America/New_York')!.text).toBe('Due tomorrow');
   });
 });
 
@@ -72,27 +90,21 @@ describe('age', () => {
   });
 
   it('counts days and reads singular at one', () => {
-    expect(ageLabel(task({ created_at: new Date('2026-09-09T23:00:00Z') }), NOW))
-      .toBe('1 day');
-    expect(ageLabel(task({ created_at: new Date('2026-09-01T00:00:00Z') }), NOW))
-      .toBe('9 days');
+    expect(ageLabel(task({ created_at: chi('2026-09-09T18:00') }), NOW)).toBe('1 day');
+    expect(ageLabel(task({ created_at: chi('2026-09-01') }), NOW)).toBe('9 days');
   });
 
   it('crosses a month boundary correctly', () => {
-    expect(ageInDays(task({ created_at: new Date('2026-08-11T00:00:00Z') }), NOW))
-      .toBe(30);
+    expect(ageInDays(task({ created_at: chi('2026-08-11') }), NOW)).toBe(30);
   });
 
   it('switches to months past thirty days', () => {
-    expect(ageLabel(task({ created_at: new Date('2026-08-11T00:00:00Z') }), NOW))
-      .toBe('1 month');
-    expect(ageLabel(task({ created_at: new Date('2026-03-10T00:00:00Z') }), NOW))
-      .toBe('6 months');
+    expect(ageLabel(task({ created_at: chi('2026-08-11') }), NOW)).toBe('1 month');
+    expect(ageLabel(task({ created_at: chi('2026-03-10') }), NOW)).toBe('6 months');
   });
 
   it('never reports a negative age for a clock skew', () => {
-    expect(ageInDays(task({ created_at: new Date('2026-09-12T00:00:00Z') }), NOW))
-      .toBe(0);
+    expect(ageInDays(task({ created_at: chi('2026-09-12') }), NOW)).toBe(0);
   });
 });
 

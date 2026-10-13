@@ -326,6 +326,20 @@ it('returns 400 for an unparseable due_at on both create routes', async () => {
   expect(b.json().error).toBe('invalid_due_at');
 });
 
+it('reads a due_at with no zone in Chicago time on both create routes', async () => {
+  const a = await app.inject({
+    method: 'POST', url: '/tasks', headers: auth,
+    payload: { title: 'X', space_id: spaceId, due_at: '2026-10-14' },
+  });
+  expect(new Date(a.json().task.due_at).toISOString()).toBe('2026-10-14T05:00:00.000Z');
+
+  const b = await app.inject({
+    method: 'POST', url: '/context/C_NONE/tasks', headers: auth,
+    payload: { title: 'Y', due_at: '2026-10-14T09:00' },
+  });
+  expect(new Date(b.json().task.due_at).toISOString()).toBe('2026-10-14T14:00:00.000Z');
+});
+
 it('ignores a non-numeric limit instead of erroring', async () => {
   await createTask(db, { title: 'A', spaceId });
   for (const q of ['limit=abc', 'limit=', 'limit=-1', 'limit=NaN', 'limit=1e999']) {

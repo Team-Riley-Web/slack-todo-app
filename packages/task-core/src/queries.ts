@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon';
+import { DEFAULT_TIME_ZONE } from './due.js';
 import type { Db } from '@tr/db';
 import { parsePriority, type Priority } from './priority.js';
 import type { Task, TaskStatus } from './types.js';
@@ -19,6 +21,11 @@ function sanitizeLimit(limit: unknown): number {
   return Math.min(Math.floor(limit), MAX_LIMIT);
 }
 
+/** Local midnight at the end of today, in `timeZone`, as an instant. */
+function startOfTomorrow(now: Date, timeZone: string): Date {
+  return DateTime.fromJSDate(now, { zone: timeZone }).plus({ days: 1 }).startOf('day').toJSDate();
+}
+
 export type DueBucket = 'overdue' | 'today' | 'week' | 'none';
 
 export interface ListTasksFilter {
@@ -32,8 +39,17 @@ export interface ListTasksFilter {
    * so a search for "50%" means literally that.
    */
   titleContains?: string;
-  /** Bucketed due date, resolved in SQL against now(). */
+  /**
+   * Bucketed due date. `overdue` and `week` are resolved against now();
+   * `today` means "before tomorrow starts in `timeZone`" -- the calendar day,
+   * overdue work included -- so it ends at local midnight rather than 24
+   * hours from whenever you happen to look.
+   */
   due?: DueBucket;
+  /** The zone `due: 'today'` counts in. Defaults to DEFAULT_TIME_ZONE. */
+  timeZone?: string;
+  /** The clock `due: 'today'` reads. Only tests pass it. */
+  now?: Date;
   /** Exactly this priority. `null` selects Unprioritized tasks. */
   priority?: Priority | null;
   limit?: number;
@@ -83,7 +99,8 @@ export async function listTasks(db: Db, filter: ListTasksFilter = {}): Promise<T
   } else if (filter.due === 'overdue') {
     where.push(`due_at IS NOT NULL AND due_at < now()`);
   } else if (filter.due === 'today') {
-    where.push(`due_at IS NOT NULL AND due_at < now() + interval '1 day'`);
+    params.push(startOfTomorrow(filter.now ?? new Date(), filter.timeZone ?? DEFAULT_TIME_ZONE));
+    where.push(`due_at IS NOT NULL AND due_at < $${params.length}`);
   } else if (filter.due === 'week') {
     where.push(`due_at IS NOT NULL AND due_at < now() + interval '7 days'`);
   }

@@ -11,8 +11,8 @@ functions. There is no second copy of any rule.
 
 | Route | What it is |
 | --- | --- |
-| `/` | My Tasks. Open and waiting tasks, filterable by status, assignee, due bucket, and title search. No Space chips — the rail is the Space filter. |
-| `/today` | Everything due today, across every Space. |
+| `/` | My Tasks. Open and waiting tasks, filterable by status, assignee, due bucket, and title search. No Space chips — the rail is the Space filter. With no Space chosen (All spaces) it opens with an outlined **Today** card: everything overdue or due today from every Space, with a Space column and a one-click **Tomorrow** per row. |
+| `/today` | Everything due today, across every Space. "Today" is the calendar day in `DEFAULT_TIMEZONE` (America/Chicago), overdue work included. |
 | `/spaces` | Every Space with its open / waiting / completed counts. Empty Spaces are listed too, and an empty one can be deleted here. |
 | `/spaces/<slug>` | One Space in three collapsible sections — Open, Waiting, Completed — plus the form for adding a task. The rows do not repeat the Space name the heading already carries. |
 | `/waiting` | Waiting and blocked tasks, oldest first, with an age in days. |

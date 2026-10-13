@@ -40,6 +40,9 @@ export {
   type ListTasksFilter, type SpaceCount, type DueBucket,
 } from './queries.js';
 export {
+  DEFAULT_TIME_ZONE, parseDueInput, formatDueInput, calendarDaysFrom, tomorrowAt,
+} from './due.js';
+export {
   listOpenTasksBySpace, matchesSpaceKeys, PERSONAL_SPACE_SLUG,
   type TaskInSpace, type TaskGroup, type GroupedTasks,
   type SpacePredicate, type GroupedTasksOptions,

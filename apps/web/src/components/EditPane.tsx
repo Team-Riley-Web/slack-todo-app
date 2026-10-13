@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { PaneShell } from '@/components/PaneShell';
 import type { Db } from '@tr/db';
 import {
-  getTask, listSpaces, assigneeChoices, PRIORITIES, priorityChoice, type Space,
+  getTask, listSpaces, assigneeChoices, PRIORITIES, priorityChoice, formatDueInput,
+  type Space,
 } from '@tr/task-core';
+import { timeZone } from '@/lib/env';
 import { editTaskFormVoid } from '@/actions/tasks';
 import { closeEditHref } from '@/lib/display';
 import { SpaceSelect } from '@/components/SpaceSelect';
@@ -36,8 +38,10 @@ export async function EditPane({
   const back = closeEditHref(basePath, params);
   const error = Array.isArray(params.error) ? params.error[0] : params.error;
 
-  // datetime-local wants `YYYY-MM-DDTHH:mm`, no zone and no seconds.
-  const dueValue = task.due_at ? task.due_at.toISOString().slice(0, 16) : '';
+  // datetime-local wants `YYYY-MM-DDTHH:mm`, no zone and no seconds. Shown in
+  // the app's zone, which is the zone the action reads it back in -- it used
+  // to be UTC both ways, so a 9am Slack capture opened here as 14:00.
+  const dueValue = task.due_at ? formatDueInput(task.due_at, timeZone()) : '';
 
   /*
    * Assignees are offered by name, never by raw Slack id. Reading

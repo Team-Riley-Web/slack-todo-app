@@ -13,7 +13,7 @@
  */
 export type IconName =
   | 'inbox' | 'calendar' | 'paused' | 'done' | 'space' | 'client' | 'cog'
-  | 'search' | 'pencil' | 'trash' | 'plus' | 'menu' | 'close';
+  | 'search' | 'pencil' | 'trash' | 'plus' | 'menu' | 'close' | 'tomorrow';
 
 const PATHS: Record<IconName, string> = {
   /*
@@ -59,6 +59,9 @@ const PATHS: Record<IconName, string> = {
   /* The X that replaces the hamburger while the drawer is open. Same 24 grid
      and stroke; it is the same control in its other state, not a new one. */
   close: 'M6 6l12 12M18 6L6 18',
+  /* "Tomorrow": an arrow running up to a bar -- on to the next one. The phone
+     face of the Today card's Tomorrow button, where the word does not fit. */
+  tomorrow: 'M4.5 12h11M11.5 7.5L16 12l-4.5 4.5M19.5 6v12',
 };
 
 export function Icon({ name }: { name: IconName }) {

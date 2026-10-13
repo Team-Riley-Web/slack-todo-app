@@ -183,3 +183,36 @@ it('ignores an empty or whitespace-only search', async () => {
   expect(await listTasks(db, { titleContains: '' })).toHaveLength(2);
   expect(await listTasks(db, { titleContains: '   ' })).toHaveLength(2);
 });
+
+/**
+ * "Today" is the Chicago calendar day, overdue work included -- not "the next
+ * 24 hours". The rolling window pulled tomorrow morning's tasks into Today by
+ * mid-afternoon; the label beside them already said "tomorrow".
+ */
+it("buckets 'today' by the Chicago calendar day, ending at local midnight", async () => {
+  const now = new Date('2026-10-13T20:31:00Z'); // 3:31pm CDT, Oct 13
+  const due = (title: string, iso: string) =>
+    createTask(db, { title, spaceId: spaceIds['Marketing']!, dueAt: new Date(iso) });
+  await due('Overdue from Friday', '2026-10-09T14:00:00Z');
+  await due('This morning', '2026-10-13T14:00:00Z');   // 9am CDT
+  await due('Tonight at 8', '2026-10-14T01:00:00Z');   // 8pm CDT Oct 13 -- UTC says Oct 14
+  await due('Tomorrow at 1am', '2026-10-14T06:00:00Z'); // inside the old 24h window
+  await due('Tomorrow at 9', '2026-10-14T14:00:00Z');
+  await createTask(db, { title: 'No date', spaceId: spaceIds['Marketing']! });
+
+  const today = await listTasks(db, { due: 'today', timeZone: 'America/Chicago', now });
+  expect(today.map((t) => t.title).sort())
+    .toEqual(['Overdue from Friday', 'This morning', 'Tonight at 8']);
+});
+
+it("follows the configured zone for 'today'", async () => {
+  // 11pm in New York is 10pm in Chicago: the same task is "today" in Chicago
+  // and already "tomorrow" in New York.
+  const now = new Date('2026-10-14T03:00:00Z');
+  await createTask(db, {
+    title: 'Due 11:30pm Chicago', spaceId: spaceIds['Sales']!,
+    dueAt: new Date('2026-10-14T04:30:00Z'),
+  });
+  expect(await listTasks(db, { due: 'today', timeZone: 'America/Chicago', now })).toHaveLength(1);
+  expect(await listTasks(db, { due: 'today', timeZone: 'America/New_York', now })).toHaveLength(0);
+});

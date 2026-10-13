@@ -3,6 +3,7 @@ import {
   completedBetween, listSpaces, listTasks, type Space, type Task,
 } from '@tr/task-core';
 import type { TaskFilters } from './filters.js';
+import { timeZone } from '../lib/env.js';
 
 export interface TaskRow {
   task: Task;
@@ -50,6 +51,8 @@ export async function myTasks(db: Db, filters: TaskFilters): Promise<TaskRow[]> 
     assigneeId: filters.assignee,
     titleContains: filters.q,
     due: filters.due,
+    // "Today" ends at midnight in the app's zone, not 24 hours from now.
+    timeZone: timeZone(),
     ...(filters.status
       ? { status: filters.status }
       : { actionableOnly: true }),

@@ -3,6 +3,7 @@ import {
   completeTask, createTask, editTask, getTask, moveTask, reopenTask,
   updateTaskDetails, findSpaceExact, InvalidTaskIdError, TaskNotFoundError,
   UnknownSpaceError, InvalidDueDateError, InvalidPriorityError,
+  tomorrowAt, DEFAULT_TIME_ZONE,
   type EditableFields, type Priority, type TaskStatus,
 } from '@tr/task-core';
 import { syncCardsForTask, type CardDeps } from '@tr/slack-sync';
@@ -124,6 +125,31 @@ export function editTaskOp(
 ): Promise<OperationResult> {
   return run(deps, taskId, async () => {
     const task = await editTask(deps.db, taskId, patch, {
+      id: deps.actorId, source: 'web',
+    });
+    return task.id;
+  });
+}
+
+/**
+ * The Today card's one-click "Tomorrow".
+ *
+ * Moves the due date to tomorrow at the time of day it already had (see
+ * `tomorrowAt`), through `editTask` with ONLY `dueAt` set -- so it is logged as
+ * an ordinary due-date edit and cannot touch the title or anything else.
+ * Counted from today in the app's zone, so a task three days overdue lands on
+ * tomorrow, not on two days ago.
+ */
+export function postponeToTomorrowOp(
+  deps: OperationDeps, taskId: string, now: Date = new Date()
+): Promise<OperationResult> {
+  return run(deps, taskId, async () => {
+    const before = await getTask(deps.db, taskId);
+    if (!before) throw new TaskNotFoundError(taskId);
+    const dueAt = tomorrowAt(
+      before.due_at, now, deps.config?.timeZone ?? DEFAULT_TIME_ZONE
+    );
+    const task = await editTask(deps.db, taskId, { dueAt }, {
       id: deps.actorId, source: 'web',
     });
     return task.id;
