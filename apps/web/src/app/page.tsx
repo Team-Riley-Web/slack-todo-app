@@ -1,7 +1,7 @@
 import { listSpaces } from '@tr/task-core';
 import { getDb } from '@/db';
 import { requireUser } from '@/user';
-import { parseFilters } from '@/data/filters';
+import { parseFilters, todayFocusFilters } from '@/data/filters';
 import { myTasks, knownAssignees, spaceSummary } from '@/data/tasks';
 import { Shell } from '@/components/Shell';
 import { FilterBar } from '@/components/FilterBar';
@@ -35,11 +35,13 @@ export default async function MyTasksPage({
    * second half because it ignores the due filter: choosing "Overdue" would
    * have narrowed Open and left Waiting untouched beneath it.
    */
-  const [rows, waiting, spaces, assignees] = await Promise.all([
+  const todayFilters = todayFocusFilters(filters);
+  const [rows, waiting, spaces, assignees, today] = await Promise.all([
     myTasks(db, { ...filters, status: 'open' }),
     myTasks(db, { ...filters, status: 'waiting' }),
     listSpaces(db),
     knownAssignees(db),
+    todayFilters ? myTasks(db, todayFilters) : Promise.resolve(null),
   ]);
 
   /*
@@ -138,6 +140,39 @@ export default async function MyTasksPage({
          * already says which Spaces exist.
          */
         <>
+          {/*
+           * Today, first and outlined: what needs doing now, pulled out of
+           * every Space into one list to work straight down.
+           *
+           * The one card on this page that keeps the Space column, because it
+           * is the one card that mixes Spaces -- every card below names its
+           * Space once in its title. Ticking a task here completes it
+           * everywhere; its title opens the same edit pane, for a due date or
+           * a move.
+           *
+           * The tasks also stay in their Space's card below. This is a lens
+           * on the list, not a second list, so a Space's count never changes
+           * because something in it happens to be due today.
+           */}
+          {today ? (
+            <SectionCard
+              featured
+              sorting={sorting}
+              label="Today"
+              count={today.length}
+              showSpace
+            >
+              <TaskList
+                rows={sortRows(today, sortBy, assigneeLabels())}
+                showSpace
+                empty="Nothing due today."
+                assigneeLabels={assigneeLabels()}
+                basePath="/"
+                params={query}
+              />
+            </SectionCard>
+          ) : null}
+
           {spaces.map((space) => {
             const open = sortRows(
               rows.filter((r) => r.task.space_id === space.id), sortBy, assigneeLabels()

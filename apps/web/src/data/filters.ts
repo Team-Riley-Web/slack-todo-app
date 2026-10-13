@@ -101,3 +101,22 @@ export function withFilter(
   else next[key] = value as never;
   return next;
 }
+
+/**
+ * The query behind the Today card at the top of All spaces, or null when the
+ * card should not show.
+ *
+ * Open tasks in the `today` bucket -- overdue, or due within the next day --
+ * which is exactly what the Due Today page lists, so the card and that page
+ * never disagree about what "today" means. Assignee and search still narrow it,
+ * the same as every card beneath it.
+ *
+ * It stays off when the page is already narrowed by Space or by a due chip.
+ * On one Space the page IS that Space's list; under "Overdue" or "This week"
+ * every card below is already a due-date view, and a Today card above them
+ * would repeat what they show.
+ */
+export function todayFocusFilters(filters: TaskFilters): TaskFilters | null {
+  if (filters.space || filters.due) return null;
+  return { ...filters, due: 'today', status: 'open' };
+}

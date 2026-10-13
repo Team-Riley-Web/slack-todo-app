@@ -15,7 +15,8 @@ import type { Sorting } from '@/lib/sort';
  */
 export function SectionCard({
   label, count, startOpen = true, createHref, columns = 'tasks',
-  showSpace = true, showWaiting = false, sorting, headLabel, tone, children,
+  showSpace = true, showWaiting = false, sorting, headLabel, tone, featured = false,
+  children,
 }: {
   label: string;
   count: number;
@@ -39,6 +40,12 @@ export function SectionCard({
   headLabel?: string;
   /** Tints the band so a group reads as Open or Waiting at a glance. */
   tone?: HeadTone;
+  /**
+   * The one card on a page meant to be worked first: a heavier accent border
+   * and an accent title row, so it reads as the place to start rather than
+   * one more card in the stack. Used by Today on All spaces.
+   */
+  featured?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -46,6 +53,7 @@ export function SectionCard({
       className={[
         'card',
         columns === 'spaces' ? 'cols-spaces' : null,
+        featured ? 'card-featured' : null,
       ].filter(Boolean).join(' ')}
       open={startOpen}
     >

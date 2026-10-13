@@ -3,7 +3,9 @@ import { createTestDb } from '@tr/db/testing';
 import type { Db } from '@tr/db';
 import { createTask, completeTask, moveTask, getTask } from '@tr/task-core';
 import { buildServer } from '../../../api/src/server.js';
-import { parseFilters, filtersToQuery, withFilter } from './filters.js';
+import {
+  parseFilters, filtersToQuery, withFilter, todayFocusFilters,
+} from './filters.js';
 import {
   myTasks, waitingTasks, history, spaceSummary, knownAssignees,
 } from './tasks.js';
@@ -136,6 +138,55 @@ describe('myTasks', () => {
     await add('Marketing', 'Call Neil', { assigneeId: 'U_RACHAEL' });
     const rows = await myTasks(db, { space: 'marketing', assignee: 'U_JOSH', q: 'neil' });
     expect(rows).toHaveLength(1);
+  });
+});
+
+describe('the Today card on All spaces', () => {
+  it('shows on the unfiltered page, as open tasks in the today bucket', () => {
+    expect(todayFocusFilters({})).toEqual({ due: 'today', status: 'open' });
+  });
+
+  it('keeps assignee, search and sort, so it narrows with the cards below', () => {
+    expect(todayFocusFilters({ assignee: 'U_JOSH', q: 'invoice', sort: 'space', dir: 'asc' }))
+      .toEqual({
+        assignee: 'U_JOSH', q: 'invoice', sort: 'space', dir: 'asc',
+        due: 'today', status: 'open',
+      });
+  });
+
+  it('stays off on one Space, and under any due chip', () => {
+    expect(todayFocusFilters({ space: 'marketing' })).toBeNull();
+    for (const due of ['overdue', 'today', 'week', 'none'] as const) {
+      expect(todayFocusFilters({ due })).toBeNull();
+    }
+  });
+
+  it('pulls overdue and due-today work from every Space, and nothing else', async () => {
+    const hour = 3_600_000;
+    await add('Marketing', 'Overdue', { dueAt: new Date(Date.now() - 26 * hour) });
+    await add('Client - Yoga Farm', 'Later today', { dueAt: new Date(Date.now() + 2 * hour) });
+    await add('Sales', 'Next week', { dueAt: new Date(Date.now() + 6 * 24 * hour) });
+    await add('Sales', 'No date');
+    const parked = await add('Sales', 'Parked', { dueAt: new Date(Date.now() + hour) });
+    await moveTask(db, parked.id, { status: 'waiting' }, actor);
+    const done = await add('Sales', 'Done already', { dueAt: new Date(Date.now() + hour) });
+    await completeTask(db, done.id, actor);
+
+    const rows = await myTasks(db, todayFocusFilters({})!);
+    expect(rows.map((r) => r.task.title).sort()).toEqual(['Later today', 'Overdue']);
+    // Each row carries its Space, which is what the card's Space column shows.
+    expect(rows.map((r) => r.space.name).sort())
+      .toEqual(['Client - Yoga Farm', 'Marketing']);
+  });
+
+  it('agrees with the Due Today page row for row', async () => {
+    const hour = 3_600_000;
+    await add('Marketing', 'A', { dueAt: new Date(Date.now() + hour) });
+    await add('Sales', 'B', { dueAt: new Date(Date.now() - hour) });
+    await add('Sales', 'C', { dueAt: new Date(Date.now() + 3 * 24 * hour) });
+    const card = await myTasks(db, todayFocusFilters({})!);
+    const page = await myTasks(db, { due: 'today' });
+    expect(card.map((r) => r.task.id).sort()).toEqual(page.map((r) => r.task.id).sort());
   });
 });
 
