@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import Image from 'next/image';
 import { Sidebar, type SidebarSpace } from './Sidebar';
 import { SearchBox } from './SearchBox';
 import { NewTaskPane } from './NewTaskPane';
+import { NewTaskLink } from './NewTaskLink';
 import { Icon } from './Icon';
 import { newTaskHref, newTaskSpace } from '@/lib/display';
 import { assigneeLabels, defaultAssigneeId } from '@/lib/env';
@@ -134,13 +134,13 @@ export function Shell(props: {
                 <SearchBox path={props.searchPath} params={query} />
               ) : null}
               {showNewTask ? (
-                <Link className="btn primary" href={newTaskHref(props.path, query)}>
+                <NewTaskLink className="btn primary" href={newTaskHref(props.path, query)}>
                   <Icon name="plus" />
                   {/* The words drop on a phone so the whole filter row fits one
                       line; the plus and the accessible name carry it there. */}
                   <span className="btn-label">New task</span>
                   <span className="sr-only">New task</span>
-                </Link>
+                </NewTaskLink>
               ) : null}
               {props.pageAction}
             </div>

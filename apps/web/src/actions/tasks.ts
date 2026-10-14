@@ -4,7 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { after } from 'next/server';
 import { WebClient } from '@slack/web-api';
-import { parseDueInput, type Priority, type TaskStatus } from '@tr/task-core';
+import {
+  parseDueInput, resolveDueChoice, type DueWhen, type Priority, type TaskStatus,
+} from '@tr/task-core';
 import { getDb } from '@/db';
 import { currentUser } from '@/user';
 import { timeZone } from '@/lib/env';
@@ -100,6 +102,28 @@ export async function moveTaskAction(
   return result;
 }
 
+const DUE_WHENS: readonly DueWhen[] = ['none', 'today', 'tomorrow', 'date'];
+
+/**
+ * The due date a create or edit form asked for.
+ *
+ * Current forms send `dueWhen` (+ `dueDate`, `dueTime`). A page loaded before
+ * that change still sends a single `dueAt`, so that is still read -- a form
+ * left open across a deploy saves instead of failing.
+ */
+function dueFromForm(formData: FormData): Date | null {
+  const when = String(formData.get('dueWhen') ?? '').trim();
+  if ((DUE_WHENS as readonly string[]).includes(when)) {
+    return resolveDueChoice({
+      when: when as DueWhen,
+      date: String(formData.get('dueDate') ?? ''),
+      time: String(formData.get('dueTime') ?? ''),
+    }, new Date(), timeZone());
+  }
+  const dueRaw = String(formData.get('dueAt') ?? '').trim();
+  return dueRaw.length > 0 ? parseDueInput(dueRaw, timeZone()) : null;
+}
+
 /** The Today card's "Tomorrow" button. Changes the due date and nothing else. */
 export async function postponeToTomorrowAction(taskId: string): Promise<OperationResult> {
   const d = await deps();
@@ -116,7 +140,6 @@ export async function editTaskFormAction(formData: FormData): Promise<OperationR
 
   const taskId = String(formData.get('taskId') ?? '');
   const status = String(formData.get('status') ?? '') as TaskStatus;
-  const dueRaw = String(formData.get('dueAt') ?? '').trim();
   const assignee = String(formData.get('assigneeId') ?? '').trim();
   const waitingOn = String(formData.get('waitingOn') ?? '').trim();
   const details = String(formData.get('details') ?? '');
@@ -128,7 +151,7 @@ export async function editTaskFormAction(formData: FormData): Promise<OperationR
     spaceId: String(formData.get('spaceId') ?? '') || undefined,
     status: status || undefined,
     assigneeId: assignee.length > 0 ? assignee : null,
-    dueAt: dueRaw.length > 0 ? parseDueInput(dueRaw, timeZone()) : null,
+    dueAt: dueFromForm(formData),
     waitingOn: waitingOn.length > 0 ? waitingOn : null,
     details: details.length > 0 ? details : null,
     priority: (priority.length > 0 ? priority : null) as Priority | null,
@@ -142,7 +165,6 @@ export async function createTaskFormAction(formData: FormData): Promise<Operatio
   const d = await deps();
   if (!d) return DENIED;
 
-  const dueRaw = String(formData.get('dueAt') ?? '').trim();
   const assignee = String(formData.get('assigneeId') ?? '').trim();
   const status = String(formData.get('status') ?? '').trim();
   const waitingOn = String(formData.get('waitingOn') ?? '').trim();
@@ -153,7 +175,7 @@ export async function createTaskFormAction(formData: FormData): Promise<Operatio
     title: String(formData.get('title') ?? ''),
     spaceSlug: String(formData.get('spaceSlug') ?? ''),
     assigneeId: assignee.length > 0 ? assignee : null,
-    dueAt: dueRaw.length > 0 ? parseDueInput(dueRaw, timeZone()) : null,
+    dueAt: dueFromForm(formData),
     // Read the same way the edit form reads them, so the two paths agree on
     // what an empty field means: nothing, not an empty string.
     status: (status.length > 0 ? status : null) as CaptureStatus | null,

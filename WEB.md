@@ -353,3 +353,35 @@ checked — recorded because "it builds" and "it works" are different claims:
 
 Test data was deleted afterwards; the database is back to 0 tasks and 12
 Spaces.
+
+## Siri quick capture
+
+`POST /api/capture` lets an Apple Shortcut add a task, so "Hey Siri, add task"
+works without opening anything. It has its own token, `CAPTURE_TOKEN` (set it
+in Vercel; generate with `openssl rand -hex 32`). Unset, it refuses everything.
+
+```text
+POST https://<domain>/api/capture
+Authorization: Bearer <CAPTURE_TOKEN>
+{ "text": "P1 Call Neil about the renewal", "due": "today", "space": "Sales" }
+```
+
+- `text` is read like Slack `/task`: a leading P0-P3 is the priority. A spoken
+  trailing "due today" / "due tomorrow" sets the date.
+- `due` is optional: `today`, `tomorrow`, `none`, or `YYYY-MM-DD`.
+- `space` is optional; without it the task goes to Inbox.
+- The reply is one sentence for Siri to read back, e.g.
+  "Added Call Neil about the renewal to Sales, due today."
+
+Building the Shortcut on an iPhone:
+
+1. Shortcuts → **+** → name it **Add Task** (that name is what you say to Siri).
+2. Add **Dictate Text**.
+3. Optional: add **Choose from Menu** with Today / Tomorrow / No date, and in
+   each branch a **Text** action holding `today`, `tomorrow` or `none`.
+4. Add **Get Contents of URL**: the URL above, Method **POST**, a header
+   `Authorization` = `Bearer <token>`, Request Body **JSON** with
+   `text` = *Dictated Text* (and `due` = the menu's Text, if you added step 3).
+5. Add **Speak Text** with *Contents of URL*.
+
+Then: "Hey Siri, Add Task" → say the task → it is filed and read back.

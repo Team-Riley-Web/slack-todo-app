@@ -216,3 +216,14 @@ it("follows the configured zone for 'today'", async () => {
   expect(await listTasks(db, { due: 'today', timeZone: 'America/Chicago', now })).toHaveLength(1);
   expect(await listTasks(db, { due: 'today', timeZone: 'America/New_York', now })).toHaveLength(0);
 });
+
+it("calls 'overdue' only what was due before today began in Chicago", async () => {
+  const now = new Date('2026-10-14T14:07:00Z'); // 9:07am CDT, Oct 14
+  const due = (title: string, iso: string) =>
+    createTask(db, { title, spaceId: spaceIds['Marketing']!, dueAt: new Date(iso) });
+  await due('Yesterday', '2026-10-13T19:00:00Z');
+  await due('Today, no time', '2026-10-14T05:00:00Z'); // start of Oct 14 CDT
+  await due('Today, 8am (already past)', '2026-10-14T13:00:00Z');
+  const overdue = await listTasks(db, { due: 'overdue', timeZone: 'America/Chicago', now });
+  expect(overdue.map((t) => t.title)).toEqual(['Yesterday']);
+});

@@ -1045,6 +1045,47 @@ a.chip.tone-none[aria-current="true"]:hover    { background: #3b4453; border-col
 
 .stack { display: flex; flex-direction: column; gap: 12px; max-width: 520px; }
 .stack label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+/*
+ * Due: four one-tap pills (No date / Today / Tomorrow / Pick a date) with an
+ * optional time under "Add a time". Real radios, visually hidden, so it is a
+ * keyboard- and screen-reader-native control that needs no JavaScript; the
+ * date input appears only for "Pick a date", and the time hides under
+ * "No date", both via :has().
+ */
+fieldset.due-field {
+  border: 0; padding: 0; margin: 0; min-width: 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.due-field legend { padding: 0; margin-bottom: 4px; font-size: 13px; color: var(--muted); }
+.due-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.stack label.due-choice {
+  display: inline-flex; position: relative; -webkit-tap-highlight-color: transparent;
+}
+.due-choice input {
+  position: absolute; inset: 0; opacity: 0; margin: 0; pointer-events: none;
+}
+.due-choice span {
+  display: inline-flex; align-items: center; height: 34px; padding: 0 14px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  color: var(--fg); font-size: 14px; cursor: pointer; user-select: none;
+}
+.due-choice span:hover { border-color: var(--border-strong); background: var(--header-bg); }
+.due-choice input:checked + span {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.due-choice input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.due-field .due-date { display: none; }
+.due-field:has(input[value="date"]:checked) .due-date { display: flex; }
+.due-field:has(input[value="none"]:checked) .due-time { display: none; }
+.due-time > summary {
+  cursor: pointer; font-size: 13px; color: var(--accent-strong); width: fit-content;
+}
+.due-time > input { margin-top: 6px; }
+@media (pointer: coarse), (max-width: 860px) {
+  .due-choice span { height: 40px; }
+  .due-field input[type="time"] { font-size: 16px; }
+}
+
 /* --- sign in --- */
 
 /*
@@ -1676,3 +1717,10 @@ a.iconbtn .icon { width: 15px; height: 15px; }
   .row .rowactions form.tomorrow button .label { display: none; }
   .row .rowactions form.tomorrow button .icon { display: block; }
 }
+
+/* The page a client-side error lands on (app/error.tsx). */
+.error-screen {
+  max-width: 520px; margin: 15vh auto 0; padding: 0 16px;
+}
+.error-screen h1 { font-size: 20px; margin: 0 0 8px; }
+.error-screen p { color: var(--muted-strong); line-height: 1.5; }

@@ -87,3 +87,63 @@ export function tomorrowAt(
     .set({ hour: time.hour, minute: time.minute, second: time.second, millisecond: 0 })
     .toJSDate();
 }
+
+/** The four ways the web form offers to set a due date. */
+export type DueWhen = 'none' | 'today' | 'tomorrow' | 'date';
+
+export interface DueChoice {
+  when: DueWhen;
+  /** `YYYY-MM-DD`, read only when `when` is 'date'. */
+  date?: string;
+  /** `HH:mm`, optional with any day. Blank means "no particular time". */
+  time?: string;
+}
+
+/**
+ * Turns the form's choice into a due date, in `timeZone`.
+ *
+ * Most due dates are a day, not a moment: "Today" is the start of today, the
+ * same thing a Slack "due today" stores, and it reads "Due today" until
+ * midnight. A time is the exception and only applies when one was given.
+ *
+ * Returns null for "no date", and an Invalid Date for a 'date' choice with an
+ * unreadable or missing date, so the caller's InvalidDueDateError handling
+ * reports it instead of silently saving no date.
+ */
+export function resolveDueChoice(
+  choice: DueChoice, now: Date = new Date(), timeZone: string = DEFAULT_TIME_ZONE
+): Date | null {
+  const today = DateTime.fromJSDate(now, { zone: timeZone }).startOf('day');
+  let day: DateTime;
+  if (choice.when === 'none') return null;
+  if (choice.when === 'today') day = today;
+  else if (choice.when === 'tomorrow') day = today.plus({ days: 1 });
+  else {
+    const raw = choice.date?.trim() ?? '';
+    if (!DATE_ONLY.test(raw)) return new Date(Number.NaN);
+    day = DateTime.fromISO(raw, { zone: timeZone }).startOf('day');
+    if (!day.isValid) return new Date(Number.NaN);
+  }
+  const time = /^(\d{2}):(\d{2})$/.exec(choice.time?.trim() ?? '');
+  if (time) day = day.set({ hour: Number(time[1]), minute: Number(time[2]) });
+  return day.toJSDate();
+}
+
+/**
+ * The inverse, for prefilling the edit form: which choice reproduces this due
+ * date. A due date at local midnight is a day with no time, so its time field
+ * stays empty rather than showing "00:00".
+ */
+export function describeDueChoice(
+  due: Date | null, now: Date = new Date(), timeZone: string = DEFAULT_TIME_ZONE
+): Required<DueChoice> {
+  if (!due) return { when: 'none', date: '', time: '' };
+  const local = DateTime.fromJSDate(due, { zone: timeZone });
+  const days = calendarDaysFrom(due, now, timeZone);
+  const time = local.hour === 0 && local.minute === 0 ? '' : local.toFormat('HH:mm');
+  return {
+    when: days === 0 ? 'today' : days === 1 ? 'tomorrow' : 'date',
+    date: local.toFormat('yyyy-LL-dd'),
+    time,
+  };
+}

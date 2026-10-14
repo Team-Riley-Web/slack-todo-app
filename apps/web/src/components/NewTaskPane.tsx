@@ -6,6 +6,7 @@ import {
 import { createTaskFormVoid } from '@/actions/tasks';
 import { closeNewTaskHref } from '@/lib/display';
 import { SpaceSelect } from '@/components/SpaceSelect';
+import { DueField } from '@/components/DueField';
 
 /** New-task capture in the same URL-driven right pane used for editing. */
 export function NewTaskPane({
@@ -114,10 +115,7 @@ export function NewTaskPane({
             </label>
           ) : null}
 
-          <label>
-            Due
-            <input type="datetime-local" name="dueAt" />
-          </label>
+          <DueField />
 
           {/*
             Waiting on and Details complete the parity with Edit. Before these,

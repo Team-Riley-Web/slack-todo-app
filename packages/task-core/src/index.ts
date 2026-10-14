@@ -41,6 +41,7 @@ export {
 } from './queries.js';
 export {
   DEFAULT_TIME_ZONE, parseDueInput, formatDueInput, calendarDaysFrom, tomorrowAt,
+  resolveDueChoice, describeDueChoice, type DueWhen, type DueChoice,
 } from './due.js';
 export {
   listOpenTasksBySpace, matchesSpaceKeys, PERSONAL_SPACE_SLUG,

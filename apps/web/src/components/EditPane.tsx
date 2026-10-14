@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { PaneShell } from '@/components/PaneShell';
 import type { Db } from '@tr/db';
 import {
-  getTask, listSpaces, assigneeChoices, PRIORITIES, priorityChoice, formatDueInput,
+  getTask, listSpaces, assigneeChoices, PRIORITIES, priorityChoice, describeDueChoice,
   type Space,
 } from '@tr/task-core';
 import { timeZone } from '@/lib/env';
 import { editTaskFormVoid } from '@/actions/tasks';
 import { closeEditHref } from '@/lib/display';
 import { SpaceSelect } from '@/components/SpaceSelect';
+import { DueField } from '@/components/DueField';
 
 /**
  * The edit form, as a pane over the list that is still rendered behind it.
@@ -38,10 +39,9 @@ export async function EditPane({
   const back = closeEditHref(basePath, params);
   const error = Array.isArray(params.error) ? params.error[0] : params.error;
 
-  // datetime-local wants `YYYY-MM-DDTHH:mm`, no zone and no seconds. Shown in
-  // the app's zone, which is the zone the action reads it back in -- it used
-  // to be UTC both ways, so a 9am Slack capture opened here as 14:00.
-  const dueValue = task.due_at ? formatDueInput(task.due_at, timeZone()) : '';
+  // Prefilled in the app's zone, the zone the action reads it back in, so
+  // saving the pane unchanged leaves the due date exactly where it was.
+  const due = describeDueChoice(task.due_at, new Date(), timeZone());
 
   /*
    * Assignees are offered by name, never by raw Slack id. Reading
@@ -126,10 +126,7 @@ export async function EditPane({
             </select>
           </label>
 
-          <label>
-            Due
-            <input type="datetime-local" name="dueAt" defaultValue={dueValue} />
-          </label>
+          <DueField when={due.when} date={due.date} time={due.time} />
 
           <label>
             Waiting on

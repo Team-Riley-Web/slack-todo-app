@@ -21,6 +21,11 @@ function sanitizeLimit(limit: unknown): number {
   return Math.min(Math.floor(limit), MAX_LIMIT);
 }
 
+/** Local midnight at the start of today, in `timeZone`, as an instant. */
+function startOfToday(now: Date, timeZone: string): Date {
+  return DateTime.fromJSDate(now, { zone: timeZone }).startOf('day').toJSDate();
+}
+
 /** Local midnight at the end of today, in `timeZone`, as an instant. */
 function startOfTomorrow(now: Date, timeZone: string): Date {
   return DateTime.fromJSDate(now, { zone: timeZone }).plus({ days: 1 }).startOf('day').toJSDate();
@@ -40,10 +45,9 @@ export interface ListTasksFilter {
    */
   titleContains?: string;
   /**
-   * Bucketed due date. `overdue` and `week` are resolved against now();
-   * `today` means "before tomorrow starts in `timeZone`" -- the calendar day,
-   * overdue work included -- so it ends at local midnight rather than 24
-   * hours from whenever you happen to look.
+   * Bucketed due date, by calendar day in `timeZone`: `overdue` is due before
+   * today started, `today` is due before tomorrow starts (overdue included).
+   * `week` is still the next seven days from now.
    */
   due?: DueBucket;
   /** The zone `due: 'today'` counts in. Defaults to DEFAULT_TIME_ZONE. */
@@ -97,7 +101,11 @@ export async function listTasks(db: Db, filter: ListTasksFilter = {}): Promise<T
   if (filter.due === 'none') {
     where.push(`due_at IS NULL`);
   } else if (filter.due === 'overdue') {
-    where.push(`due_at IS NOT NULL AND due_at < now()`);
+    // Due before TODAY started, in the zone -- the same line the labels draw.
+    // `< now()` made every date-only task due today "overdue" from 12:01am,
+    // while its label still said "Due today".
+    params.push(startOfToday(filter.now ?? new Date(), filter.timeZone ?? DEFAULT_TIME_ZONE));
+    where.push(`due_at IS NOT NULL AND due_at < $${params.length}`);
   } else if (filter.due === 'today') {
     params.push(startOfTomorrow(filter.now ?? new Date(), filter.timeZone ?? DEFAULT_TIME_ZONE));
     where.push(`due_at IS NOT NULL AND due_at < $${params.length}`);
