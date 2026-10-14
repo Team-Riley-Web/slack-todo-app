@@ -6,14 +6,14 @@ export const metadata: Metadata = {
   description: 'Task console for Team Riley',
   /**
    * Declared here rather than through the `app/icon.png` file convention, so
-   * the same 512px source serves the tab icon, the iOS home-screen icon and
-   * the header logo. The convention would need a second copy of the file, and
-   * two copies of an image drift.
+   * the 512px circle logo serves the tab icon and the header logo from one
+   * file. The iOS home-screen icon is its own square, full-bleed image: iOS
+   * masks icons to a rounded square, and the circle left a white ring.
    */
   icons: {
     icon: '/tasks-logo.png',
     shortcut: '/tasks-logo.png',
-    apple: '/tasks-logo.png',
+    apple: '/apple-touch-icon.png',
   },
 };
 
