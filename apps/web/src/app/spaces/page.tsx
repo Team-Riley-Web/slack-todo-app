@@ -55,12 +55,9 @@ export default async function SpacesPage({
       title="Spaces"
       newTask={false}
       pageAction={
-        /* Right end of the toolbar, where New task sits everywhere else, and
-           wearing the same plus. This page's one adding action should not be
-           somewhere different just because what it adds is a Space. */
+        /* Right end of the toolbar, wearing the same plus as New task. */
         <Link className="btn primary" href="/spaces?new=1">
           <Icon name="plus" />
-          {/* The words drop on a phone, exactly as New task's do. */}
           <span className="btn-label">Add Space</span>
           <span className="sr-only">Add Space</span>
         </Link>

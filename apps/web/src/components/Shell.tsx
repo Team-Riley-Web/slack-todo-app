@@ -107,40 +107,23 @@ export function Shell(props: {
           ) : null}
         </header>
         {/*
-          One toolbar row, not two.
-          
-          Search and New task used to sit on the title line, with the filters
-          on a line of their own beneath -- two rows of chrome above every
-          list. They are all controls for the same list, so they belong
-          together.
-          
-          Reading order left to right is: what narrows the list (due pills,
-          then assignee, then search), and last the one thing that ADDS to it.
-          The pills stay left because they are the control you reach for most;
-          the action sits furthest from them so it is never hit by accident.
+          One toolbar row, not two: what narrows the list (due pills, then
+          assignee, then search), and at the right end a page's own action
+          when it has one. New task is not here any more -- it floats, below.
         */}
         {/* No toolbar at all on a page with no filters and no actions -- an
             empty one still drew a 16px strip between the heading and the
             content. */}
-        {props.toolbar || props.searchPath || showNewTask || props.pageAction ? (
+        {props.toolbar || props.searchPath || props.pageAction ? (
         <div className="toolbar">
           {props.toolbar}
           {/* Rendered only when it would hold something: an empty flex item
               still takes the row's gap, so the filters sat 8px short of the
               edge on a page with neither control. */}
-          {props.searchPath || showNewTask || props.pageAction ? (
+          {props.searchPath || props.pageAction ? (
             <div className="page-actions">
               {props.searchPath ? (
                 <SearchBox path={props.searchPath} params={query} />
-              ) : null}
-              {showNewTask ? (
-                <NewTaskLink className="btn primary" href={newTaskHref(props.path, query)}>
-                  <Icon name="plus" />
-                  {/* The words drop on a phone so the whole filter row fits one
-                      line; the plus and the accessible name carry it there. */}
-                  <span className="btn-label">New task</span>
-                  <span className="sr-only">New task</span>
-                </NewTaskLink>
               ) : null}
               {props.pageAction}
             </div>
@@ -148,6 +131,24 @@ export function Shell(props: {
         </div>
         ) : null}
         <div className="content">{props.children}</div>
+        {/*
+          New task, pinned to the bottom-right corner.
+
+          In the toolbar it scrolled away with the top of the list, so adding a
+          task from the bottom of a long one meant scrolling back up first.
+          Fixed, it is always under your thumb. Not rendered while the New task
+          pane is open, and hidden in CSS while an edit pane is, so it never
+          sits over a pane's Save button.
+        */}
+        {showNewTask && !creating ? (
+          <NewTaskLink className="btn primary fab" href={newTaskHref(props.path, query)}>
+            <Icon name="plus" />
+            {/* The words drop on a phone, leaving a round button; the
+                accessible name carries it there. */}
+            <span className="btn-label" aria-hidden="true">New task</span>
+            <span className="sr-only">New task</span>
+          </NewTaskLink>
+        ) : null}
         {creating ? (
           <NewTaskPane
             spaces={spaces}

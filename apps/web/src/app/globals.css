@@ -234,6 +234,28 @@ form.search { margin: 0; flex: none; }
 .search-field:focus-within { border-color: var(--accent); }
 .content { padding-top: 6px; }
 
+/*
+ * New task, floating in the bottom-right corner so it is reachable however far
+ * down a list you are. A pill on a desktop; on a phone, a round button (see
+ * the narrow-screen block). Below the drawer and its controls (55+), above
+ * the list. The content gets room at the bottom so the last row can always
+ * scroll clear of it.
+ */
+.btn.fab {
+  position: fixed; z-index: 30;
+  right: calc(24px + env(safe-area-inset-right));
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 44px; padding: 0 18px; border-radius: 999px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgb(20 30 70 / .22), 0 1px 3px rgb(20 30 70 / .16);
+}
+.btn.fab .icon { width: 18px; height: 18px; }
+.btn.fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.main:has(> .fab) .content { padding-bottom: 72px; }
+/* Gone while any pane -- New task or edit -- is open over the list. */
+body:has(.pane) .btn.fab { display: none; }
+
 /* --- the rail --- */
 
 /*
@@ -1340,6 +1362,14 @@ button.danger:hover { border-color: var(--danger); }
    * below it.
    */
   .main { padding: 0 14px 40px; }
+  /* The thumb-reach version: a 56px circle, the plus alone. */
+  .btn.fab {
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: 56px; height: 56px; padding: 0; justify-content: center;
+  }
+  .btn.fab .btn-label { display: none; }
+  .btn.fab .icon { width: 24px; height: 24px; }
   /*
    * Assignee, due date and age drop out. The Space keeps a narrow column:
    * there is no sub-line to fall back on any more, so hiding it would leave
