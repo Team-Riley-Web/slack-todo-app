@@ -13,7 +13,7 @@
  */
 export type IconName =
   | 'inbox' | 'calendar' | 'paused' | 'done' | 'space' | 'client' | 'cog'
-  | 'search' | 'pencil' | 'trash' | 'plus' | 'menu' | 'close' | 'tomorrow';
+  | 'search' | 'pencil' | 'trash' | 'plus' | 'menu' | 'close' | 'flag';
 
 const PATHS: Record<IconName, string> = {
   /*
@@ -61,7 +61,8 @@ const PATHS: Record<IconName, string> = {
   close: 'M6 6l12 12M18 6L6 18',
   /* "Tomorrow": an arrow running up to a bar -- on to the next one. The phone
      face of the Today card's Tomorrow button, where the word does not fit. */
-  tomorrow: 'M4.5 12h11M11.5 7.5L16 12l-4.5 4.5M19.5 6v12',
+  // Priorities: a flag on a pole.
+  flag: 'M5.5 20.5v-16M5.5 4.5h12l-2.5 4 2.5 4h-12',
 };
 
 export function Icon({ name }: { name: IconName }) {

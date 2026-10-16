@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { PRIORITY_LABELS, type Priority, type Space, type Task } from '@tr/task-core';
 import {
-  completeTaskAction, reopenTaskAction, moveTaskAction, postponeToTomorrowAction,
+  completeTaskAction, reopenTaskAction, moveTaskAction,
 } from '@/actions/tasks';
 import { ageLabel, dueLabel, shortSpaceName, taskEditHref } from '@/lib/display';
 import { timeZone } from '@/lib/env';
-import { Icon } from './Icon';
 import { TickButton } from './TickButton';
 
 export interface TaskRowProps {
@@ -22,11 +21,6 @@ export interface TaskRowProps {
    * repeating it on every row is the same noise the Slack card had.
    */
   showSpace?: boolean;
-  /**
-   * Adds a one-click "Tomorrow" beside Wait, for the Today card: the task's
-   * due date moves to tomorrow at the same time of day.
-   */
-  showTomorrow?: boolean;
   /** The page the row sits on, so Edit opens the pane over THIS view. */
   basePath?: string;
   params?: Record<string, string | string[] | undefined>;
@@ -83,7 +77,7 @@ function assigneeName(
  * page cannot be triggered by a stray click in a list.
  */
 export function TaskRow({
-  task, space, showWaiting, showSpace = true, showTomorrow = false, assigneeLabels,
+  task, space, showWaiting, showSpace = true, assigneeLabels,
   basePath = '/', params = {},
 }: TaskRowProps) {
   const done = task.status === 'completed';
@@ -123,7 +117,6 @@ export function TaskRow({
           // above carries the same classes for the same reason.
           showSpace ? null : 'nospace',
           showWaiting ? 'haswait' : null,
-          showTomorrow ? 'hastomorrow' : null,
         ].filter(Boolean).join(' ')
       }
     >
@@ -230,30 +223,6 @@ export function TaskRow({
       </span>
 
       <span className="rowactions">
-        {showTomorrow && task.status === 'open' && (
-          /*
-           * One click, no pane: the due date moves to tomorrow at the time of
-           * day it already had. Like the tick, a form posting a server action,
-           * so it works without client JavaScript. On a phone the word gives
-           * way to an arrow; the accessible name says the same thing on both.
-           */
-          <form
-            className="tomorrow"
-            action={async () => {
-              'use server';
-              await postponeToTomorrowAction(task.id);
-            }}
-          >
-            <button
-              type="submit"
-              title="Move to tomorrow, same time"
-              aria-label={`Move ${task.title} to tomorrow`}
-            >
-              <span className="label">Tomorrow</span>
-              <Icon name="tomorrow" />
-            </button>
-          </form>
-        )}
         {task.status === 'open' && (
           <form
             action={async () => {
@@ -284,7 +253,6 @@ export function TaskList(props: {
   empty: string;
   showWaiting?: boolean;
   showSpace?: boolean;
-  showTomorrow?: boolean;
   basePath?: string;
   params?: Record<string, string | string[] | undefined>;
   assigneeLabels?: Record<string, string>;
@@ -301,7 +269,6 @@ export function TaskList(props: {
           space={space}
           showWaiting={props.showWaiting}
           showSpace={props.showSpace}
-          showTomorrow={props.showTomorrow}
           basePath={props.basePath}
           params={props.params}
           assigneeLabels={props.assigneeLabels}

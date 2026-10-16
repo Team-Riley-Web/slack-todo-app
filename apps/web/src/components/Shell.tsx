@@ -108,22 +108,30 @@ export function Shell(props: {
         </header>
         {/*
           One toolbar row, not two: what narrows the list (due pills, then
-          assignee, then search), and at the right end a page's own action
-          when it has one. New task is not here any more -- it floats, below.
+          assignee, then search), and at the right end the thing that adds to
+          it -- New task, or a page's own action. On a desktop the row sticks
+          to the top of the screen, so New task is reachable however far down
+          a list you are; on a phone it gives way to the floating button below.
         */}
         {/* No toolbar at all on a page with no filters and no actions -- an
             empty one still drew a 16px strip between the heading and the
             content. */}
-        {props.toolbar || props.searchPath || props.pageAction ? (
+        {props.toolbar || props.searchPath || showNewTask || props.pageAction ? (
         <div className="toolbar">
           {props.toolbar}
           {/* Rendered only when it would hold something: an empty flex item
               still takes the row's gap, so the filters sat 8px short of the
               edge on a page with neither control. */}
-          {props.searchPath || props.pageAction ? (
+          {props.searchPath || showNewTask || props.pageAction ? (
             <div className="page-actions">
               {props.searchPath ? (
                 <SearchBox path={props.searchPath} params={query} />
+              ) : null}
+              {showNewTask ? (
+                <NewTaskLink className="btn primary new-task" href={newTaskHref(props.path, query)}>
+                  <Icon name="plus" />
+                  <span className="btn-label">New task</span>
+                </NewTaskLink>
               ) : null}
               {props.pageAction}
             </div>
@@ -132,20 +140,14 @@ export function Shell(props: {
         ) : null}
         <div className="content">{props.children}</div>
         {/*
-          New task, pinned to the bottom-right corner.
-
-          In the toolbar it scrolled away with the top of the list, so adding a
-          task from the bottom of a long one meant scrolling back up first.
-          Fixed, it is always under your thumb. Not rendered while the New task
-          pane is open, and hidden in CSS while an edit pane is, so it never
-          sits over a pane's Save button.
+          New task on a phone, pinned to the bottom-right corner under your
+          thumb. Hidden on a desktop, where the sticky toolbar carries it. Not
+          rendered while the New task pane is open, and hidden in CSS while an
+          edit pane is, so it never sits over a pane's Save button.
         */}
         {showNewTask && !creating ? (
           <NewTaskLink className="btn primary fab" href={newTaskHref(props.path, query)}>
             <Icon name="plus" />
-            {/* The words drop on a phone, leaving a round button; the
-                accessible name carries it there. */}
-            <span className="btn-label" aria-hidden="true">New task</span>
             <span className="sr-only">New task</span>
           </NewTaskLink>
         ) : null}

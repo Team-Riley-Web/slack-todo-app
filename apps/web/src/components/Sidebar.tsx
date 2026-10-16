@@ -175,6 +175,7 @@ export function Sidebar({
         <ul className="group">
           {navItem('/', 'My Tasks', 'inbox')}
           {navItem('/today', 'Due Today', 'calendar')}
+          {navItem('/priorities', 'Priorities', 'flag')}
           {navItem('/waiting', 'Waiting', 'paused')}
           {navItem('/history', 'Completed', 'done')}
         </ul>

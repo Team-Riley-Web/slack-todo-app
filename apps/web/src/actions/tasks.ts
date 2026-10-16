@@ -12,7 +12,6 @@ import { currentUser } from '@/user';
 import { timeZone } from '@/lib/env';
 import {
   completeTaskOp, reopenTaskOp, moveTaskOp, editTaskOp, createTaskOp,
-  postponeToTomorrowOp,
   type OperationDeps, type OperationResult, type CaptureStatus,
 } from '@/operations/tasks';
 
@@ -70,7 +69,7 @@ const DENIED: OperationResult = { ok: false, error: 'You are not signed in.' };
 function refresh(): void {
   // Every list view can contain the task that changed, so refresh them all
   // rather than guessing which one the user is looking at.
-  for (const path of ['/', '/waiting', '/history', '/spaces']) {
+  for (const path of ['/', '/today', '/priorities', '/waiting', '/history', '/spaces']) {
     revalidatePath(path);
   }
 }
@@ -122,15 +121,6 @@ function dueFromForm(formData: FormData): Date | null {
   }
   const dueRaw = String(formData.get('dueAt') ?? '').trim();
   return dueRaw.length > 0 ? parseDueInput(dueRaw, timeZone()) : null;
-}
-
-/** The Today card's "Tomorrow" button. Changes the due date and nothing else. */
-export async function postponeToTomorrowAction(taskId: string): Promise<OperationResult> {
-  const d = await deps();
-  if (!d) return DENIED;
-  const result = await postponeToTomorrowOp(d, taskId);
-  refresh();
-  return result;
 }
 
 /** Called only from the dedicated edit form, never from a list row. */

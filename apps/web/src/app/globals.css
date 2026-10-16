@@ -235,11 +235,25 @@ form.search { margin: 0; flex: none; }
 .content { padding-top: 6px; }
 
 /*
- * New task, floating in the bottom-right corner so it is reachable however far
- * down a list you are. A pill on a desktop; on a phone, a round button (see
- * the narrow-screen block). Below the drawer and its controls (55+), above
- * the list. The content gets room at the bottom so the last row can always
- * scroll clear of it.
+ * The toolbar sticks to the top of the screen on a desktop, so New task at
+ * its right end is reachable however far down a list you are. Opaque, or the
+ * rows would scroll through it; full-bleed across .main's gutters so they
+ * vanish under an edge rather than a column of their own. Below the panes and
+ * their scrim (4+), above the list.
+ */
+@media (min-width: 861px) {
+  .toolbar {
+    position: sticky; top: 0; z-index: 3;
+    margin: 0 -28px; padding: 12px 28px 8px;
+    background: var(--bg);
+  }
+}
+
+/*
+ * New task on a phone: floating in the bottom-right corner, in thumb reach.
+ * On a desktop it lives in the sticky toolbar instead. Below the drawer and
+ * its controls (55+), above the list. The content gets room at the bottom so
+ * the last row can always scroll clear of it.
  */
 .btn.fab {
   position: fixed; z-index: 30;
@@ -252,9 +266,15 @@ form.search { margin: 0; flex: none; }
 }
 .btn.fab .icon { width: 18px; height: 18px; }
 .btn.fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.main:has(> .fab) .content { padding-bottom: 72px; }
 /* Gone while any pane -- New task or edit -- is open over the list. */
 body:has(.pane) .btn.fab { display: none; }
+@media (min-width: 861px) {
+  .btn.fab { display: none; }
+}
+@media (max-width: 860px) {
+  .main:has(> .fab) .content { padding-bottom: 72px; }
+  .toolbar .new-task { display: none; }
+}
 
 /* --- the rail --- */
 
@@ -695,20 +715,6 @@ ul.rows li.row.task.selected:hover {
   background: var(--surface); border: 1px solid var(--border); color: var(--muted);
   border-radius: var(--radius); padding: 3px 8px; font-size: 12px; cursor: pointer;
 }
-/*
- * The Today card's one-click Tomorrow sits beside Wait, so its rows take a
- * wider actions track -- and the header above them takes the same class, or
- * every column after Due would sit a few pixels out of line with its label.
- * The word on a desktop; the arrow only on a phone, where the word won't fit.
- */
-.row.hastomorrow {
-  grid-template-columns: var(--tick-w) minmax(0, 1fr) 128px 110px 92px 150px;
-}
-.row .rowactions form.tomorrow button {
-  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
-  color: var(--accent-strong); border-color: var(--col-border);
-}
-.row .rowactions form.tomorrow button .icon { display: none; width: 18px; height: 18px; }
 .row .rowactions button:hover {
   color: var(--fg); background: var(--header-bg); border-color: var(--border-strong);
 }
@@ -1731,21 +1737,47 @@ a.iconbtn .icon { width: 15px; height: 15px; }
 }
 
 /*
- * Phones: the actions column is hidden on every list (the 860px block above),
- * but the Today card keeps its Tomorrow -- it is the one row action you reach
- * for while working down a list on a phone. A 40px arrow button, the touch
- * size the toolbar controls use; Wait stays off, as it is on every other row.
- *
- * Its own block at the end of the file on purpose: these rules have to come
- * after the 860px rules they override, at the same specificity.
+ * Phone task rows. Its own block at the end of the file on purpose: these
+ * rules have to come after the 860px rules they override.
  */
 @media (max-width: 860px) {
-  .row.hastomorrow { grid-template-columns: var(--tick-w) minmax(0, 1fr) 84px 44px; }
-  .row.hastomorrow .rowactions { display: flex; }
-  .row.hastomorrow .rowactions form:not(.tomorrow) { display: none; }
-  .row .rowactions form.tomorrow button { width: 40px; height: 40px; padding: 0; }
-  .row .rowactions form.tomorrow button .label { display: none; }
-  .row .rowactions form.tomorrow button .icon { display: block; }
+  /*
+   * Titles get two lines on a phone, then an ellipsis. One line clipped most
+   * titles at 390px to a few words; two is enough to recognise a task while
+   * the row stays compact.
+   */
+  .row.task .title a {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    line-clamp: 2; white-space: normal; overflow-wrap: anywhere;
+  }
+  /*
+   * The tick sits on the title's FIRST line, not the middle of the row: a
+   * two-line title (or a title with the Space under it) otherwise floats the
+   * circle between lines, away from the words it completes. The form is one
+   * line tall (`1lh`, the title's own line height) and centres the circle in
+   * it.
+   */
+  .row.task { align-items: start; }
+  .row.task form.tick { height: 1lh; }
+  /*
+   * A list that shows the Space (Today, Priorities, the report views) puts it
+   * under the title, small and light, instead of in an 84px column. The title
+   * gets that width back and the Space still reads on every row. The header
+   * drops its Space label to match.
+   */
+  .row.task:not(.nospace) {
+    grid-template-columns: var(--tick-w) minmax(0, 1fr);
+    grid-template-areas: "tick title" "tick space";
+    row-gap: 2px;
+  }
+  .row.task:not(.nospace) > .tick { grid-area: tick; }
+  .row.task:not(.nospace) > .title { grid-area: title; }
+  details.card .row.task:not(.nospace) > .space {
+    grid-area: space; padding-right: 12px;
+    color: var(--muted); font-size: 12px; font-weight: 400;
+  }
+  .row.head:not(.nospace) { grid-template-columns: var(--tick-w) minmax(0, 1fr); }
+  .row.head:not(.nospace) .space { display: none; }
 }
 
 /* The page a client-side error lands on (app/error.tsx). */

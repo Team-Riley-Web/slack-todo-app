@@ -15,7 +15,7 @@ import type { Sorting } from '@/lib/sort';
  */
 export function SectionCard({
   label, count, startOpen = true, createHref, columns = 'tasks',
-  showSpace = true, showWaiting = false, showTomorrow = false, sorting, headLabel, tone,
+  showSpace = true, showWaiting = false, sorting, headLabel, tone,
   featured = false, children,
 }: {
   label: string;
@@ -34,8 +34,6 @@ export function SectionCard({
   showSpace?: boolean;
   /** Must match the rows' `showWaiting`, for the same reason. */
   showWaiting?: boolean;
-  /** Must match the rows' `showTomorrow`: it widens the actions track. */
-  showTomorrow?: boolean;
   /** When given, column labels become links that order the list. */
   sorting?: Sorting;
   /** What the first cell of the band says. Defaults to the column's own name. */
@@ -87,7 +85,6 @@ export function SectionCard({
             sorting={sorting}
             showSpace={showSpace}
             showWaiting={showWaiting}
-            showTomorrow={showTomorrow}
           />
         ) : null}
         {columns === 'spaces' && count > 0 ? (
@@ -163,14 +160,13 @@ export type HeadTone = 'open' | 'waiting';
  * than colour carrying meaning on its own.
  */
 export function ColumnHead({
-  label, tone, sorting, showSpace = true, showWaiting = false, showTomorrow = false,
+  label, tone, sorting, showSpace = true, showWaiting = false,
 }: {
   label?: string;
   tone?: HeadTone;
   sorting?: Sorting;
   showSpace?: boolean;
   showWaiting?: boolean;
-  showTomorrow?: boolean;
 }) {
   return (
     <div
@@ -180,7 +176,6 @@ export function ColumnHead({
         label ? 'head-group' : null,
         showSpace ? null : 'nospace',
         showWaiting ? 'haswait' : null,
-        showTomorrow ? 'hastomorrow' : null,
       ].filter(Boolean).join(' ')}
       /* Plain labels are hidden from screen readers -- read out of a grid that
          is not a real table they are noise. Sort links are controls, and a

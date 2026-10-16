@@ -53,6 +53,7 @@ export default async function MyTasksPage({
    */
   const only = spaceBySlug(spaces, filters.space);
 
+
   // The rail comes from the same summary the /spaces page uses, so a count
   // there and a count here can never disagree.
   const railSpaces = (await spaceSummary(db)).map(({ space, open, waiting }) => ({
@@ -147,8 +148,11 @@ export default async function MyTasksPage({
            * The one card on this page that keeps the Space column, because it
            * is the one card that mixes Spaces -- every card below names its
            * Space once in its title. Each row is one decision: tick it done,
-           * push it to Tomorrow (same time of day), or open its title for
-           * anything else.
+           * or open its title for anything else.
+           *
+           * Anything due today OR EARLIER is here, so a task marked Today
+           * stays in this card every day until it is completed -- it does
+           * not drop out at midnight.
            *
            * The tasks also stay in their Space's card below. This is a lens
            * on the list, not a second list, so a Space's count never changes
@@ -161,12 +165,10 @@ export default async function MyTasksPage({
               label="Today"
               count={today.length}
               showSpace
-              showTomorrow
             >
               <TaskList
                 rows={sortRows(today, sortBy, assigneeLabels())}
                 showSpace
-                showTomorrow
                 empty="Nothing due today."
                 assigneeLabels={assigneeLabels()}
                 basePath="/"
