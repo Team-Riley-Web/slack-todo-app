@@ -8,6 +8,6 @@
     "@tr/db": "workspace:*",
     "@tr/task-core": "workspace:*",
     "fastify": "^5.1.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.6.1"
   }
 }

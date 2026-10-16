@@ -26,7 +26,7 @@
     "vitest": "^2.1.0",
     "@types/node": "^22.7.0",
     "tsx": "^4.19.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "@tr/db": "workspace:*",
     "@tr/task-core": "workspace:*",
     "@tr/slack-ui": "workspace:*",

@@ -9,7 +9,7 @@
     "@tr/task-core": "workspace:*",
     "@tr/importer": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.6.1"
   },
   "exports": {
     ".": "./src/index.ts",
