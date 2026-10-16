@@ -9,7 +9,7 @@
     "./http": "./src/http.ts"
   },
   "dependencies": {
-    "@slack/bolt": "^4.2.0",
+    "@slack/bolt": "^4.7.3",
     "@tr/db": "workspace:*",
     "@tr/slack-ui": "workspace:*",
     "@tr/task-core": "workspace:*",
