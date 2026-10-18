@@ -174,7 +174,7 @@ importers:
   packages/scheduler:
     dependencies:
       '@slack/types':
-        specifier: ^2.14.0
+        specifier: ^2.22.0
         version: 2.22.0
       '@slack/web-api':
         specifier: ^7.19.0
@@ -214,7 +214,7 @@ importers:
   packages/slack-ui:
     dependencies:
       '@slack/types':
-        specifier: ^2.14.0
+        specifier: ^2.22.0
         version: 2.22.0
       '@tr/importer':
         specifier: workspace:*
