@@ -27,7 +27,7 @@ importers:
         specifier: ^22.7.0
         version: 22.20.2
       dotenv:
-        specifier: ^16.4.5
+        specifier: ^16.6.1
         version: 16.6.1
       tsx:
         specifier: ^4.19.0
@@ -48,7 +48,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/task-core
       dotenv:
-        specifier: ^16.4.5
+        specifier: ^16.6.1
         version: 16.6.1
       fastify:
         specifier: ^5.1.0
@@ -72,7 +72,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/task-core
       dotenv:
-        specifier: ^16.4.5
+        specifier: ^16.6.1
         version: 16.6.1
 
   apps/web:
@@ -168,7 +168,7 @@ importers:
         specifier: workspace:*
         version: link:../task-core
       dotenv:
-        specifier: ^16.4.5
+        specifier: ^16.6.1
         version: 16.6.1
 
   packages/scheduler:
