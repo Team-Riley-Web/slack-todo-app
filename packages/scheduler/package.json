@@ -12,11 +12,11 @@
     "@tr/slack-sync": "workspace:*",
     "@tr/slack-ui": "workspace:*",
     "@tr/task-core": "workspace:*",
-    "luxon": "^3.5.0",
+    "luxon": "^3.7.2",
     "@slack/types": "^2.22.0",
     "@slack/web-api": "^7.19.0"
   },
   "devDependencies": {
-    "@types/luxon": "^3.4.2"
+    "@types/luxon": "^3.7.6"
   }
 }
