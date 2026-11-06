@@ -7,7 +7,7 @@
   "dependencies": {
     "@tr/db": "workspace:*",
     "@tr/task-core": "workspace:*",
-    "fastify": "^5.12.7",
+    "fastify": "^5.12.8",
     "dotenv": "^16.6.1"
   }
 }
