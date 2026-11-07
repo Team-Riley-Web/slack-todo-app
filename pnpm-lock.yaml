@@ -124,7 +124,7 @@ importers:
   packages/db:
     dependencies:
       '@electric-sql/pglite':
-        specifier: ^0.5.14
+        specifier: ^0.5.15
         version: 0.5.15
       pg:
         specifier: ^8.23.1
