@@ -124,8 +124,8 @@ importers:
   packages/db:
     dependencies:
       '@electric-sql/pglite':
-        specifier: ^0.5.15
-        version: 0.5.15
+        specifier: ^0.5.16
+        version: 0.5.16
       pg:
         specifier: ^8.23.1
         version: 8.23.1
@@ -259,8 +259,8 @@ packages:
       nodemailer:
         optional: true
 
-  '@electric-sql/pglite@0.5.15':
-    resolution: {integrity: sha512-ERZWgaRTxueGV4cvL1tfpAOzFCWTXoUtbCBqnf2FhHDVs/so9eAKaanvrwWF9Dntx7BYsmFQujVQ0/B4S8Mmiw==}
+  '@electric-sql/pglite@0.5.16':
+    resolution: {integrity: sha512-Nj8KcIsJL748W408U2N8q4+9IlONdpRIU8MJypIAAINMJ5nqKyqpX7Mgg/5XKkXiAib3AoZGR6hnJFlrlLBrcg==}
 
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
@@ -2090,7 +2090,7 @@ snapshots:
       preact: 10.24.3
       preact-render-to-string: 6.5.11(preact@10.24.3)
 
-  '@electric-sql/pglite@0.5.15': {}
+  '@electric-sql/pglite@0.5.16': {}
 
   '@emnapi/runtime@1.11.3':
     dependencies:
